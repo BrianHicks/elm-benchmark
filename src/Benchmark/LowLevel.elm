@@ -27,6 +27,7 @@ This API exposes the raw tasks necessary to create higher-level benchmarking abs
 @docs runTimes
 -}
 
+import List.Extra exposing (greedyGroupsOf)
 import Native.Benchmark
 import Task exposing (Task)
 import Time exposing (Time)
@@ -131,4 +132,7 @@ runTimes : Int -> Task Error Time -> Task Error (List Time)
 runTimes n benchmark =
     List.range 1 n
         |> List.map (\_ -> benchmark)
+        |> greedyGroupsOf 3000
+        |> List.map Task.sequence
         |> Task.sequence
+        |> Task.map List.concat
