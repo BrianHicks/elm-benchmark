@@ -2,13 +2,17 @@
 
 Benchmarking for Elm.
 
-**Status**: Pre 1.0.0. `Benchmark.LowLevel` is pretty well fleshed out, but the higher-level APIs are not there yet.
+**Status**: Pre 1.0.0.
+[`Benchmark.LowLevel`](src/Benchmark/LowLevel.elm) is more-or-less done, depending on the [higher-level API](src/Benchmark.elm)'s needs changing.
+We have the first draft of a [browser runner](src/Benchmark/Runner.elm) and an [example of it's use](src/Example.elm).
 
 ## Overview
 
 `Benchmark.LowLevel` provides tasks to get high-resolution run time for functions.
 
-High level API (`Benchmark`) to be determined.
+The higher-level API has named constructor functions that mirror the lower-level constructors.
+So where `Benchmark.LowLevel` has `measure` through `measure8`, `Benchmark` has `benchmark` through `benchmark8`.
+It can also construct suites of benchmarks.
 
 ## Prior Art
 
