@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "benchmark Elm code",
-    "repository": "https://github.com/BrianHicks/elm-benchmark",
+    "repository": "https://github.com/BrianHicks/elm-benchmark.git",
     "license": "BSD3",
     "source-directories": [
         "src"
