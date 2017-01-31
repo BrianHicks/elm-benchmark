@@ -41,14 +41,15 @@ benchmarkView benchmark =
             Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
 
         Benchmark.Complete name (Ok ( sampleSize, meanTime )) ->
-            Html.dl
+            Html.section
                 []
-                [ Html.dt [] [ Html.text "Name" ]
-                , Html.dd [] [ Html.text name ]
-                , Html.dt [] [ Html.text "Sample Size" ]
-                , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
-                , Html.dt [] [ Html.text "Mean Run Time" ]
-                , Html.dd [] [ Html.text <| toString meanTime ++ " ms/run" ]
+                [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
+                , Html.dl []
+                    [ Html.dt [] [ Html.text "Sample Size" ]
+                    , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
+                    , Html.dt [] [ Html.text "Mean Run Time" ]
+                    , Html.dd [] [ Html.text <| toString meanTime ++ " ms/run" ]
+                    ]
                 ]
 
         Benchmark.Suite name benchmarks ->
