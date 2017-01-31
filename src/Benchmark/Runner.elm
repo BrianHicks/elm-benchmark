@@ -34,23 +34,25 @@ update cmd model =
 benchmarkView : Benchmark -> Html Msg
 benchmarkView benchmark =
     case benchmark of
-        Benchmark.Pending name _ ->
-            Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" pending" ]
+        Benchmark.Benchmark name _ status ->
+            case status of
+                Benchmark.Pending ->
+                    Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" pending" ]
 
-        Benchmark.Complete name (Err err) ->
-            Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
+                Benchmark.Complete (Err err) ->
+                    Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
 
-        Benchmark.Complete name (Ok ( sampleSize, meanTime )) ->
-            Html.section
-                []
-                [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
-                , Html.dl []
-                    [ Html.dt [] [ Html.text "Sample Size" ]
-                    , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
-                    , Html.dt [] [ Html.text "Mean Run Time" ]
-                    , Html.dd [] [ Html.text <| toString meanTime ++ " ms/run" ]
-                    ]
-                ]
+                Benchmark.Complete (Ok ( sampleSize, meanTime )) ->
+                    Html.section
+                        []
+                        [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
+                        , Html.dl []
+                            [ Html.dt [] [ Html.text "Sample Size" ]
+                            , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
+                            , Html.dt [] [ Html.text "Mean Run Time" ]
+                            , Html.dd [] [ Html.text <| toString meanTime ++ " ms/run" ]
+                            ]
+                        ]
 
         Benchmark.Suite name benchmarks ->
             Html.section

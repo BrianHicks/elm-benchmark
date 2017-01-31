@@ -3,7 +3,7 @@ module Benchmark exposing (..)
 {-| Benchmark Elm Programs
 
 # Benchmarks and Suites
-@docs Benchmark, Stats
+@docs Benchmark, Status, Stats
 
 # Creation
 @docs suite, benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8
@@ -17,11 +17,20 @@ import Task exposing (Task)
 import Time exposing (Time)
 
 
-{-| Benchmarks in various states of completion and grouping
+-- TODO: Running, when we can output status
+
+
+{-| The status of a benchmark run
+-}
+type Status
+    = Pending
+    | Complete (Result Error Stats)
+
+
+{-| Benchmarks in various groupings
 -}
 type Benchmark
-    = Pending String (Task Error Time)
-    | Complete String (Result Error Stats)
+    = Benchmark String (Task Error Time) Status
     | Suite String (List Benchmark)
 
 
@@ -40,11 +49,13 @@ run benchmark msg =
 toTask : (Task Error Time -> Task Error Stats) -> Benchmark -> Task Error Benchmark
 toTask runner benchmark =
     case benchmark of
-        Pending name task ->
-            runner task |> Task.andThen (\res -> Complete name (Ok res) |> Task.succeed)
+        Benchmark name task status ->
+            case status of
+                Pending ->
+                    runner task |> Task.andThen (Ok >> Complete >> Benchmark name task >> Task.succeed)
 
-        Complete _ _ ->
-            Task.succeed benchmark
+                Complete _ ->
+                    Task.succeed benchmark
 
         Suite name benchmarks ->
             benchmarks
@@ -126,7 +137,7 @@ measuring.
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
-    Pending name <| LowLevel.measure fn
+    Benchmark name (LowLevel.measure fn) Pending
 
 
 {-| Benchmark a function with a single argument.
@@ -137,7 +148,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark1 : String -> (a -> b) -> a -> Benchmark
 benchmark1 name fn a =
-    Pending name <| LowLevel.measure1 fn a
+    Benchmark name (LowLevel.measure1 fn a) Pending
 
 
 {-| Benchmark a function with two arguments.
@@ -148,7 +159,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark2 : String -> (a -> b -> c) -> a -> b -> Benchmark
 benchmark2 name fn a b =
-    Pending name <| LowLevel.measure2 fn a b
+    Benchmark name (LowLevel.measure2 fn a b) Pending
 
 
 {-| Benchmark a function with three arguments.
@@ -159,7 +170,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark3 : String -> (a -> b -> c -> d) -> a -> b -> c -> Benchmark
 benchmark3 name fn a b c =
-    Pending name <| LowLevel.measure3 fn a b c
+    Benchmark name (LowLevel.measure3 fn a b c) Pending
 
 
 {-| Benchmark a function with four arguments.
@@ -168,7 +179,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark4 : String -> (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Benchmark
 benchmark4 name fn a b c d =
-    Pending name <| LowLevel.measure4 fn a b c d
+    Benchmark name (LowLevel.measure4 fn a b c d) Pending
 
 
 {-| Benchmark a function with five arguments.
@@ -177,7 +188,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark5 : String -> (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Benchmark
 benchmark5 name fn a b c d e =
-    Pending name <| LowLevel.measure5 fn a b c d e
+    Benchmark name (LowLevel.measure5 fn a b c d e) Pending
 
 
 {-| Benchmark a function with six arguments.
@@ -186,7 +197,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark6 : String -> (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Benchmark
 benchmark6 name fn a b c d e f =
-    Pending name <| LowLevel.measure6 fn a b c d e f
+    Benchmark name (LowLevel.measure6 fn a b c d e f) Pending
 
 
 {-| Benchmark a function with seven arguments.
@@ -195,7 +206,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark7 : String -> (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Benchmark
 benchmark7 name fn a b c d e f g =
-    Pending name <| LowLevel.measure7 fn a b c d e f g
+    Benchmark name (LowLevel.measure7 fn a b c d e f g) Pending
 
 
 {-| Benchmark a function with eight arguments.
@@ -204,4 +215,4 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark8 : String -> (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Benchmark
 benchmark8 name fn a b c d e f g h =
-    Pending name <| LowLevel.measure8 fn a b c d e f g h
+    Benchmark name (LowLevel.measure8 fn a b c d e f g h) Pending
