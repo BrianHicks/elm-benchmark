@@ -6,7 +6,9 @@ Benchmarking for Elm.
 
 ## Overview
 
-`Benchmark.LowLevel` provides tasks to
+`Benchmark.LowLevel` provides tasks to get high-resolution run time for functions.
+
+High level API (`Benchmark`) to be determined.
 
 ## Prior Art
 
