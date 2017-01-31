@@ -9,15 +9,16 @@ module Benchmark exposing (..)
 @docs suite, benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8
 
 # Runners
-@docs run, withRunner, defaultRunner, timebox
+@docs run, withRunner, defaultRunner, timebox, times
 -}
 
-import Benchmark.LowLevel as LowLevel exposing (Error(..), runTimes)
+import Benchmark.LowLevel as LowLevel exposing (Error(..))
 import Task exposing (Task)
 import Time exposing (Time)
 
 
--- TODO: Running, when we can output status
+-- Benchmarks and Suites
+-- TODO: Status should have Running, when we can output status
 
 
 {-| The status of a benchmark run
@@ -41,105 +42,13 @@ type alias Stats =
     ( Int, Time )
 
 
-{-| -}
-run : Benchmark -> (Result Error Benchmark -> msg) -> Cmd msg
-run benchmark msg =
-    toTask benchmark |> Task.attempt msg
+stats : Int -> Time -> Stats
+stats sampleSize meanRuntime =
+    ( sampleSize, meanRuntime )
 
 
-toTask : Benchmark -> Task Error Benchmark
-toTask benchmark =
-    case benchmark of
-        Benchmark name task status ->
-            case status of
-                NoRunner ->
-                    Task.fail RunnerNotSet
 
-                Pending runner ->
-                    runner |> Task.andThen (Ok >> Complete >> Benchmark name task >> Task.succeed)
-
-                Complete _ ->
-                    Task.succeed benchmark
-
-        Suite name benchmarks ->
-            benchmarks
-                |> List.map toTask
-                |> Task.sequence
-                |> Task.map (Suite name)
-
-
-{-| -}
-withRunner : (Task Error Time -> Task Error Stats) -> Benchmark -> Benchmark
-withRunner runner benchmark =
-    case benchmark of
-        Benchmark name task status ->
-            Benchmark name task <| Pending (runner task)
-
-        Suite name benchmarks ->
-            Suite name <| List.map (withRunner runner) benchmarks
-
-
-{-| -}
-defaultRunner : Task Error Time -> Task Error Stats
-defaultRunner =
-    timebox Time.second
-
-
-{-| -}
-timebox : Time -> Task Error Time -> Task Error Stats
-timebox box task =
-    let
-        mean : List Float -> Float
-        mean times =
-            let
-                sum =
-                    List.sum times
-
-                count =
-                    toFloat <| List.length times
-            in
-                if sum == 0 then
-                    0
-                else
-                    sum / count
-
-        fit : List Time -> Task Error ( Int, Time )
-        fit initial =
-            let
-                -- we don't want to include any zero values in our calibration
-                noZeros =
-                    List.filter ((/=) 0) initial
-
-                top =
-                    List.maximum noZeros |> Maybe.withDefault 0
-
-                bottom =
-                    List.minimum noZeros |> Maybe.withDefault 0
-
-                -- remove the top and bottom value. If we change the calibration
-                -- value to be several orders of magnitude more than 10, this
-                -- should be the top and bottom 5-10%.
-                middle =
-                    List.filter (\n -> n /= top && n /= bottom) noZeros
-
-                initialMean =
-                    mean middle
-
-                -- calculate how many times we could fit the mean into the box.
-                -- We add 10% or so here because the result will almost always
-                -- be slightly too low otherwise.
-                times =
-                    if initialMean == 0 then
-                        100000
-                    else
-                        box / initialMean * 1.1 |> ceiling
-            in
-                runTimes times task
-                    |> Task.map mean
-                    |> Task.map ((,) times)
-    in
-        runTimes 10 task
-            |> Task.andThen fit
+-- Creation
 
 
 {-| Create a Suite from a list of Benchmarks
@@ -237,3 +146,129 @@ See also the docs for [`benchmark`](#benchmark).
 benchmark8 : String -> (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Benchmark
 benchmark8 name fn a b c d e f g h =
     Benchmark name (LowLevel.measure8 fn a b c d e f g h) NoRunner |> withRunner defaultRunner
+
+
+
+-- Runners
+
+
+{-| Run [`Benchmark`](#Benchmark)
+-}
+run : Benchmark -> (Result Error Benchmark -> msg) -> Cmd msg
+run benchmark msg =
+    toTask benchmark |> Task.attempt msg
+
+
+toTask : Benchmark -> Task Error Benchmark
+toTask benchmark =
+    case benchmark of
+        Benchmark name task status ->
+            case status of
+                NoRunner ->
+                    Task.fail RunnerNotSet
+
+                Pending runner ->
+                    runner |> Task.andThen (Ok >> Complete >> Benchmark name task >> Task.succeed)
+
+                Complete _ ->
+                    Task.succeed benchmark
+
+        Suite name benchmarks ->
+            benchmarks
+                |> List.map toTask
+                |> Task.sequence
+                |> Task.map (Suite name)
+
+
+{-| Set the runner for a [`Benchmark`](#Benchmark)
+-}
+withRunner : (Task Error Time -> Task Error Stats) -> Benchmark -> Benchmark
+withRunner runner benchmark =
+    case benchmark of
+        Benchmark name task status ->
+            Benchmark name task <| Pending (runner task)
+
+        Suite name benchmarks ->
+            Suite name <| List.map (withRunner runner) benchmarks
+
+
+{-| The default runner for benchmarks. This is automatically set on Benchmarks
+from `benchmark` through `benchmark9`. It is defined as:
+
+     timebox Time.second
+-}
+defaultRunner : Task Error Time -> Task Error Stats
+defaultRunner =
+    timebox Time.second
+
+
+mean : List Float -> Float
+mean times =
+    let
+        sum =
+            List.sum times
+
+        count =
+            toFloat <| List.length times
+    in
+        if sum == 0 then
+            0
+        else
+            sum / count
+
+
+{-| Fit as many runs as possible into a Time.
+
+To do this, we take a small number of samples, then extrapolate to fit. This
+means that the actual benchmarking runs will not fit *exactly* within the given
+time box, but we should be fairly close.
+-}
+timebox : Time -> Task Error Time -> Task Error Stats
+timebox box task =
+    let
+        fit : List Time -> Task Error ( Int, Time )
+        fit initial =
+            let
+                -- we don't want to include any zero values in our calibration
+                noZeros =
+                    List.filter ((/=) 0) initial
+
+                top =
+                    List.maximum noZeros |> Maybe.withDefault 0
+
+                bottom =
+                    List.minimum noZeros |> Maybe.withDefault 0
+
+                -- remove the top and bottom value. If we change the calibration
+                -- value to be several orders of magnitude more than 10, this
+                -- should be the top and bottom 5-10%.
+                middle =
+                    List.filter (\n -> n /= top && n /= bottom) noZeros
+
+                initialMean =
+                    mean middle
+
+                -- calculate how many times we could fit the mean into the box.
+                -- We add 10% or so here because the result will almost always
+                -- be slightly too low otherwise.
+                times =
+                    if initialMean == 0 then
+                        100000
+                    else
+                        box / initialMean * 1.1 |> ceiling
+            in
+                LowLevel.runTimes times task
+                    |> Task.map mean
+                    |> Task.map (stats times)
+    in
+        LowLevel.runTimes 10 task
+            |> Task.andThen fit
+
+
+{-| Benchmark by running a task exactly the given number of times.
+-}
+times : Int -> Task Error Time -> Task Error Stats
+times n task =
+    LowLevel.runTimes n task
+        |> Task.map mean
+        |> Task.map (stats n)
