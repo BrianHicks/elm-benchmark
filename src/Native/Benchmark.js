@@ -1,4 +1,4 @@
-var _user$project$Native_Benchmark = function() {
+var _BrianHicks$elm_benchmark$Native_Benchmark = function() {
     var getTimestamp = typeof performance !== 'undefined' ?
     performance.now.bind(performance) :
     Date.now;
@@ -54,7 +54,7 @@ var _user$project$Native_Benchmark = function() {
     function measure2(fn, a, b) {
         return runAndHandleErrors(function() {
             var start = getTimestamp();
-            fn(a, b);
+            A2(fn, a, b);
             return timingToTask(start, getTimestamp());
         });
     }
@@ -63,7 +63,7 @@ var _user$project$Native_Benchmark = function() {
     function measure3(fn, a, b, c) {
         return runAndHandleErrors(function() {
             var start = getTimestamp();
-            fn(a, b, c);
+            A3(fn, a, b, c);
             return timingToTask(start, getTimestamp());
         });
     }
@@ -72,7 +72,7 @@ var _user$project$Native_Benchmark = function() {
     function measure4(fn, a, b, c, d) {
         return runAndHandleErrors(function() {
             var start = getTimestamp();
-            fn(a, b, c, d);
+            A4(fn, a, b, c, d);
             return timingToTask(start, getTimestamp());
         });
     }
@@ -81,7 +81,7 @@ var _user$project$Native_Benchmark = function() {
     function measure5(fn, a, b, c, d, e) {
         return runAndHandleErrors(function() {
             var start = getTimestamp();
-            fn(a, b, c, d, e);
+            A5(fn, a, b, c, d, e);
             return timingToTask(start, getTimestamp());
         });
     }
@@ -90,7 +90,7 @@ var _user$project$Native_Benchmark = function() {
     function measure6(fn, a, b, c, d, e, f) {
         return runAndHandleErrors(function() {
             var start = getTimestamp();
-            fn(a, b, c, d, e, f);
+            A6(fn, a, b, c, d, e, f);
             return timingToTask(start, getTimestamp());
         });
     }
@@ -99,7 +99,7 @@ var _user$project$Native_Benchmark = function() {
     function measure7(fn, a, b, c, d, e, f, g) {
         return runAndHandleErrors(function() {
             var start = getTimestamp();
-            fn(a, b, c, d, e, f, g);
+            A7(fn, a, b, c, d, e, f, g);
             return timingToTask(start, getTimestamp());
         });
     }
@@ -108,7 +108,7 @@ var _user$project$Native_Benchmark = function() {
     function measure8(fn, a, b, c, d, e, f, g, h) {
         return runAndHandleErrors(function() {
             var start = getTimestamp();
-            fn(a, b, c, d, e, f, g, h);
+            A8(fn, a, b, c, d, e, f, g, h);
             return timingToTask(start, getTimestamp());
         });
     }
