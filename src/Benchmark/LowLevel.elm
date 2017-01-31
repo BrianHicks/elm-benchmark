@@ -32,13 +32,16 @@ import Task exposing (Task)
 import Time exposing (Time)
 
 
-{-| -}
+{-| Error states that can terminate a benchmark.
+-}
 type Error
     = StackOverflow
     | UnknownError String
 
 
-{-| Measure the run time of a function.
+{-| Measure the run time of a function. This uses Thunks to measure, which come
+with a certain amount of runtime overhead. Prefer using `measure1` through
+`measure8` if you can; they will give you more accurate results.
 
 High-resolution timing data from these functions comes from the [Performance
 API](https://developer.mozilla.org/en-US/docs/Web/API/Performance). If
