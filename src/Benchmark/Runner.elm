@@ -36,8 +36,11 @@ benchmarkView benchmark =
     case benchmark of
         Benchmark.Benchmark name _ status ->
             case status of
-                Benchmark.Pending ->
-                    Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" pending" ]
+                Benchmark.NoRunner ->
+                    Html.p [] [ Html.text <| "Runner not set for " ++ name ]
+
+                Benchmark.Pending _ ->
+                    Html.p [] [ Html.text <| name ++ " Pending" ]
 
                 Benchmark.Complete (Err err) ->
                     Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]

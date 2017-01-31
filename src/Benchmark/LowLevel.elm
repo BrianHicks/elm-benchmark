@@ -37,6 +37,7 @@ import Time exposing (Time)
 -}
 type Error
     = StackOverflow
+    | RunnerNotSet
     | UnknownError String
 
 
