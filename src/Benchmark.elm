@@ -5,6 +5,7 @@ module Benchmark
         , Stats
         , describe
         , benchmark
+        , benchmark1
         , benchmark2
         , benchmark3
         , benchmark4
