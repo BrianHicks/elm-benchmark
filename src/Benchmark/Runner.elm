@@ -8,7 +8,6 @@ module Benchmark.Runner exposing (program, BenchmarkProgram)
 import Benchmark exposing (Benchmark)
 import Benchmark.LowLevel exposing (Error)
 import Html exposing (Html)
-import Time
 
 
 type alias Model =
@@ -33,41 +32,53 @@ update cmd model =
 
 benchmarkView : Benchmark -> Html Msg
 benchmarkView benchmark =
-    case benchmark of
-        Benchmark.Benchmark name _ status ->
+    let
+        statusView : String -> Benchmark.Status -> Html Msg
+        statusView name status =
             case status of
                 Benchmark.NoRunner ->
-                    Html.p [] [ Html.text <| "Runner not set for " ++ name ]
+                    Html.p [] [ Html.text "Runner not set" ]
 
                 Benchmark.Pending _ ->
-                    Html.p [] [ Html.text <| name ++ " Pending" ]
+                    Html.p [] [ Html.text "Pending" ]
 
                 Benchmark.Complete (Err err) ->
                     Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
 
                 Benchmark.Complete (Ok ( sampleSize, meanTime )) ->
-                    Html.section
-                        []
-                        [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
-                        , Html.dl []
-                            [ Html.dt [] [ Html.text "Sample Size" ]
-                            , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
-                            , Html.dt [] [ Html.text "Mean Run Time" ]
-                            , Html.dd [] [ Html.text <| toString meanTime ++ " ms/run" ]
-                            ]
+                    Html.dl []
+                        [ Html.dt [] [ Html.text "Sample Size" ]
+                        , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
+                        , Html.dt [] [ Html.text "Mean Run Time" ]
+                        , Html.dd [] [ Html.text <| toString meanTime ++ " ms/run" ]
                         ]
+    in
+        case benchmark of
+            Benchmark.Benchmark name _ status ->
+                Html.section []
+                    [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
+                    , statusView name status
+                    ]
 
-        Benchmark.Suite name benchmarks ->
-            Html.section
-                []
-                [ Html.h1 [] [ Html.text <| "Suite: " ++ name ]
-                , benchmarks
-                    |> List.map
-                        (benchmarkView
-                            >> (\x -> Html.li [] [ x ])
-                        )
-                    |> Html.ul []
-                ]
+            Benchmark.Comparison name a b ->
+                Html.section
+                    []
+                    [ Html.h1 [] [ Html.text <| "Comparison: " ++ name ]
+                    , benchmarkView a
+                    , benchmarkView b
+                    ]
+
+            Benchmark.Suite name benchmarks ->
+                Html.section
+                    []
+                    [ Html.h1 [] [ Html.text <| "Suite: " ++ name ]
+                    , benchmarks
+                        |> List.map
+                            (benchmarkView
+                                >> (\x -> Html.li [] [ x ])
+                            )
+                        |> Html.ul []
+                    ]
 
 
 view : Model -> Html Msg

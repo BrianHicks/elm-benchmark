@@ -1,4 +1,24 @@
-module Benchmark exposing (..)
+module Benchmark
+    exposing
+        ( Benchmark(..)
+        , Status(..)
+        , Stats
+        , describe
+        , benchmark
+        , benchmark2
+        , benchmark3
+        , benchmark4
+        , benchmark5
+        , benchmark6
+        , benchmark7
+        , benchmark8
+        , compare2
+        , run
+        , withRunner
+        , defaultRunner
+        , timebox
+        , times
+        )
 
 {-| Benchmark Elm Programs
 
@@ -33,6 +53,7 @@ type Status
 -}
 type Benchmark
     = Benchmark String (Task Error Time) Status
+    | Comparison String Benchmark Benchmark
     | Suite String (List Benchmark)
 
 
@@ -148,6 +169,14 @@ benchmark8 name fn a b c d e f g h =
     Benchmark name (LowLevel.measure8 fn a b c d e f g h) NoRunner |> withRunner defaultRunner
 
 
+compare2 : String -> (a -> b -> c) -> String -> (a -> b -> c) -> a -> b -> Benchmark
+compare2 name1 fn1 name2 fn2 a b =
+    Comparison
+        (name1 ++ " vs " ++ name2)
+        (benchmark2 name1 fn1 a b)
+        (benchmark2 name2 fn2 a b)
+
+
 
 -- Runners
 
@@ -168,10 +197,16 @@ toTask benchmark =
                     Task.fail RunnerNotSet
 
                 Pending runner ->
-                    runner |> Task.andThen (Ok >> Complete >> Benchmark name task >> Task.succeed)
+                    runner |> Task.map (Ok >> Complete >> Benchmark name task)
 
                 Complete _ ->
                     Task.succeed benchmark
+
+        Comparison name a b ->
+            Task.map2
+                (Comparison name)
+                (toTask a)
+                (toTask b)
 
         Suite name benchmarks ->
             benchmarks
@@ -185,8 +220,11 @@ toTask benchmark =
 withRunner : (Task Error Time -> Task Error Stats) -> Benchmark -> Benchmark
 withRunner runner benchmark =
     case benchmark of
-        Benchmark name task status ->
+        Benchmark name task _ ->
             Benchmark name task <| Pending (runner task)
+
+        Comparison name a b ->
+            Comparison name (withRunner runner a) (withRunner runner b)
 
         Suite name benchmarks ->
             Suite name <| List.map (withRunner runner) benchmarks

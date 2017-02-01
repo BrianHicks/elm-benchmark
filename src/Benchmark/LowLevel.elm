@@ -38,6 +38,7 @@ import Time exposing (Time)
 type Error
     = StackOverflow
     | RunnerNotSet
+      -- TODO: move to Benchmark?
     | UnknownError String
 
 
