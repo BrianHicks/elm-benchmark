@@ -36,7 +36,7 @@ var _BrianHicks$elm_benchmark$Native_Benchmark = function() {
     function measure(thunk) {
         return runAndHandleErrors(function() {
             var start = getTimestamp();
-            fn();
+            thunk();
             return timingToTask(start, getTimestamp());
         });
     }
