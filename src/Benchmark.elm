@@ -6,7 +6,7 @@ module Benchmark exposing (..)
 @docs Benchmark, Status, Stats
 
 # Creation
-@docs suite, benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8
+@docs describe, benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8
 
 # Runners
 @docs run, withRunner, defaultRunner, timebox, times
@@ -53,8 +53,8 @@ stats sampleSize meanRuntime =
 
 {-| Create a Suite from a list of Benchmarks
 -}
-suite : String -> List Benchmark -> Benchmark
-suite =
+describe : String -> List Benchmark -> Benchmark
+describe =
     Suite
 
 

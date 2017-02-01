@@ -12,7 +12,7 @@ insert =
         dest =
             Dict.singleton "a" 1
     in
-        Benchmark.suite
+        Benchmark.describe
             "dictionary"
             [ Benchmark.benchmark2 "get" Dict.get "a" dest
             , Benchmark.benchmark3 "insert" Dict.insert "b" 2 dest
@@ -26,5 +26,8 @@ match =
 
 main : BenchmarkProgram
 main =
-    program
-        (Benchmark.suite "sample" [ insert, match ])
+    program <|
+        Benchmark.describe "sample"
+            [ insert
+            , match
+            ]
