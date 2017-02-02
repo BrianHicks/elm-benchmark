@@ -55,7 +55,7 @@ type Status
 type Benchmark
     = Benchmark String (Task Error Time) Status
     | Comparison String Benchmark Benchmark
-    | Suite String (List Benchmark)
+    | Group String (List Benchmark)
 
 
 {-| Stats returned from a successful benchmarking run
@@ -73,11 +73,11 @@ stats sampleSize meanRuntime =
 -- Creation
 
 
-{-| Create a Suite from a list of Benchmarks
+{-| Create a Group from a list of Benchmarks
 -}
 describe : String -> List Benchmark -> Benchmark
 describe =
-    Suite
+    Group
 
 
 {-| Benchmark a function. This uses Thunks to measure, so you can use any number
@@ -209,11 +209,11 @@ toTask benchmark =
                 (toTask a)
                 (toTask b)
 
-        Suite name benchmarks ->
+        Group name benchmarks ->
             benchmarks
                 |> List.map toTask
                 |> Task.sequence
-                |> Task.map (Suite name)
+                |> Task.map (Group name)
 
 
 {-| Set the runner for a [`Benchmark`](#Benchmark)
@@ -227,8 +227,8 @@ withRunner runner benchmark =
         Comparison name a b ->
             Comparison name (withRunner runner a) (withRunner runner b)
 
-        Suite name benchmarks ->
-            Suite name <| List.map (withRunner runner) benchmarks
+        Group name benchmarks ->
+            Group name <| List.map (withRunner runner) benchmarks
 
 
 {-| The default runner for benchmarks. This is automatically set on Benchmarks

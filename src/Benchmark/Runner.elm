@@ -68,7 +68,7 @@ benchmarkView benchmark =
                     , benchmarkView b
                     ]
 
-            Benchmark.Suite name benchmarks ->
+            Benchmark.Group name benchmarks ->
                 Html.section
                     []
                     [ Html.h1 [] [ Html.text <| "Suite: " ++ name ]
