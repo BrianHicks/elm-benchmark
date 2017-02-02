@@ -59,14 +59,6 @@ benchmarkView benchmark =
                     , statusView name status
                     ]
 
-            Benchmark.Comparison name a b ->
-                Html.section
-                    []
-                    [ Html.h1 [] [ Html.text <| "Comparison: " ++ name ]
-                    , benchmarkView a
-                    , benchmarkView b
-                    ]
-
             Benchmark.Group name benchmarks ->
                 Html.section
                     []

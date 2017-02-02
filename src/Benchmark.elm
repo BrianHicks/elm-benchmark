@@ -13,7 +13,6 @@ module Benchmark
         , benchmark6
         , benchmark7
         , benchmark8
-        , compare2
         , run
         , withRunner
         , defaultRunner
@@ -55,7 +54,6 @@ type Status
 -}
 type Benchmark
     = Benchmark String (Task Error Time) Status
-    | Comparison String Benchmark Benchmark
     | Group String (List Benchmark)
 
 
@@ -176,14 +174,6 @@ benchmark8 name fn a b c d e f g h =
     benchmarkInternal name (LowLevel.measure8 fn a b c d e f g h)
 
 
-compare2 : String -> (a -> b -> c) -> String -> (a -> b -> c) -> a -> b -> Benchmark
-compare2 name1 fn1 name2 fn2 a b =
-    Comparison
-        (name1 ++ " vs " ++ name2)
-        (benchmark2 name1 fn1 a b)
-        (benchmark2 name2 fn2 a b)
-
-
 
 -- Runners
 
@@ -208,12 +198,6 @@ toTask benchmark =
                 _ ->
                     Task.succeed benchmark
 
-        Comparison name a b ->
-            Task.map2
-                (Comparison name)
-                (toTask a)
-                (toTask b)
-
         Group name benchmarks ->
             benchmarks
                 |> List.map toTask
@@ -228,9 +212,6 @@ withRunner runner benchmark =
     case benchmark of
         Benchmark name task _ ->
             Benchmark name task <| Pending (runner task)
-
-        Comparison name a b ->
-            Comparison name (withRunner runner a) (withRunner runner b)
 
         Group name benchmarks ->
             Group name <| List.map (withRunner runner) benchmarks
