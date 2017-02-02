@@ -8,7 +8,8 @@ module Benchmark.Runner exposing (..)
 import Benchmark exposing (Benchmark)
 import Html exposing (Html)
 import List.Extra as List
-import Task
+import Process
+import Task exposing (Task)
 import Time
 
 
@@ -67,6 +68,11 @@ updateAt path updated collection =
 -- Elm Architecture stuff
 
 
+breakForRender : Task x a -> Task x a
+breakForRender task =
+    Task.andThen (\_ -> task) (Process.sleep Time.millisecond)
+
+
 init : Benchmark -> ( Model, Cmd Msg )
 init benchmark =
     ( benchmark
@@ -74,7 +80,7 @@ init benchmark =
         |> toList
         |> List.map
             (\( path, benchmark ) ->
-                Task.perform (Sized path) (Benchmark.size benchmark)
+                Task.perform (Sized path) (Benchmark.size benchmark |> breakForRender)
             )
         |> Cmd.batch
     )
@@ -90,7 +96,7 @@ update msg model =
     case (msg |> Debug.log "msg") of
         Sized path benchmark ->
             ( updateAt path benchmark model |> Maybe.withDefault model
-            , Task.perform (Complete path) (Benchmark.measure benchmark)
+            , Task.perform (Complete path) (Benchmark.measure benchmark |> breakForRender)
             )
 
         Complete path benchmark ->
