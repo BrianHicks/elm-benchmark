@@ -1,6 +1,7 @@
 module Benchmark.LowLevel
     exposing
         ( Error(..)
+        , Measurement
         , measure
         , measure1
         , measure2
@@ -27,7 +28,6 @@ This API exposes the raw tasks necessary to create higher-level benchmarking abs
 @docs runTimes
 -}
 
-import List.Extra exposing (greedyGroupsOf)
 import Native.Benchmark
 import Task exposing (Task)
 import Time exposing (Time)
@@ -42,6 +42,10 @@ type Error
     | UnknownError String
 
 
+type Measurement
+    = Measurement
+
+
 {-| Measure the run time of a function. This uses Thunks to measure, which come
 with a certain amount of runtime overhead. Prefer using `measure1` through
 `measure8` if you can; they will give you more accurate results.
@@ -51,7 +55,7 @@ API](https://developer.mozilla.org/en-US/docs/Web/API/Performance). If
 `performance.now` is unavailble, it will fall back to
 [Date](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date).
 -}
-measure : (() -> a) -> Task Error Time
+measure : (() -> a) -> Measurement
 measure =
     Native.Benchmark.measure
 
@@ -60,7 +64,7 @@ measure =
 
 See docs for [`measure`](#measure).
 -}
-measure1 : (a -> b) -> a -> Task Error Time
+measure1 : (a -> b) -> a -> Measurement
 measure1 =
     Native.Benchmark.measure1
 
@@ -69,7 +73,7 @@ measure1 =
 
 See docs for [`measure`](#measure).
 -}
-measure2 : (a -> b -> c) -> a -> b -> Task Error Time
+measure2 : (a -> b -> c) -> a -> b -> Measurement
 measure2 =
     Native.Benchmark.measure2
 
@@ -78,7 +82,7 @@ measure2 =
 
 See docs for [`measure`](#measure).
 -}
-measure3 : (a -> b -> c -> d) -> a -> b -> c -> Task Error Time
+measure3 : (a -> b -> c -> d) -> a -> b -> c -> Measurement
 measure3 =
     Native.Benchmark.measure3
 
@@ -87,7 +91,7 @@ measure3 =
 
 See docs for [`measure`](#measure).
 -}
-measure4 : (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Task Error Time
+measure4 : (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Measurement
 measure4 =
     Native.Benchmark.measure4
 
@@ -96,7 +100,7 @@ measure4 =
 
 See docs for [`measure`](#measure).
 -}
-measure5 : (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Task Error Time
+measure5 : (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Measurement
 measure5 =
     Native.Benchmark.measure5
 
@@ -105,7 +109,7 @@ measure5 =
 
 See docs for [`measure`](#measure).
 -}
-measure6 : (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Task Error Time
+measure6 : (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Measurement
 measure6 =
     Native.Benchmark.measure6
 
@@ -114,7 +118,7 @@ measure6 =
 
 See docs for [`measure`](#measure).
 -}
-measure7 : (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Task Error Time
+measure7 : (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Measurement
 measure7 =
     Native.Benchmark.measure7
 
@@ -123,18 +127,13 @@ measure7 =
 
 See docs for [`measure`](#measure).
 -}
-measure8 : (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Task Error Time
+measure8 : (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Measurement
 measure8 =
     Native.Benchmark.measure8
 
 
 {-| Run a benchmark a specified number of times.
 -}
-runTimes : Int -> Task Error Time -> Task Error (List Time)
-runTimes n benchmark =
-    List.range 1 n
-        |> List.map (\_ -> benchmark)
-        |> greedyGroupsOf 3000
-        |> List.map Task.sequence
-        |> Task.sequence
-        |> Task.map List.concat
+runTimes : Int -> Measurement -> Task Error Time
+runTimes =
+    Native.Benchmark.runTimes

@@ -32,7 +32,7 @@ module Benchmark
 @docs run, withRunner, defaultRunner, timebox, times
 -}
 
-import Benchmark.LowLevel as LowLevel exposing (Error(..))
+import Benchmark.LowLevel as LowLevel exposing (Error(..), Measurement)
 import Task exposing (Task)
 import Time exposing (Time)
 
@@ -53,7 +53,7 @@ type Status
 {-| Benchmarks in various groupings
 -}
 type Benchmark
-    = Benchmark String (Task Error Time) Status
+    = Benchmark String Measurement Status
     | Group String (List Benchmark)
 
 
@@ -79,9 +79,9 @@ describe =
     Group
 
 
-benchmarkInternal : String -> Task LowLevel.Error Time -> Benchmark
-benchmarkInternal name task =
-    Benchmark name task NoRunner |> withRunner defaultRunner
+benchmarkInternal : String -> Measurement -> Benchmark
+benchmarkInternal name measurement =
+    Benchmark name measurement NoRunner |> withRunner defaultRunner
 
 
 {-| Benchmark a function. This uses Thunks to measure, so you can use any number
@@ -207,7 +207,7 @@ toTask benchmark =
 
 {-| Set the runner for a [`Benchmark`](#Benchmark)
 -}
-withRunner : (Task Error Time -> Task Error Stats) -> Benchmark -> Benchmark
+withRunner : (Measurement -> Task Error Stats) -> Benchmark -> Benchmark
 withRunner runner benchmark =
     case benchmark of
         Benchmark name task _ ->
@@ -222,7 +222,7 @@ from `benchmark` through `benchmark9`. It is defined as:
 
      timebox Time.second
 -}
-defaultRunner : Task Error Time -> Task Error Stats
+defaultRunner : Measurement -> Task Error Stats
 defaultRunner =
     timebox Time.second
 
@@ -248,52 +248,36 @@ To do this, we take a small number of samples, then extrapolate to fit. This
 means that the actual benchmarking runs will not fit *exactly* within the given
 time box, but we should be fairly close.
 -}
-timebox : Time -> Task Error Time -> Task Error Stats
-timebox box task =
+timebox : Time -> Measurement -> Task Error Stats
+timebox box measurement =
     let
-        fit : List Time -> Task Error ( Int, Time )
+        sampleSize =
+            100000
+
+        fit : Time -> Task Error Stats
         fit initial =
             let
-                -- we don't want to include any zero values in our calibration
-                noZeros =
-                    List.filter ((/=) 0) initial
+                single =
+                    initial / sampleSize
 
-                top =
-                    List.maximum noZeros |> Maybe.withDefault 0
-
-                bottom =
-                    List.minimum noZeros |> Maybe.withDefault 0
-
-                -- remove the top and bottom value. If we change the calibration
-                -- value to be several orders of magnitude more than 10, this
-                -- should be the top and bottom 5-10%.
-                middle =
-                    List.filter (\n -> n /= top && n /= bottom) noZeros
-
-                initialMean =
-                    mean middle
-
-                -- calculate how many times we could fit the mean into the box.
-                -- We add 10% or so here because the result will almost always
-                -- be slightly too low otherwise.
                 times =
-                    if initialMean == 0 then
+                    if initial == 0 then
                         100000
                     else
-                        box / initialMean * 1.1 |> ceiling
+                        box / single |> ceiling
             in
-                LowLevel.runTimes times task
-                    |> Task.map mean
+                LowLevel.runTimes times measurement
+                    |> Task.map (\total -> total / toFloat times)
                     |> Task.map (stats times)
     in
-        LowLevel.runTimes 10 task
+        LowLevel.runTimes sampleSize measurement
             |> Task.andThen fit
 
 
 {-| Benchmark by running a task exactly the given number of times.
 -}
-times : Int -> Task Error Time -> Task Error Stats
-times n task =
-    LowLevel.runTimes n task
-        |> Task.map mean
+times : Int -> Measurement -> Task Error Stats
+times n measurement =
+    LowLevel.runTimes n measurement
+        |> Task.map (\total -> total / toFloat n)
         |> Task.map (stats n)

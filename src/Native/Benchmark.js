@@ -1,116 +1,85 @@
 var _BrianHicks$elm_benchmark$Native_Benchmark = function() {
     var getTimestamp = typeof performance !== 'undefined' ?
-    performance.now.bind(performance) :
-    Date.now;
+        performance.now.bind(performance) :
+        Date.now;
 
-    // TODO: docs for determineError
-    function determineError(error) {
-        var elmError;
-
-        if (error instanceof RangeError) {
-            elmError = { ctor : 'StackOverflow' };
-        } else {
-            elmError = { ctor : 'UnknownError', _0: error.message };
-        }
-
-        return _elm_lang$core$Native_Scheduler.fail(elmError);
+    function measurement(fn) {
+        return { function: fn };
     }
 
-    // TODO: docs for timingToTask
-    function timingToTask(start, end)  {
-        return _elm_lang$core$Native_Scheduler.succeed(end - start);
+    function getFunction(measurement) {
+        return measurement.function;
     }
 
-    // TODO: docs for runAndHandleErrors
-    function runAndHandleErrors(toRun) {
+    // runTimes : Int -> Measurement -> Task Error Time
+    function runTimes(n, measurement) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
             try {
-                callback(toRun());
+                var fn = getFunction(measurement),
+                    start = getTimestamp();
+
+                for (var i = 0; i < n; i++) {
+                    fn();
+                }
+
+                callback(_elm_lang$core$Native_Scheduler.succeed(getTimestamp() - start));
             } catch (error) {
-                callback(determineError(error))
+                var elmError;
+
+                if (error instanceof RangeError) {
+                    elmError = { ctor : 'StackOverflow' };
+                } else {
+                    elmError = { ctor : 'UnknownError', _0: error.message };
+                }
+
+                callback(_elm_lang$core$Native_Scheduler.fail(elmError));
             }
-        });
+        })
     }
 
-    // measure : (() -> a) -> Task Error Time
+    // measure : (() -> a) -> Measurement
     function measure(thunk) {
-        return runAndHandleErrors(function() {
-            var start = getTimestamp();
-            thunk();
-            return timingToTask(start, getTimestamp());
-        });
+        return measurement(fn);
     }
 
-    // measure1 : (a -> b) -> a -> Task Error Time
+    // measure1 : (a -> b) -> a -> Measurement
     function measure1(fn, a) {
-        return runAndHandleErrors(function() {
-            var start = getTimestamp();
-            fn(a);
-            return timingToTask(start, getTimestamp());
-        });
+        return measurement(function() { fn(a); });
     }
 
-    // measure2 : (a -> b -> c) -> a -> b -> Task Error Time
+    // measure2 : (a -> b -> c) -> a -> b -> Measurement
     function measure2(fn, a, b) {
-        return runAndHandleErrors(function() {
-            var start = getTimestamp();
-            A2(fn, a, b);
-            return timingToTask(start, getTimestamp());
-        });
+        return measurement(function() { A2(fn, a, b); });
     }
 
-    // measure3 : (a -> b -> c -> d) -> a -> b -> c -> Task Error Time
+    // measure3 : (a -> b -> c -> d) -> a -> b -> c -> Measurement
     function measure3(fn, a, b, c) {
-        return runAndHandleErrors(function() {
-            var start = getTimestamp();
-            A3(fn, a, b, c);
-            return timingToTask(start, getTimestamp());
-        });
+        return measurement(function() { A3(fn, a, b, c); });
     }
 
-    // measure4 : (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Task Error Time
+    // measure4 : (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Measurement
     function measure4(fn, a, b, c, d) {
-        return runAndHandleErrors(function() {
-            var start = getTimestamp();
-            A4(fn, a, b, c, d);
-            return timingToTask(start, getTimestamp());
-        });
+        return measurement(function() { A4(fn, a, b, c, d); });
     }
 
-    // measure5 : (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Task Error Time
+    // measure5 : (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Measurement
     function measure5(fn, a, b, c, d, e) {
-        return runAndHandleErrors(function() {
-            var start = getTimestamp();
-            A5(fn, a, b, c, d, e);
-            return timingToTask(start, getTimestamp());
-        });
+        return measurement(function() { A5(fn, a, b, c, d, e); });
     }
 
-    // measure6 : (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Task Error Time
+    // measure6 : (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Measurement
     function measure6(fn, a, b, c, d, e, f) {
-        return runAndHandleErrors(function() {
-            var start = getTimestamp();
-            A6(fn, a, b, c, d, e, f);
-            return timingToTask(start, getTimestamp());
-        });
+        return measurement(function() { A6(fn, a, b, c, d, e, f); });
     }
 
-    // measure7 : (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Task Error Time
+    // measure7 : (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Measurement
     function measure7(fn, a, b, c, d, e, f, g) {
-        return runAndHandleErrors(function() {
-            var start = getTimestamp();
-            A7(fn, a, b, c, d, e, f, g);
-            return timingToTask(start, getTimestamp());
-        });
+        return measurement(function() { A7(fn, a, b, c, d, e, f, g); });
     }
 
-    // measure8 : (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Task Error Time
+    // measure8 : (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Measurement
     function measure8(fn, a, b, c, d, e, f, g, h) {
-        return runAndHandleErrors(function() {
-            var start = getTimestamp();
-            A8(fn, a, b, c, d, e, f, g, h);
-            return timingToTask(start, getTimestamp());
-        });
+        return measurement(function() { A8(fn, a, b, c, d, e, f, g, h); });
     }
 
     return {
@@ -122,6 +91,7 @@ var _BrianHicks$elm_benchmark$Native_Benchmark = function() {
         measure5: F6(measure5),
         measure6: F7(measure6),
         measure7: F8(measure7),
-        measure8: F9(measure8)
+        measure8: F9(measure8),
+        runTimes: F2(runTimes),
     };
 }();
