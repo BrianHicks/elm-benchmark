@@ -3,6 +3,9 @@ module Benchmark
         ( Benchmark(..)
         , Status(..)
         , Stats
+        , SizingMethod(..)
+        , withSizingMethod
+        , defaultSizingMethod
         , describe
         , benchmark
         , benchmark1
@@ -13,23 +16,27 @@ module Benchmark
         , benchmark6
         , benchmark7
         , benchmark8
-        , run
-        , withRunner
-        , defaultRunner
+        , size
+        , measure
         , timebox
-        , times
         )
 
 {-| Benchmark Elm Programs
 
 # Benchmarks and Suites
-@docs Benchmark, Status, Stats
+@docs Benchmark, Status
+
+## Analysis
+@docs Stats
+
+## Sizing
+@docs SizingMethod, withSizingMethod, defaultSizingMethod
 
 # Creation
 @docs describe, benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8
 
-# Runners
-@docs run, withRunner, defaultRunner, timebox, times
+# Running
+@docs run, size, timebox
 -}
 
 import Benchmark.LowLevel as LowLevel exposing (Error(..), Sample)
@@ -44,8 +51,8 @@ import Time exposing (Time)
 {-| The status of a benchmark run
 -}
 type Status
-    = NoRunner
-    | Pending (Task Error Stats)
+    = ToSize SizingMethod
+    | Pending Int
     | Success Stats
     | Failure Error
 
@@ -68,6 +75,34 @@ stats sampleSize meanRuntime =
     ( sampleSize, meanRuntime )
 
 
+{-| Methods to get the number size of a benchmarking run
+-}
+type SizingMethod
+    = Timebox Time
+
+
+{-| Set the sizing method for a [`Benchmark`](#Benchmark)
+-}
+withSizingMethod : SizingMethod -> Benchmark -> Benchmark
+withSizingMethod method benchmark =
+    case benchmark of
+        Benchmark name sample status ->
+            Benchmark name sample <| ToSize method
+
+        Group name benchmarks ->
+            Group name <| List.map (withSizingMethod method) benchmarks
+
+
+{-| The default sizing method for benchmarks. This is automatically set on
+Benchmarks from `benchmark` through `benchmark9`. It is defined as:
+
+     Timebox Time.second
+-}
+defaultSizingMethod : SizingMethod
+defaultSizingMethod =
+    Timebox Time.second
+
+
 
 -- Creation
 
@@ -81,7 +116,7 @@ describe =
 
 benchmarkInternal : String -> Sample -> Benchmark
 benchmarkInternal name measurement =
-    Benchmark name measurement NoRunner |> withRunner defaultRunner
+    Benchmark name measurement (ToSize defaultSizingMethod)
 
 
 {-| Benchmark a function. This uses Thunks to measure, so you can use any number
@@ -178,68 +213,45 @@ benchmark8 name fn a b c d e f g h =
 -- Runners
 
 
-{-| Run [`Benchmark`s](#Benchmark)
--}
-run : Benchmark -> (Benchmark -> msg) -> Cmd msg
-run benchmark msg =
-    toTask benchmark |> Task.perform msg
-
-
-toTask : Benchmark -> Task Never Benchmark
-toTask benchmark =
+measure : Benchmark -> Task Never Benchmark
+measure benchmark =
     case benchmark of
-        Benchmark name task status ->
+        Benchmark name sample status ->
             case status of
-                Pending runner ->
-                    runner
-                        |> Task.map (Success >> Benchmark name task)
-                        |> Task.onError (Failure >> Benchmark name task >> Task.succeed)
+                Pending n ->
+                    LowLevel.takeSamples n sample
+                        |> Task.map (\total -> total / toFloat n)
+                        |> Task.map (stats n >> Success >> Benchmark name sample)
+                        |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
 
                 _ ->
                     Task.succeed benchmark
 
         Group name benchmarks ->
             benchmarks
-                |> List.map toTask
+                |> List.map measure
                 |> Task.sequence
                 |> Task.map (Group name)
 
 
-{-| Set the runner for a [`Benchmark`](#Benchmark)
--}
-withRunner : (Sample -> Task Error Stats) -> Benchmark -> Benchmark
-withRunner runner benchmark =
+size : Benchmark -> Task Never Benchmark
+size benchmark =
     case benchmark of
-        Benchmark name task _ ->
-            Benchmark name task <| Pending (runner task)
+        Benchmark name sample status ->
+            case status of
+                ToSize (Timebox time) ->
+                    timebox time sample
+                        |> Task.map (Pending >> Benchmark name sample)
+                        |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
+
+                _ ->
+                    Task.succeed benchmark
 
         Group name benchmarks ->
-            Group name <| List.map (withRunner runner) benchmarks
-
-
-{-| The default runner for benchmarks. This is automatically set on Benchmarks
-from `benchmark` through `benchmark9`. It is defined as:
-
-     timebox Time.second
--}
-defaultRunner : Sample -> Task Error Stats
-defaultRunner =
-    timebox Time.second
-
-
-mean : List Float -> Float
-mean times =
-    let
-        sum =
-            List.sum times
-
-        count =
-            toFloat <| List.length times
-    in
-        if sum == 0 then
-            0
-        else
-            sum / count
+            benchmarks
+                |> List.map size
+                |> Task.sequence
+                |> Task.map (Group name)
 
 
 {-| Fit as many runs as possible into a Time.
@@ -248,36 +260,21 @@ To do this, we take a small number of samples, then extrapolate to fit. This
 means that the actual benchmarking runs will not fit *exactly* within the given
 time box, but we should be fairly close.
 -}
-timebox : Time -> Sample -> Task Error Stats
+timebox : Time -> Sample -> Task Error Int
 timebox box measurement =
     let
         sampleSize =
             100000
 
-        fit : Time -> Task Error Stats
+        fit : Time -> Int
         fit initial =
             let
                 single =
                     initial / sampleSize
-
-                times =
-                    if initial == 0 then
-                        100000
-                    else
-                        box / single |> ceiling
             in
-                LowLevel.takeSamples times measurement
-                    |> Task.map (\total -> total / toFloat times)
-                    |> Task.map (stats times)
+                if initial == 0 then
+                    sampleSize * 100
+                else
+                    box / single |> ceiling
     in
-        LowLevel.takeSamples sampleSize measurement
-            |> Task.andThen fit
-
-
-{-| Benchmark by running a task exactly the given number of times.
--}
-times : Int -> Sample -> Task Error Stats
-times n measurement =
-    LowLevel.takeSamples n measurement
-        |> Task.map (\total -> total / toFloat n)
-        |> Task.map (stats n)
+        LowLevel.takeSamples sampleSize measurement |> Task.map fit
