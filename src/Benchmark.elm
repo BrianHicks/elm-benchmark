@@ -80,6 +80,11 @@ describe =
     Group
 
 
+benchmarkInternal : String -> Task LowLevel.Error Time -> Benchmark
+benchmarkInternal name task =
+    Benchmark name task NoRunner |> withRunner defaultRunner
+
+
 {-| Benchmark a function. This uses Thunks to measure, so you can use any number
 of arguments. That said, it won't be as accurate as using `benchmark1` through
 `benchmark8` because of the overhead involved in resolving the Thunk.
@@ -89,7 +94,7 @@ measuring.
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
-    Benchmark name (LowLevel.measure fn) NoRunner |> withRunner defaultRunner
+    benchmarkInternal name (LowLevel.measure fn)
 
 
 {-| Benchmark a function with a single argument.
@@ -100,7 +105,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark1 : String -> (a -> b) -> a -> Benchmark
 benchmark1 name fn a =
-    Benchmark name (LowLevel.measure1 fn a) NoRunner |> withRunner defaultRunner
+    benchmarkInternal name (LowLevel.measure1 fn a)
 
 
 {-| Benchmark a function with two arguments.
@@ -111,7 +116,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark2 : String -> (a -> b -> c) -> a -> b -> Benchmark
 benchmark2 name fn a b =
-    Benchmark name (LowLevel.measure2 fn a b) NoRunner |> withRunner defaultRunner
+    benchmarkInternal name (LowLevel.measure2 fn a b)
 
 
 {-| Benchmark a function with three arguments.
@@ -122,7 +127,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark3 : String -> (a -> b -> c -> d) -> a -> b -> c -> Benchmark
 benchmark3 name fn a b c =
-    Benchmark name (LowLevel.measure3 fn a b c) NoRunner |> withRunner defaultRunner
+    benchmarkInternal name (LowLevel.measure3 fn a b c)
 
 
 {-| Benchmark a function with four arguments.
@@ -131,7 +136,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark4 : String -> (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Benchmark
 benchmark4 name fn a b c d =
-    Benchmark name (LowLevel.measure4 fn a b c d) NoRunner |> withRunner defaultRunner
+    benchmarkInternal name (LowLevel.measure4 fn a b c d)
 
 
 {-| Benchmark a function with five arguments.
@@ -140,7 +145,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark5 : String -> (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Benchmark
 benchmark5 name fn a b c d e =
-    Benchmark name (LowLevel.measure5 fn a b c d e) NoRunner |> withRunner defaultRunner
+    benchmarkInternal name (LowLevel.measure5 fn a b c d e)
 
 
 {-| Benchmark a function with six arguments.
@@ -149,7 +154,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark6 : String -> (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Benchmark
 benchmark6 name fn a b c d e f =
-    Benchmark name (LowLevel.measure6 fn a b c d e f) NoRunner |> withRunner defaultRunner
+    benchmarkInternal name (LowLevel.measure6 fn a b c d e f)
 
 
 {-| Benchmark a function with seven arguments.
@@ -158,7 +163,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark7 : String -> (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Benchmark
 benchmark7 name fn a b c d e f g =
-    Benchmark name (LowLevel.measure7 fn a b c d e f g) NoRunner |> withRunner defaultRunner
+    benchmarkInternal name (LowLevel.measure7 fn a b c d e f g)
 
 
 {-| Benchmark a function with eight arguments.
@@ -167,7 +172,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark8 : String -> (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Benchmark
 benchmark8 name fn a b c d e f g h =
-    Benchmark name (LowLevel.measure8 fn a b c d e f g h) NoRunner |> withRunner defaultRunner
+    benchmarkInternal name (LowLevel.measure8 fn a b c d e f g h)
 
 
 compare2 : String -> (a -> b -> c) -> String -> (a -> b -> c) -> a -> b -> Benchmark
