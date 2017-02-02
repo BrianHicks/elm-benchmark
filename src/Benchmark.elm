@@ -47,7 +47,8 @@ import Time exposing (Time)
 type Status
     = NoRunner
     | Pending (Task Error Stats)
-    | Complete (Result Error Stats)
+    | Success Stats
+    | Failure Error
 
 
 {-| Benchmarks in various groupings
@@ -187,25 +188,24 @@ compare2 name1 fn1 name2 fn2 a b =
 -- Runners
 
 
-{-| Run [`Benchmark`](#Benchmark)
+{-| Run [`Benchmark`s](#Benchmark)
 -}
-run : Benchmark -> (Result Error Benchmark -> msg) -> Cmd msg
+run : Benchmark -> (Benchmark -> msg) -> Cmd msg
 run benchmark msg =
-    toTask benchmark |> Task.attempt msg
+    toTask benchmark |> Task.perform msg
 
 
-toTask : Benchmark -> Task Error Benchmark
+toTask : Benchmark -> Task Never Benchmark
 toTask benchmark =
     case benchmark of
         Benchmark name task status ->
             case status of
-                NoRunner ->
-                    Task.fail RunnerNotSet
-
                 Pending runner ->
-                    runner |> Task.map (Ok >> Complete >> Benchmark name task)
+                    runner
+                        |> Task.map (Success >> Benchmark name task)
+                        |> Task.onError (Failure >> Benchmark name task >> Task.succeed)
 
-                Complete _ ->
+                _ ->
                     Task.succeed benchmark
 
         Comparison name a b ->

@@ -6,17 +6,16 @@ module Benchmark.Runner exposing (program, BenchmarkProgram)
 -}
 
 import Benchmark exposing (Benchmark)
-import Benchmark.LowLevel exposing (Error)
 import Html exposing (Html)
 
 
 type alias Model =
-    Result Error Benchmark
+    Benchmark
 
 
 init : Benchmark -> ( Model, Cmd Msg )
 init benchmark =
-    ( Ok benchmark, Benchmark.run benchmark Finished )
+    ( benchmark, Benchmark.run benchmark Finished )
 
 
 type Msg
@@ -42,10 +41,10 @@ benchmarkView benchmark =
                 Benchmark.Pending _ ->
                     Html.p [] [ Html.text "Pending" ]
 
-                Benchmark.Complete (Err err) ->
+                Benchmark.Failure err ->
                     Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
 
-                Benchmark.Complete (Ok ( sampleSize, meanTime )) ->
+                Benchmark.Success ( sampleSize, meanTime ) ->
                     Html.dl []
                         [ Html.dt [] [ Html.text "Sample Size" ]
                         , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
@@ -82,13 +81,8 @@ benchmarkView benchmark =
 
 
 view : Model -> Html Msg
-view model =
-    case model of
-        Ok benchmark ->
-            Html.div [] [ benchmarkView benchmark ]
-
-        Err err ->
-            Html.p [] [ Html.text <| "Error executing benchmark: " ++ toString err ]
+view =
+    benchmarkView
 
 
 {-| Create a runner program from a benchmark
