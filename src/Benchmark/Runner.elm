@@ -62,7 +62,7 @@ benchmarkView benchmark =
 
                 Benchmark.Success ( sampleSize, meanTime ) ->
                     Html.dl []
-                        [ Html.dt [] [ Html.text "Sample Size" ]
+                        [ Html.dt [] [ Html.text "Operation Size" ]
                         , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
                         , Html.dt [] [ Html.text "Mean Run Time" ]
                         , Html.dd [] [ Html.text <| toString meanTime ++ " ms/run" ]

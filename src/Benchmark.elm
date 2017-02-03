@@ -37,7 +37,7 @@ module Benchmark
 @docs run, size, timebox
 -}
 
-import Benchmark.LowLevel as LowLevel exposing (Error(..), Sample)
+import Benchmark.LowLevel as LowLevel exposing (Error(..), Operation)
 import List.Extra as List
 import Task exposing (Task)
 import Time exposing (Time)
@@ -59,7 +59,7 @@ type Status
 {-| Benchmarks in various groupings
 -}
 type Benchmark
-    = Benchmark String Sample Status
+    = Benchmark String Operation Status
     | Group String (List Benchmark)
 
 
@@ -113,7 +113,7 @@ describe =
     Group
 
 
-benchmarkInternal : String -> Sample -> Benchmark
+benchmarkInternal : String -> Operation -> Benchmark
 benchmarkInternal name measurement =
     Benchmark name measurement (ToSize defaultSizingMethod)
 
@@ -127,7 +127,7 @@ measuring.
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
-    benchmarkInternal name (LowLevel.sample fn)
+    benchmarkInternal name (LowLevel.operation fn)
 
 
 {-| Benchmark a function with a single argument.
@@ -138,7 +138,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark1 : String -> (a -> b) -> a -> Benchmark
 benchmark1 name fn a =
-    benchmarkInternal name (LowLevel.sample1 fn a)
+    benchmarkInternal name (LowLevel.operation1 fn a)
 
 
 {-| Benchmark a function with two arguments.
@@ -149,7 +149,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark2 : String -> (a -> b -> c) -> a -> b -> Benchmark
 benchmark2 name fn a b =
-    benchmarkInternal name (LowLevel.sample2 fn a b)
+    benchmarkInternal name (LowLevel.operation2 fn a b)
 
 
 {-| Benchmark a function with three arguments.
@@ -160,7 +160,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark3 : String -> (a -> b -> c -> d) -> a -> b -> c -> Benchmark
 benchmark3 name fn a b c =
-    benchmarkInternal name (LowLevel.sample3 fn a b c)
+    benchmarkInternal name (LowLevel.operation3 fn a b c)
 
 
 {-| Benchmark a function with four arguments.
@@ -169,7 +169,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark4 : String -> (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Benchmark
 benchmark4 name fn a b c d =
-    benchmarkInternal name (LowLevel.sample4 fn a b c d)
+    benchmarkInternal name (LowLevel.operation4 fn a b c d)
 
 
 {-| Benchmark a function with five arguments.
@@ -178,7 +178,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark5 : String -> (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Benchmark
 benchmark5 name fn a b c d e =
-    benchmarkInternal name (LowLevel.sample5 fn a b c d e)
+    benchmarkInternal name (LowLevel.operation5 fn a b c d e)
 
 
 {-| Benchmark a function with six arguments.
@@ -187,7 +187,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark6 : String -> (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Benchmark
 benchmark6 name fn a b c d e f =
-    benchmarkInternal name (LowLevel.sample6 fn a b c d e f)
+    benchmarkInternal name (LowLevel.operation6 fn a b c d e f)
 
 
 {-| Benchmark a function with seven arguments.
@@ -196,7 +196,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark7 : String -> (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Benchmark
 benchmark7 name fn a b c d e f g =
-    benchmarkInternal name (LowLevel.sample7 fn a b c d e f g)
+    benchmarkInternal name (LowLevel.operation7 fn a b c d e f g)
 
 
 {-| Benchmark a function with eight arguments.
@@ -205,7 +205,7 @@ See also the docs for [`benchmark`](#benchmark).
 -}
 benchmark8 : String -> (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Benchmark
 benchmark8 name fn a b c d e f g h =
-    benchmarkInternal name (LowLevel.sample8 fn a b c d e f g h)
+    benchmarkInternal name (LowLevel.operation8 fn a b c d e f g h)
 
 
 
@@ -239,7 +239,7 @@ nextTask benchmark =
                         |> Just
 
                 Pending n ->
-                    LowLevel.takeSamples n sample
+                    LowLevel.sample n sample
                         |> Task.map (\total -> total / toFloat n)
                         |> Task.map (stats n >> Success >> Benchmark name sample)
                         |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
@@ -271,7 +271,7 @@ To do this, we take a small number of samples, then extrapolate to fit. This
 means that the actual benchmarking runs will not fit *exactly* within the given
 time box, but we should be fairly close.
 -}
-timebox : Time -> Sample -> Task Error Int
+timebox : Time -> Operation -> Task Error Int
 timebox box measurement =
     let
         sampleSize =
@@ -288,4 +288,4 @@ timebox box measurement =
                 else
                     box / single |> ceiling
     in
-        LowLevel.takeSamples sampleSize measurement |> Task.map fit
+        LowLevel.sample sampleSize measurement |> Task.map fit

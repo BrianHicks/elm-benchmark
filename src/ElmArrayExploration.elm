@@ -23,7 +23,7 @@ suite n =
         sampleList =
             List.range 1 n
 
-        equalButDifferentSample =
+        equalButDifferentOperation =
             Array.initialize n identity
     in
         describe
@@ -52,7 +52,7 @@ suite n =
             , describe "Equality"
                 [ benchmark2 "success" (==) sampleArray (Array.set 5 5 sampleArray)
                 , benchmark2 "failure" (==) sampleArray (Array.set 5 7 sampleArray)
-                , benchmark2 "worst case" (==) sampleArray equalButDifferentSample
+                , benchmark2 "worst case" (==) sampleArray equalButDifferentOperation
                 ]
             ]
 
