@@ -1,8 +1,10 @@
 module Benchmark
     exposing
         ( Benchmark(..)
+        , name
         , Status(..)
         , Stats
+        , compareStats
         , SizingMethod(..)
         , withSizingMethod
         , defaultSizingMethod
@@ -16,13 +18,14 @@ module Benchmark
         , benchmark6
         , benchmark7
         , benchmark8
+        , compare
         , nextTask
         )
 
 {-| Benchmark Elm Programs
 
 # Benchmarks and Suites
-@docs Benchmark, Status
+@docs Benchmark, name, Status
 
 ## Analysis
 @docs Stats
@@ -31,7 +34,7 @@ module Benchmark
 @docs SizingMethod, withSizingMethod, defaultSizingMethod
 
 # Creation
-@docs describe, benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8
+@docs describe, benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8, compare
 
 # Running
 @docs run, size, timebox
@@ -61,12 +64,48 @@ type Status
 type Benchmark
     = Benchmark String Operation Status
     | Group String (List Benchmark)
+    | Compare Benchmark Benchmark
+
+
+{-| Get the name of a benchmarking function
+-}
+name : Benchmark -> String
+name benchmark =
+    case benchmark of
+        Benchmark name _ _ ->
+            name
+
+        Group name _ ->
+            name
+
+        Compare a b ->
+            name a ++ " vs " ++ name b
 
 
 {-| Stats returned from a successful benchmarking run
 -}
 type alias Stats =
     ( Int, Time )
+
+
+compareStats : Benchmark -> Benchmark -> Maybe ( Time, Time, Float )
+compareStats a b =
+    case ( a, b ) of
+        ( Benchmark namea _ (Success ( sizea, totala )), Benchmark nameb _ (Success ( sizeb, totalb )) ) ->
+            let
+                meana =
+                    totala / toFloat sizea
+
+                meanb =
+                    totalb / toFloat sizeb
+
+                diff =
+                    (meana / meanb - 1) * 100
+            in
+                Just ( meana, meanb, diff )
+
+        _ ->
+            Nothing
 
 
 stats : Int -> Time -> Stats
@@ -90,6 +129,11 @@ withSizingMethod method benchmark =
 
         Group name benchmarks ->
             Group name <| List.map (withSizingMethod method) benchmarks
+
+        Compare a b ->
+            Compare
+                (withSizingMethod method a)
+                (withSizingMethod method b)
 
 
 {-| The default sizing method for benchmarks. This is automatically set on
@@ -208,6 +252,13 @@ benchmark8 name fn a b c d e f g h =
     benchmarkInternal name (LowLevel.operation8 fn a b c d e f g h)
 
 
+{-| Compare two benchmarks
+-}
+compare : Benchmark -> Benchmark -> Benchmark
+compare =
+    Compare
+
+
 
 -- Runners
 
@@ -262,6 +313,21 @@ nextTask benchmark =
                             |> Task.map (Maybe.map (Group name))
                             |> Task.map (Maybe.withDefault benchmark)
                     )
+
+        Compare a b ->
+            let
+                taska =
+                    nextTask a |> Maybe.map (Task.map (\a -> Compare a b))
+
+                taskb =
+                    nextTask b |> Maybe.map (Task.map (Compare a))
+            in
+                case taska of
+                    Just _ ->
+                        taska
+
+                    Nothing ->
+                        taskb
 
 
 {-| Fit as many runs as possible into a Time.

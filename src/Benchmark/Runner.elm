@@ -9,7 +9,7 @@ import Benchmark exposing (Benchmark)
 import Html exposing (Html)
 import Process
 import Task exposing (Task)
-import Time
+import Time exposing (Time)
 
 
 type alias Model =
@@ -72,19 +72,8 @@ benchmarkView benchmark =
                         , Html.tbody []
                             [ Html.tr []
                                 [ Html.td [] [ Html.text <| toString sampleSize ++ " runs" ]
-                                , Html.td []
-                                    [ Html.text <|
-                                        (totalTime
-                                            |> Time.inSeconds
-                                            |> (*) 100
-                                            |> round
-                                            |> toFloat
-                                            |> (flip (/)) 100
-                                            |> toString
-                                        )
-                                            ++ " s"
-                                    ]
-                                , Html.td [] [ Html.text <| (toString <| totalTime / toFloat sampleSize) ++ " ms/op" ]
+                                , Html.td [] [ Html.text <| humanFriendlyTime totalTime ]
+                                , Html.td [] [ Html.text <| humanFriendlyTime <| totalTime / toFloat sampleSize ]
                                 ]
                             ]
                         ]
@@ -107,6 +96,74 @@ benchmarkView benchmark =
                             )
                         |> Html.ul []
                     ]
+
+            Benchmark.Compare a b ->
+                Html.section
+                    []
+                    ([ Html.h1 [] [ Html.text <| "Comparison: " ++ Benchmark.name benchmark ]
+                     , benchmarkView a
+                     , benchmarkView b
+                     ]
+                        ++ (Benchmark.compareStats a b
+                                |> Maybe.map
+                                    (\( meana, meanb, diff ) ->
+                                        [ Html.table []
+                                            [ Html.thead []
+                                                [ Html.tr []
+                                                    [ Html.th [] [ Html.text <| Benchmark.name a ]
+                                                    , Html.th [] [ Html.text <| Benchmark.name b ]
+                                                    , Html.th [] [ Html.text "Percent Difference" ]
+                                                    ]
+                                                ]
+                                            , Html.tbody []
+                                                [ Html.tr []
+                                                    [ Html.td [] [ Html.text <| humanFriendlyTime meana ]
+                                                    , Html.td [] [ Html.text <| humanFriendlyTime meanb ]
+                                                    , Html.td [] [ Html.text <| percent diff ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    )
+                                |> Maybe.withDefault []
+                           )
+                    )
+
+
+percent : Float -> String
+percent pct =
+    pct
+        * 100
+        |> round
+        |> toFloat
+        |> flip (/) 100
+        |> toString
+        |> flip (++) "%"
+
+
+humanFriendlyTime : Time -> String
+humanFriendlyTime =
+    let
+        chopToThousandth : Float -> Float
+        chopToThousandth =
+            (*) 1000 >> round >> toFloat >> flip (/) 1000
+
+        helper : List String -> Float -> String
+        helper units time =
+            case units of
+                unit :: [] ->
+                    toString (chopToThousandth time) ++ unit
+
+                unit :: rest ->
+                    if time > 1 then
+                        toString (chopToThousandth time) ++ unit
+                    else
+                        helper rest (time * 1000)
+
+                _ ->
+                    toString time ++ " of unknown unit"
+    in
+        helper [ "s", "ns", "µs" ] << Time.inSeconds
 
 
 view : Model -> Html Msg
