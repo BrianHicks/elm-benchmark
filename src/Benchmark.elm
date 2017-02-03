@@ -278,7 +278,9 @@ timebox box operation =
             100
 
         minimumRuntime =
-            box * 0.05
+            max
+                (box * 0.05)
+                Time.millisecond
 
         sample : Int -> Task Error Time
         sample size =
