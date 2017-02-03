@@ -65,7 +65,18 @@ benchmarkView benchmark =
                         [ Html.dt [] [ Html.text "Operation Size" ]
                         , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
                         , Html.dt [] [ Html.text "Total Run Time" ]
-                        , Html.dd [] [ Html.text <| toString totalTime ++ " ms" ]
+                        , Html.dd []
+                            [ Html.text <|
+                                (totalTime
+                                    |> Time.inSeconds
+                                    |> (*) 100
+                                    |> round
+                                    |> toFloat
+                                    |> (flip (/)) 100.0
+                                    |> toString
+                                )
+                                    ++ " s"
+                            ]
                         , Html.dt [] [ Html.text "Mean Run Time" ]
                         , Html.dd [] [ Html.text <| (toString <| totalTime / toFloat sampleSize) ++ " ms/op" ]
                         ]
