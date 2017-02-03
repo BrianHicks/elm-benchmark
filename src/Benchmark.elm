@@ -114,8 +114,8 @@ describe =
 
 
 benchmarkInternal : String -> Operation -> Benchmark
-benchmarkInternal name measurement =
-    Benchmark name measurement (ToSize defaultSizingMethod)
+benchmarkInternal name operation =
+    Benchmark name operation (ToSize defaultSizingMethod)
 
 
 {-| Benchmark a function. This uses Thunks to measure, so you can use any number
