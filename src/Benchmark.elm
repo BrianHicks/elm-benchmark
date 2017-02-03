@@ -16,9 +16,7 @@ module Benchmark
         , benchmark6
         , benchmark7
         , benchmark8
-        , size
-        , measure
-        , timebox
+        , nextTask
         )
 
 {-| Benchmark Elm Programs
@@ -40,6 +38,7 @@ module Benchmark
 -}
 
 import Benchmark.LowLevel as LowLevel exposing (Error(..), Sample)
+import List.Extra as List
 import Task exposing (Task)
 import Time exposing (Time)
 
@@ -213,29 +212,23 @@ benchmark8 name fn a b c d e f g h =
 -- Runners
 
 
-measure : Benchmark -> Task Never Benchmark
-measure benchmark =
-    case benchmark of
-        Benchmark name sample status ->
-            case status of
-                Pending n ->
-                    LowLevel.takeSamples n sample
-                        |> Task.map (\total -> total / toFloat n)
-                        |> Task.map (stats n >> Success >> Benchmark name sample)
-                        |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
+mapFirst : (a -> Maybe b) -> List a -> Maybe b
+mapFirst fn list =
+    case list of
+        [] ->
+            Nothing
 
-                _ ->
-                    Task.succeed benchmark
+        first :: rest ->
+            case fn first of
+                Just thing ->
+                    Just thing
 
-        Group name benchmarks ->
-            benchmarks
-                |> List.map measure
-                |> Task.sequence
-                |> Task.map (Group name)
+                Nothing ->
+                    mapFirst fn rest
 
 
-size : Benchmark -> Task Never Benchmark
-size benchmark =
+nextTask : Benchmark -> Maybe (Task Never Benchmark)
+nextTask benchmark =
     case benchmark of
         Benchmark name sample status ->
             case status of
@@ -243,15 +236,33 @@ size benchmark =
                     timebox time sample
                         |> Task.map (Pending >> Benchmark name sample)
                         |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
+                        |> Just
+
+                Pending n ->
+                    LowLevel.takeSamples n sample
+                        |> Task.map (\total -> total / toFloat n)
+                        |> Task.map (stats n >> Success >> Benchmark name sample)
+                        |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
+                        |> Just
 
                 _ ->
-                    Task.succeed benchmark
+                    Nothing
 
         Group name benchmarks ->
             benchmarks
-                |> List.map size
-                |> Task.sequence
-                |> Task.map (Group name)
+                |> List.indexedMap (,)
+                |> mapFirst
+                    (\( i, benchmark ) ->
+                        nextTask benchmark
+                            |> Maybe.map ((,) i)
+                    )
+                |> Maybe.map
+                    (\( i, task ) ->
+                        task
+                            |> Task.map (\benchmark -> List.setAt i benchmark benchmarks)
+                            |> Task.map (Maybe.map (Group name))
+                            |> Task.map (Maybe.withDefault benchmark)
+                    )
 
 
 {-| Fit as many runs as possible into a Time.
@@ -264,7 +275,7 @@ timebox : Time -> Sample -> Task Error Int
 timebox box measurement =
     let
         sampleSize =
-            100000
+            10
 
         fit : Time -> Int
         fit initial =

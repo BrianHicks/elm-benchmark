@@ -7,7 +7,6 @@ module Benchmark.Runner exposing (..)
 
 import Benchmark exposing (Benchmark)
 import Html exposing (Html)
-import List.Extra as List
 import Process
 import Task exposing (Task)
 import Time
@@ -17,92 +16,33 @@ type alias Model =
     Benchmark
 
 
-
--- path calculation for updates
-
-
-type Segment
-    = Index Int
-
-
-type alias Path =
-    List Segment
-
-
-toList : Benchmark -> List ( Path, Benchmark )
-toList benchmark =
-    case benchmark of
-        Benchmark.Benchmark _ _ _ ->
-            [ ( [], benchmark ) ]
-
-        Benchmark.Group _ benchmarks ->
-            benchmarks
-                |> List.map toList
-                |> List.indexedMap
-                    (\i subs ->
-                        List.map
-                            (\( path, b ) -> ( Index i :: path, b ))
-                            subs
-                    )
-                |> List.concat
-
-
-updateAt : Path -> Benchmark -> Benchmark -> Maybe Benchmark
-updateAt path updated collection =
-    case ( path, collection ) of
-        ( (Index i) :: rest, Benchmark.Group name benchmarks ) ->
-            benchmarks
-                |> List.getAt i
-                |> Maybe.andThen (updateAt rest updated)
-                |> Maybe.andThen (\new -> List.setAt i new benchmarks)
-                |> Maybe.map (Benchmark.Group name)
-
-        ( [], _ ) ->
-            Just updated
-
-        _ ->
-            Nothing
-
-
-
--- Elm Architecture stuff
-
-
 breakForRender : Task x a -> Task x a
 breakForRender task =
     Task.andThen (\_ -> task) (Process.sleep Time.millisecond)
 
 
+next : Benchmark -> Cmd Msg
+next =
+    Benchmark.nextTask
+        >> Maybe.map breakForRender
+        >> Maybe.map (Task.perform Update)
+        >> Maybe.withDefault Cmd.none
+
+
 init : Benchmark -> ( Model, Cmd Msg )
 init benchmark =
-    ( benchmark
-    , benchmark
-        |> toList
-        |> List.map
-            (\( path, benchmark ) ->
-                Task.perform (Sized path) (Benchmark.size benchmark |> breakForRender)
-            )
-        |> Cmd.batch
-    )
+    ( benchmark, next benchmark )
 
 
 type Msg
-    = Sized Path Benchmark
-    | Complete Path Benchmark
+    = Update Benchmark
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case (msg |> Debug.log "msg") of
-        Sized path benchmark ->
-            ( updateAt path benchmark model |> Maybe.withDefault model
-            , Task.perform (Complete path) (Benchmark.measure benchmark |> breakForRender)
-            )
-
-        Complete path benchmark ->
-            ( updateAt path benchmark model |> Maybe.withDefault model
-            , Cmd.none
-            )
+        Update benchmark ->
+            ( benchmark, next benchmark )
 
 
 benchmarkView : Benchmark -> Html Msg
