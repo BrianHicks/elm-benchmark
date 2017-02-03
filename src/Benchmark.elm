@@ -268,23 +268,31 @@ nextTask benchmark =
 
 To do this, we take a small number of samples, then extrapolate to fit. This
 means that the actual benchmarking runs will not fit *exactly* within the given
-time box, but we should be fairly close.
+time box, but we should be fairly close. In practice, expect actual runtime to
+deviate about 30% from the given runtime.
 -}
 timebox : Time -> Operation -> Task Error Int
 timebox box measurement =
     let
-        sampleSize =
-            10
+        initialSampleSize =
+            100
+
+        minimumRuntime =
+            box * 0.05
+
+        -- increase the sample size by powers of 10 until we meet the minimum runtime
+        resample : Int -> Time -> Task Error Time
+        resample size total =
+            if total < minimumRuntime then
+                LowLevel.sample (size * 10) measurement
+                    |> Task.andThen (resample (size * 10))
+            else
+                total / toFloat size |> Task.succeed
 
         fit : Time -> Int
-        fit initial =
-            let
-                single =
-                    initial / sampleSize
-            in
-                if initial == 0 then
-                    sampleSize * 100
-                else
-                    box / single |> ceiling
+        fit single =
+            box / single * 1.3 |> ceiling
     in
-        LowLevel.sample sampleSize measurement |> Task.map fit
+        LowLevel.sample initialSampleSize measurement
+            |> Task.andThen (resample initialSampleSize)
+            |> Task.map fit
