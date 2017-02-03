@@ -61,24 +61,32 @@ benchmarkView benchmark =
                     Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
 
                 Benchmark.Success ( sampleSize, totalTime ) ->
-                    Html.dl []
-                        [ Html.dt [] [ Html.text "Operation Size" ]
-                        , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
-                        , Html.dt [] [ Html.text "Total Run Time" ]
-                        , Html.dd []
-                            [ Html.text <|
-                                (totalTime
-                                    |> Time.inSeconds
-                                    |> (*) 100
-                                    |> round
-                                    |> toFloat
-                                    |> (flip (/)) 100.0
-                                    |> toString
-                                )
-                                    ++ " s"
+                    Html.table []
+                        [ Html.thead []
+                            [ Html.tr []
+                                [ Html.th [] [ Html.text "Operation Size" ]
+                                , Html.th [] [ Html.text "Total Run Time" ]
+                                , Html.th [] [ Html.text "Mean Run Time" ]
+                                ]
                             ]
-                        , Html.dt [] [ Html.text "Mean Run Time" ]
-                        , Html.dd [] [ Html.text <| (toString <| totalTime / toFloat sampleSize) ++ " ms/op" ]
+                        , Html.tbody []
+                            [ Html.tr []
+                                [ Html.td [] [ Html.text <| toString sampleSize ++ " runs" ]
+                                , Html.td []
+                                    [ Html.text <|
+                                        (totalTime
+                                            |> Time.inSeconds
+                                            |> (*) 100
+                                            |> round
+                                            |> toFloat
+                                            |> (flip (/)) 100
+                                            |> toString
+                                        )
+                                            ++ " s"
+                                    ]
+                                , Html.td [] [ Html.text <| (toString <| totalTime / toFloat sampleSize) ++ " ms/op" ]
+                                ]
+                            ]
                         ]
     in
         case benchmark of
