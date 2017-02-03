@@ -70,8 +70,8 @@ type alias Stats =
 
 
 stats : Int -> Time -> Stats
-stats sampleSize meanRuntime =
-    ( sampleSize, meanRuntime )
+stats sampleSize totalRuntime =
+    ( sampleSize, totalRuntime )
 
 
 {-| Methods to get the number size of a benchmarking run
@@ -240,7 +240,6 @@ nextTask benchmark =
 
                 Pending n ->
                     LowLevel.sample n sample
-                        |> Task.map (\total -> total / toFloat n)
                         |> Task.map (stats n >> Success >> Benchmark name sample)
                         |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
                         |> Just

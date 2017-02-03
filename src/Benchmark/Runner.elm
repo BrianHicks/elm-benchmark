@@ -60,12 +60,14 @@ benchmarkView benchmark =
                 Benchmark.Failure err ->
                     Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
 
-                Benchmark.Success ( sampleSize, meanTime ) ->
+                Benchmark.Success ( sampleSize, totalTime ) ->
                     Html.dl []
                         [ Html.dt [] [ Html.text "Operation Size" ]
                         , Html.dd [] [ Html.text <| toString sampleSize ++ " runs" ]
+                        , Html.dt [] [ Html.text "Total Run Time" ]
+                        , Html.dd [] [ Html.text <| toString totalTime ++ " ms" ]
                         , Html.dt [] [ Html.text "Mean Run Time" ]
-                        , Html.dd [] [ Html.text <| toString meanTime ++ " ms/run" ]
+                        , Html.dd [] [ Html.text <| (toString <| totalTime / toFloat sampleSize) ++ " ms/op" ]
                         ]
     in
         case benchmark of
