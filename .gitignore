@@ -4,3 +4,4 @@ elm-stuff
 repl-temp-*
 # elm-make generated files
 index.html
+documentation.json

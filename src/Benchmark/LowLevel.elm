@@ -18,14 +18,11 @@ module Benchmark.LowLevel
 
 This API exposes the raw tasks necessary to create higher-level benchmarking abstractions.
 
-# Error Handling
-@docs Error
-
-# Running
-@docs Operation, operation, operation1, operation2,  operation3, operation4, operation5, operation6, operation7, operation8, runTimes
+# Operations
+@docs Operation, operation, operation1, operation2,  operation3, operation4, operation5, operation6, operation7, operation8
 
 # Measuring
-@docs runTimes
+@docs Error, sample
 -}
 
 import Native.Benchmark
@@ -57,10 +54,6 @@ type Operation
 
 
 {-| Create an operation.
-
-This uses Thunks, which come with a certain amount of runtime overhead. Prefer
-using `operation1` through `operation8` if you can; they will give you more
-accurate results.
 
 See docs for [`operation`](#operation).
 -}

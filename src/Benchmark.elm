@@ -24,20 +24,19 @@ module Benchmark
 
 {-| Benchmark Elm Programs
 
-# Benchmarks and Suites
-@docs Benchmark, name, Status
+@docs Benchmark, Status, name
 
-## Analysis
-@docs Stats
+# Creating Benchmarks
+@docs benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8, describe, compare
 
-## Sizing
+# Analysis
+@docs Stats, compareStats
+
+# Sizing
 @docs SizingMethod, withSizingMethod, defaultSizingMethod
 
-# Creation
-@docs describe, benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8, compare
-
 # Running
-@docs run, size, timebox
+@docs nextTask
 -}
 
 import Benchmark.LowLevel as LowLevel exposing (Error(..), Operation)
@@ -47,10 +46,20 @@ import Time exposing (Time)
 
 
 -- Benchmarks and Suites
--- TODO: Status should have Running, when we can output status
 
 
-{-| The status of a benchmark run
+{-| Benchmarks that contain potential, in-progress, and completed runs.
+
+To make these, try [`benchmark`](#benchmark), [`describe`](#describe), or
+[`compare`](#compare)
+-}
+type Benchmark
+    = Benchmark String Operation Status
+    | Group String (List Benchmark)
+    | Compare Benchmark Benchmark
+
+
+{-| The status of a benchmarking run.
 -}
 type Status
     = ToSize SizingMethod
@@ -59,15 +68,7 @@ type Status
     | Failure Error
 
 
-{-| Benchmarks in various groupings
--}
-type Benchmark
-    = Benchmark String Operation Status
-    | Group String (List Benchmark)
-    | Compare Benchmark Benchmark
-
-
-{-| Get the name of a benchmarking function
+{-| Get the name of a [`Benchmark`](#Benchmark)
 -}
 name : Benchmark -> String
 name benchmark =
@@ -88,6 +89,9 @@ type alias Stats =
     ( Int, Time )
 
 
+{-| compare the stats from two sucessful benchmarks. This is experimental, don't
+depend on it.
+-}
 compareStats : Benchmark -> Benchmark -> Maybe ( Time, Time, Float )
 compareStats a b =
     case ( a, b ) of
@@ -113,13 +117,15 @@ stats sampleSize totalRuntime =
     ( sampleSize, totalRuntime )
 
 
-{-| Methods to get the number size of a benchmarking run
+{-| Methods to determine how many runs of a particular operation to benchmark.
 -}
 type SizingMethod
     = Timebox Time
 
 
-{-| Set the sizing method for a [`Benchmark`](#Benchmark)
+{-| Set the sizing method for a [`Benchmark`](#Benchmark).
+
+    benchmark2 "test" (+) 1 1 |> withSizingMethod (Timebox Time.second)
 -}
 withSizingMethod : SizingMethod -> Benchmark -> Benchmark
 withSizingMethod method benchmark =
@@ -162,12 +168,17 @@ benchmarkInternal name operation =
     Benchmark name operation (ToSize defaultSizingMethod)
 
 
-{-| Benchmark a function. This uses Thunks to measure, so you can use any number
-of arguments. That said, it won't be as accurate as using `benchmark1` through
-`benchmark8` because of the overhead involved in resolving the Thunk.
+{-| Benchmark a function.
 
 The first argument to the benchmark* functions is the name of the thing you're
 measuring.
+
+    benchmark "add" (\_ -> 1 + 1)
+
+`benchmark1` through `benchmark8` have a nicer API which doesn't force you to
+define anonymous functions. For example, the benchmark above can be defined as:
+
+    benchmark2 "add" (+) 1 1
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
@@ -178,7 +189,7 @@ benchmark name fn =
 
     benchmark1 "list head" List.head [1]
 
-See also the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark).
 -}
 benchmark1 : String -> (a -> b) -> a -> Benchmark
 benchmark1 name fn a =
@@ -189,7 +200,7 @@ benchmark1 name fn a =
 
     benchmark2 "dict get" Dict.get "a" (Dict.singleton "a" 1)
 
-See also the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark).
 -}
 benchmark2 : String -> (a -> b -> c) -> a -> b -> Benchmark
 benchmark2 name fn a b =
@@ -200,7 +211,7 @@ benchmark2 name fn a b =
 
     benchmark3 "dict insert" Dict.insert "b" 2 (Dict.singleton "a" 1)
 
-See also the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark).
 -}
 benchmark3 : String -> (a -> b -> c -> d) -> a -> b -> c -> Benchmark
 benchmark3 name fn a b c =
@@ -209,7 +220,7 @@ benchmark3 name fn a b c =
 
 {-| Benchmark a function with four arguments.
 
-See also the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark).
 -}
 benchmark4 : String -> (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Benchmark
 benchmark4 name fn a b c d =
@@ -218,7 +229,7 @@ benchmark4 name fn a b c d =
 
 {-| Benchmark a function with five arguments.
 
-See also the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark).
 -}
 benchmark5 : String -> (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Benchmark
 benchmark5 name fn a b c d e =
@@ -227,7 +238,7 @@ benchmark5 name fn a b c d e =
 
 {-| Benchmark a function with six arguments.
 
-See also the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark).
 -}
 benchmark6 : String -> (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Benchmark
 benchmark6 name fn a b c d e f =
@@ -236,7 +247,7 @@ benchmark6 name fn a b c d e f =
 
 {-| Benchmark a function with seven arguments.
 
-See also the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark).
 -}
 benchmark7 : String -> (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Benchmark
 benchmark7 name fn a b c d e f g =
@@ -245,14 +256,18 @@ benchmark7 name fn a b c d e f g =
 
 {-| Benchmark a function with eight arguments.
 
-See also the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark).
 -}
 benchmark8 : String -> (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Benchmark
 benchmark8 name fn a b c d e f g h =
     benchmarkInternal name (LowLevel.operation8 fn a b c d e f g h)
 
 
-{-| Compare two benchmarks
+{-| Specify that two benchmarks are meant to be directly compared.
+
+    compare
+        (benchmark2 "add" (+) 10 10)
+        (benchmark2 "mul" (*) 10 2)
 -}
 compare : Benchmark -> Benchmark -> Benchmark
 compare =
@@ -278,6 +293,9 @@ mapFirst fn list =
                     mapFirst fn rest
 
 
+{-| Get the next benchmarking task. This is only useful for writing runners. Try
+using `Benchmark.Runner.program` instead.
+-}
 nextTask : Benchmark -> Maybe (Task Never Benchmark)
 nextTask benchmark =
     case benchmark of

@@ -6,7 +6,10 @@
     "source-directories": [
         "src"
     ],
-    "exposed-modules": [],
+    "exposed-modules": [
+        "Benchmark",
+        "Benchmark.LowLevel"
+    ],
     "native-modules": true,
     "dependencies": {
         "Skinney/elm-array-exploration": "2.0.1 <= v < 3.0.0",
