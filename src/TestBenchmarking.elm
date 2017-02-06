@@ -2,7 +2,6 @@ module TestBenchmarking exposing (..)
 
 import Benchmark exposing (Benchmark)
 import Benchmark.Runner exposing (BenchmarkProgram, program)
-import Time
 
 
 arities : Benchmark
@@ -64,6 +63,5 @@ arities =
 main : BenchmarkProgram
 main =
     program <|
-        Benchmark.withSizingMethod (Benchmark.Timebox (5 * Time.second)) <|
-            Benchmark.describe "elm-benchmark"
-                [ arities ]
+        Benchmark.describe "elm-benchmark"
+            [ arities ]
