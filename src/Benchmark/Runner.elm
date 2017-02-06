@@ -58,10 +58,10 @@ benchmarkView benchmark =
                 Benchmark.Pending n ->
                     Html.p [] [ Html.text <| toString n ++ " iterations pending" ]
 
-                Benchmark.Failure err ->
+                Benchmark.Complete (Err err) ->
                     Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
 
-                Benchmark.Success stats ->
+                Benchmark.Complete (Ok stats) ->
                     Html.table []
                         [ Html.thead []
                             [ Html.tr []

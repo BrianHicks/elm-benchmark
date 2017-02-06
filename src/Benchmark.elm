@@ -65,8 +65,7 @@ type Benchmark
 type Status
     = ToSize SizingMethod
     | Pending Int
-    | Success Stats
-    | Failure Error
+    | Complete (Result Error Stats)
 
 
 {-| get the result from a Status, if available
@@ -74,7 +73,7 @@ type Status
 result : Status -> Maybe Stats
 result status =
     case status of
-        Success stats ->
+        Complete (Ok stats) ->
             Just stats
 
         _ ->
@@ -283,13 +282,13 @@ nextTask benchmark =
                 ToSize (Timebox time) ->
                     timebox time sample
                         |> Task.map (Pending >> Benchmark name sample)
-                        |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
+                        |> Task.onError (Err >> Complete >> Benchmark name sample >> Task.succeed)
                         |> Just
 
                 Pending n ->
                     LowLevel.sample n sample
-                        |> Task.map (Stats.stats n >> Success >> Benchmark name sample)
-                        |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
+                        |> Task.map (Stats.stats n >> Ok >> Complete >> Benchmark name sample)
+                        |> Task.onError (Err >> Complete >> Benchmark name sample >> Task.succeed)
                         |> Just
 
                 _ ->
