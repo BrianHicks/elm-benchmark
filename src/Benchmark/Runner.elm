@@ -9,13 +9,17 @@ import Benchmark exposing (Benchmark)
 import Benchmark.Internal as Internal
 import Benchmark.Stats as Stats exposing (Stats)
 import Html exposing (Html)
+import Html.Attributes as A
+import Json.Encode as Encode
 import Process
 import Task exposing (Task)
 import Time exposing (Time)
 
 
 type alias Model =
-    Benchmark
+    { running : Bool
+    , benchmark : Benchmark
+    }
 
 
 breakForRender : Task x a -> Task x a
@@ -23,17 +27,20 @@ breakForRender task =
     Task.andThen (\_ -> task) (Process.sleep Time.millisecond)
 
 
-next : Benchmark -> Cmd Msg
+next : Benchmark -> Maybe (Cmd Msg)
 next =
     Benchmark.nextTask
         >> Maybe.map breakForRender
         >> Maybe.map (Task.perform Update)
-        >> Maybe.withDefault Cmd.none
 
 
 init : Benchmark -> ( Model, Cmd Msg )
 init benchmark =
-    ( benchmark, next benchmark )
+    update
+        (Update benchmark)
+        { benchmark = benchmark
+        , running = True
+        }
 
 
 type Msg
@@ -44,101 +51,22 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Update benchmark ->
-            ( benchmark, next benchmark )
-
-
-benchmarkView : Benchmark -> Html Msg
-benchmarkView benchmark =
-    let
-        statusView : String -> Internal.Status -> Html Msg
-        statusView name status =
-            case status of
-                Internal.ToSize time ->
-                    Html.p [] [ Html.text <| "Needs sizing into " ++ toString (Time.inSeconds time) ++ " second(s)" ]
-
-                Internal.Pending n ->
-                    Html.p [] [ Html.text <| toString n ++ " iterations pending" ]
-
-                Internal.Complete (Err err) ->
-                    Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
-
-                Internal.Complete (Ok stats) ->
-                    Html.table []
-                        [ Html.thead []
-                            [ Html.tr []
-                                [ Html.th [] [ Html.text "Operation Size" ]
-                                , Html.th [] [ Html.text "Total Run Time" ]
-                                , Html.th [] [ Html.text "Mean Run Time" ]
-                                , Html.th [] [ Html.text "Operations Per Second" ]
-                                ]
-                            ]
-                        , Html.tbody []
-                            [ Html.tr []
-                                [ Html.td [] [ Html.text <| toString stats.sampleSize ++ " runs" ]
-                                , Html.td [] [ Html.text <| humanFriendlyTime stats.totalRuntime ]
-                                , Html.td [] [ Html.text <| humanFriendlyTime stats.meanRuntime ]
-                                , Html.td [] [ Html.text <| toString stats.operationsPerSecond ]
-                                ]
-                            ]
-                        ]
-    in
-        case benchmark of
-            Internal.Benchmark name _ status ->
-                Html.section []
-                    [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
-                    , statusView name status
-                    ]
-
-            Internal.Group name benchmarks ->
-                Html.section
-                    []
-                    [ Html.h1 [] [ Html.text <| "Suite: " ++ name ]
-                    , benchmarks
-                        |> List.map
-                            (benchmarkView
-                                >> (\x -> Html.li [] [ x ])
-                            )
-                        |> Html.ul []
-                    ]
-
-            Internal.Compare (Internal.Benchmark namea opa statusa) (Internal.Benchmark nameb opb statusb) ->
-                Html.section
-                    []
-                    ([ Html.h1 [] [ Html.text <| "Comparison: " ++ namea ++ " vs. " ++ nameb ]
-                     , benchmarkView (Internal.Benchmark namea opa statusa)
-                     , benchmarkView (Internal.Benchmark nameb opb statusb)
-                     ]
-                        ++ (Maybe.map2
-                                (\statsa statsb ->
-                                    [ Html.section []
-                                        [ Html.h1 [] [ Html.text "Analysis" ]
-                                        , Html.table []
-                                            [ Html.thead []
-                                                [ Html.tr []
-                                                    [ Html.th [] [ Html.text namea ]
-                                                    , Html.th [] [ Html.text nameb ]
-                                                    , Html.th [] [ Html.text "Percent Difference" ]
-                                                    ]
-                                                ]
-                                            , Html.tbody []
-                                                [ Html.tr []
-                                                    [ Html.td [] [ Html.text <| humanFriendlyTime statsa.meanRuntime ]
-                                                    , Html.td [] [ Html.text <| humanFriendlyTime statsb.meanRuntime ]
-                                                    , Html.td [] [ Html.text <| percent <| Stats.compare statsa statsb ]
-                                                    ]
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                )
-                                (result statusa)
-                                (result statusb)
-                                |> Maybe.withDefault []
-                           )
+            case next benchmark of
+                Just cmd ->
+                    ( { model
+                        | benchmark = benchmark
+                        , running = True
+                      }
+                    , cmd
                     )
 
-            _ ->
-                Html.section [] [ Html.text <| toString <| benchmark ]
+                Nothing ->
+                    ( { model
+                        | benchmark = benchmark
+                        , running = False
+                      }
+                    , Cmd.none
+                    )
 
 
 result : Internal.Status -> Maybe Stats
@@ -187,9 +115,188 @@ humanFriendlyTime =
         helper [ "s", "ns", "µs" ] << Time.inSeconds
 
 
+attrs : List ( String, String ) -> Html msg
+attrs list =
+    let
+        row : ( String, String ) -> Html msg
+        row ( caption, value ) =
+            Html.tr
+                []
+                [ Html.th [ A.style [ ( "text-align", "right" ) ] ] [ Html.text caption ]
+                , Html.td [] [ Html.text value ]
+                ]
+    in
+        Html.table
+            []
+            (List.map row list)
+
+
+name : Benchmark -> String
+name benchmark =
+    case benchmark of
+        Internal.Benchmark name _ _ ->
+            name
+
+        Internal.Compare a b ->
+            name a ++ " vs " ++ name b
+
+        Internal.Group name _ ->
+            name
+
+
+benchmarkView : Benchmark -> Html Msg
+benchmarkView benchmark =
+    let
+        humanizeStatus : Internal.Status -> String
+        humanizeStatus status =
+            case status of
+                Internal.ToSize time ->
+                    "Needs sizing into " ++ humanFriendlyTime time
+
+                Internal.Pending runs ->
+                    "Waiting for " ++ toString runs ++ " runs"
+
+                Internal.Complete (Err error) ->
+                    "Error: " ++ toString error
+
+                Internal.Complete (Ok _) ->
+                    "Complete"
+    in
+        case benchmark of
+            Internal.Benchmark name _ status ->
+                Html.section
+                    []
+                    [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
+                    , case status of
+                        Internal.Complete (Ok stats) ->
+                            attrs
+                                [ ( "sample size", toString stats.sampleSize )
+                                , ( "total runtime", humanFriendlyTime stats.totalRuntime )
+                                , ( "mean runtime", humanFriendlyTime stats.meanRuntime )
+                                , ( "ops/sec", toString stats.operationsPerSecond )
+                                ]
+
+                        _ ->
+                            attrs [ ( "status", humanizeStatus status ) ]
+                    ]
+
+            Internal.Compare a b ->
+                let
+                    content =
+                        case ( a, b ) of
+                            ( Internal.Benchmark namea _ statusa, Internal.Benchmark nameb _ statusb ) ->
+                                Html.div []
+                                    [ case ( statusa, statusb ) of
+                                        ( Internal.Complete (Ok statsa), Internal.Complete (Ok statsb) ) ->
+                                            let
+                                                head caption =
+                                                    Html.th [] [ Html.text caption ]
+
+                                                rowHead caption =
+                                                    Html.th
+                                                        [ A.style [ ( "text-align", "right" ) ] ]
+                                                        [ Html.text caption ]
+
+                                                cell caption =
+                                                    Html.td [] [ Html.text caption ]
+
+                                                table rows =
+                                                    Html.table []
+                                                        [ Html.thead []
+                                                            [ head ""
+                                                            , head namea
+                                                            , head nameb
+                                                            , head "delta"
+                                                            ]
+                                                        , Html.tbody []
+                                                            (rows |> List.map (Html.tr []))
+                                                        ]
+                                            in
+                                                table
+                                                    [ [ rowHead "sample size"
+                                                      , cell <| toString statsa.sampleSize
+                                                      , cell <| toString statsb.sampleSize
+                                                      , cell ""
+                                                      ]
+                                                    , [ rowHead "total runtime"
+                                                      , cell <| humanFriendlyTime statsa.totalRuntime
+                                                      , cell <| humanFriendlyTime statsb.totalRuntime
+                                                      , cell ""
+                                                      ]
+                                                    , [ rowHead "mean runtime"
+                                                      , cell <| humanFriendlyTime statsa.meanRuntime
+                                                      , cell <| humanFriendlyTime statsb.meanRuntime
+                                                      , cell <| percent <| statsa.meanRuntime / statsb.meanRuntime
+                                                      ]
+                                                    , [ rowHead "ops/second"
+                                                      , cell <| toString statsa.operationsPerSecond
+                                                      , cell <| toString statsb.operationsPerSecond
+                                                      , cell <| percent <| toFloat statsa.operationsPerSecond / toFloat statsb.operationsPerSecond
+                                                      ]
+                                                    ]
+
+                                        _ ->
+                                            Html.table
+                                                []
+                                                [ Html.tr []
+                                                    [ Html.th [] [ Html.text namea ]
+                                                    , Html.td [] [ Html.text <| humanizeStatus statusa ]
+                                                    ]
+                                                , Html.tr []
+                                                    [ Html.th [] [ Html.text nameb ]
+                                                    , Html.td [] [ Html.text <| humanizeStatus statusb ]
+                                                    ]
+                                                ]
+                                    ]
+
+                            _ ->
+                                Html.div
+                                    [ A.class "invalid" ]
+                                    [ Html.p [] [ Html.text "Sorry, I can't compare these kinds of benchmarks directly." ]
+                                    , Html.p [] [ Html.text "Here are the serialized values so you can do it yourself:" ]
+                                    , Html.pre
+                                        [ A.style
+                                            [ ( "background-color", "#EEE" )
+                                            , ( "border-radius", "5px" )
+                                            , ( "padding", "5px" )
+                                            ]
+                                        ]
+                                        [ Html.code []
+                                            [ benchmark
+                                                |> Benchmark.toJSON
+                                                |> Encode.encode 2
+                                                |> Html.text
+                                            ]
+                                        ]
+                                    ]
+                in
+                    Html.section
+                        []
+                        [ Html.h1 [] [ Html.text <| "Comparison: " ++ name benchmark ]
+                        , content
+                        ]
+
+            Internal.Group name benchmarks ->
+                Html.section
+                    []
+                    [ Html.h1 [] [ Html.text <| "Group: " ++ name ]
+                    , Html.ol [] (List.map benchmarkView benchmarks)
+                    ]
+
+
 view : Model -> Html Msg
-view =
-    benchmarkView
+view model =
+    Html.div
+        []
+        [ Html.p
+            []
+            [ if model.running then
+                Html.text "Benchmark Running"
+              else
+                Html.text "Benchmark Finished"
+            ]
+        , benchmarkView model.benchmark
+        ]
 
 
 {-| Create a runner program from a benchmark
