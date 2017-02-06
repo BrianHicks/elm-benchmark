@@ -6,6 +6,7 @@ module Benchmark.Runner exposing (..)
 -}
 
 import Benchmark exposing (Benchmark)
+import Benchmark.Internal as Internal
 import Benchmark.Stats as Stats
 import Html exposing (Html)
 import Process
@@ -49,19 +50,19 @@ update msg model =
 benchmarkView : Benchmark -> Html Msg
 benchmarkView benchmark =
     let
-        statusView : String -> Benchmark.Status -> Html Msg
+        statusView : String -> Internal.Status -> Html Msg
         statusView name status =
             case status of
-                Benchmark.ToSize time ->
+                Internal.ToSize time ->
                     Html.p [] [ Html.text <| "Needs sizing into " ++ toString (Time.inSeconds time) ++ " second(s)" ]
 
-                Benchmark.Pending n ->
+                Internal.Pending n ->
                     Html.p [] [ Html.text <| toString n ++ " iterations pending" ]
 
-                Benchmark.Complete (Err err) ->
+                Internal.Complete (Err err) ->
                     Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
 
-                Benchmark.Complete (Ok stats) ->
+                Internal.Complete (Ok stats) ->
                     Html.table []
                         [ Html.thead []
                             [ Html.tr []
@@ -82,13 +83,13 @@ benchmarkView benchmark =
                         ]
     in
         case benchmark of
-            Benchmark.Benchmark name _ status ->
+            Internal.Benchmark name _ status ->
                 Html.section []
                     [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
                     , statusView name status
                     ]
 
-            Benchmark.Group name benchmarks ->
+            Internal.Group name benchmarks ->
                 Html.section
                     []
                     [ Html.h1 [] [ Html.text <| "Suite: " ++ name ]
@@ -100,12 +101,12 @@ benchmarkView benchmark =
                         |> Html.ul []
                     ]
 
-            Benchmark.Compare (Benchmark.Benchmark namea opa statusa) (Benchmark.Benchmark nameb opb statusb) ->
+            Internal.Compare (Internal.Benchmark namea opa statusa) (Internal.Benchmark nameb opb statusb) ->
                 Html.section
                     []
                     ([ Html.h1 [] [ Html.text <| "Comparison: " ++ Benchmark.name benchmark ]
-                     , benchmarkView (Benchmark.Benchmark namea opa statusa)
-                     , benchmarkView (Benchmark.Benchmark nameb opb statusb)
+                     , benchmarkView (Internal.Benchmark namea opa statusa)
+                     , benchmarkView (Internal.Benchmark nameb opb statusb)
                      ]
                         ++ (Maybe.map2
                                 (\statsa statsb ->
