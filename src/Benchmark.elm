@@ -15,6 +15,7 @@ module Benchmark
         , benchmark8
         , compare
         , nextTask
+        , toJSON
         )
 
 {-| Benchmark Elm Programs
@@ -31,14 +32,21 @@ Benchmarks represent a runnable operation.
 
 # Running
 @docs nextTask
+
+# Serialization
+
+Serialization primitives for comparing values on your own.
+
+@docs toJSON
 -}
 
+import Benchmark.Internal as Internal
 import Benchmark.LowLevel as LowLevel exposing (Error(..), Operation)
+import Benchmark.Stats as Stats exposing (Stats)
+import Json.Encode as Encode exposing (Value)
 import List.Extra as List
 import Task exposing (Task)
 import Time exposing (Time)
-import Benchmark.Stats as Stats exposing (Stats)
-import Benchmark.Internal as Internal
 
 
 -- Benchmarks and Suites
@@ -323,3 +331,72 @@ timebox box operation =
             box / single * 1.3 |> ceiling
     in
         sample initialSampleSize |> Task.map fit
+
+
+
+-- Serialization
+
+
+{-| convert a Benchmark to a JSON value
+-}
+toJSON : Benchmark -> Value
+toJSON benchmark =
+    let
+        encodeStatus : Internal.Status -> Value
+        encodeStatus status =
+            case status of
+                Internal.ToSize time ->
+                    Encode.object
+                        [ ( "_stage", Encode.string "toSize" )
+                        , ( "time", time |> Time.inMilliseconds |> Encode.float )
+                        ]
+
+                Internal.Pending runs ->
+                    Encode.object
+                        [ ( "_stage", Encode.string "pending" )
+                        , ( "runs", Encode.int runs )
+                        ]
+
+                Internal.Complete (Err error) ->
+                    Encode.object
+                        [ ( "_stage", Encode.string "complete" )
+                        , ( "_status", Encode.string "error" )
+                        , case error of
+                            LowLevel.StackOverflow ->
+                                ( "message", Encode.string "stack overflow" )
+
+                            LowLevel.UnknownError msg ->
+                                ( "message", Encode.string msg )
+                        ]
+
+                Internal.Complete (Ok stats) ->
+                    Encode.object
+                        [ ( "_stage", Encode.string "complete" )
+                        , ( "_status", Encode.string "success" )
+                        , ( "sampleSize", Encode.int stats.sampleSize )
+                        , ( "totalRuntime", Encode.float stats.totalRuntime )
+                        , ( "meanRuntime", Encode.float stats.meanRuntime )
+                        , ( "operationsPerSecond", Encode.int stats.operationsPerSecond )
+                        ]
+    in
+        case benchmark of
+            Internal.Benchmark name _ status ->
+                Encode.object
+                    [ ( "_kind", Encode.string "benchmark" )
+                    , ( "name", Encode.string name )
+                    , ( "status", encodeStatus status )
+                    ]
+
+            Internal.Compare a b ->
+                Encode.object
+                    [ ( "_kind", Encode.string "compare" )
+                    , ( "a", toJSON a )
+                    , ( "b", toJSON b )
+                    ]
+
+            Internal.Group name benchmarks ->
+                Encode.object
+                    [ ( "_kind", Encode.string "group" )
+                    , ( "name", Encode.string name )
+                    , ( "benchmarks", benchmarks |> List.map toJSON |> Encode.list )
+                    ]
