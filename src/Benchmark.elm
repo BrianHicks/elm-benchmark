@@ -1,8 +1,6 @@
 module Benchmark
     exposing
         ( Benchmark
-        , name
-        , result
         , withRuntime
         , withRuns
         , describe
@@ -23,7 +21,7 @@ module Benchmark
 
 Benchmarks represent a runnable operation.
 
-@docs Benchmark, name, result
+@docs Benchmark
 
 # Creating Benchmarks
 @docs benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8, describe, compare
@@ -53,33 +51,6 @@ To make these, try [`benchmark`](#benchmark), [`describe`](#describe), or
 -}
 type alias Benchmark =
     Internal.Benchmark
-
-
-{-| get the result from a Status, if available
--}
-result : Internal.Status -> Maybe Stats
-result status =
-    case status of
-        Internal.Complete (Ok stats) ->
-            Just stats
-
-        _ ->
-            Nothing
-
-
-{-| Get the name of a [`Benchmark`](#Benchmark)
--}
-name : Benchmark -> String
-name benchmark =
-    case benchmark of
-        Internal.Benchmark name _ _ ->
-            name
-
-        Internal.Group name _ ->
-            name
-
-        Internal.Compare a b ->
-            name a ++ " vs " ++ name b
 
 
 {-| Set the expected runtime for a [`Benchmark`](#Benchmark).

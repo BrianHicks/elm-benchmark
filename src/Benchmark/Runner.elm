@@ -7,7 +7,7 @@ module Benchmark.Runner exposing (..)
 
 import Benchmark exposing (Benchmark)
 import Benchmark.Internal as Internal
-import Benchmark.Stats as Stats
+import Benchmark.Stats as Stats exposing (Stats)
 import Html exposing (Html)
 import Process
 import Task exposing (Task)
@@ -104,7 +104,7 @@ benchmarkView benchmark =
             Internal.Compare (Internal.Benchmark namea opa statusa) (Internal.Benchmark nameb opb statusb) ->
                 Html.section
                     []
-                    ([ Html.h1 [] [ Html.text <| "Comparison: " ++ Benchmark.name benchmark ]
+                    ([ Html.h1 [] [ Html.text <| "Comparison: " ++ namea ++ " vs. " ++ nameb ]
                      , benchmarkView (Internal.Benchmark namea opa statusa)
                      , benchmarkView (Internal.Benchmark nameb opb statusb)
                      ]
@@ -131,14 +131,24 @@ benchmarkView benchmark =
                                         ]
                                     ]
                                 )
-                                (Benchmark.result statusa)
-                                (Benchmark.result statusb)
+                                (result statusa)
+                                (result statusb)
                                 |> Maybe.withDefault []
                            )
                     )
 
             _ ->
                 Html.section [] [ Html.text <| toString <| benchmark ]
+
+
+result : Internal.Status -> Maybe Stats
+result status =
+    case status of
+        Internal.Complete (Ok stats) ->
+            Just stats
+
+        _ ->
+            Nothing
 
 
 percent : Float -> String
