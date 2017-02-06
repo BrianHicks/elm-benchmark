@@ -4,9 +4,8 @@ module Benchmark
         , name
         , Status(..)
         , result
-        , SizingMethod(..)
-        , withSizingMethod
-        , defaultSizingMethod
+        , withRuntime
+        , withRuns
         , describe
         , benchmark
         , benchmark1
@@ -33,7 +32,7 @@ Benchmarks represent a runnable operation.
 @docs benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8, describe, compare
 
 # Sizing
-@docs SizingMethod, withSizingMethod, defaultSizingMethod
+@docs withRuntime, withRuns
 
 # Running
 @docs nextTask
@@ -63,7 +62,7 @@ type Benchmark
 {-| The status of a benchmarking run.
 -}
 type Status
-    = ToSize SizingMethod
+    = ToSize Time
     | Pending Int
     | Complete (Result Error Stats)
 
@@ -95,39 +94,47 @@ name benchmark =
             name a ++ " vs " ++ name b
 
 
-{-| Methods to determine how many runs of a particular operation to benchmark.
+{-| Set the expected runtime for a [`Benchmark`](#Benchmark).
+
+    benchmark2 "test" (+) 1 1 |> withRuntime Time.second
+
+To do this, we take a small number of samples, then extrapolate to fit. This
+means that the actual benchmarking runs will not fit *exactly* within the given
+time, but we should be fairly close. In practice, expect actual runtime to
+deviate up to about 30%.
 -}
-type SizingMethod
-    = Timebox Time
-
-
-{-| Set the sizing method for a [`Benchmark`](#Benchmark).
-
-    benchmark2 "test" (+) 1 1 |> withSizingMethod (Timebox Time.second)
--}
-withSizingMethod : SizingMethod -> Benchmark -> Benchmark
-withSizingMethod method benchmark =
+withRuntime : Time -> Benchmark -> Benchmark
+withRuntime time benchmark =
     case benchmark of
-        Benchmark name sample status ->
-            Benchmark name sample <| ToSize method
+        Benchmark name sample _ ->
+            Benchmark name sample <| ToSize time
 
         Group name benchmarks ->
-            Group name <| List.map (withSizingMethod method) benchmarks
+            Group name <| List.map (withRuntime time) benchmarks
 
         Compare a b ->
             Compare
-                (withSizingMethod method a)
-                (withSizingMethod method b)
+                (withRuntime time a)
+                (withRuntime time b)
 
 
-{-| The default sizing method for benchmarks. This is automatically set on
-Benchmarks from `benchmark` through `benchmark9`. It is defined as:
+{-| Set the exact number of runs to be benchmarked
 
-     Timebox Time.second
+    benchmark2 "test" (+) 1 1 |> withRuns 1000000
 -}
-defaultSizingMethod : SizingMethod
-defaultSizingMethod =
-    Timebox Time.second
+withRuns : Int -> Benchmark -> Benchmark
+withRuns n benchmark =
+    case benchmark of
+        Benchmark name sample _ ->
+            Benchmark name sample <| Pending n
+
+        Group name benchmarks ->
+            Group name <| List.map (withRuns n) benchmarks
+
+        Compare a b ->
+            Compare
+                (withRuns n a)
+                (withRuns n b)
 
 
 
@@ -143,7 +150,7 @@ describe =
 
 benchmarkInternal : String -> Operation -> Benchmark
 benchmarkInternal name operation =
-    Benchmark name operation (ToSize defaultSizingMethod)
+    Benchmark name operation (ToSize Time.second)
 
 
 {-| Benchmark a function.
@@ -279,7 +286,7 @@ nextTask benchmark =
     case benchmark of
         Benchmark name sample status ->
             case status of
-                ToSize (Timebox time) ->
+                ToSize time ->
                     timebox time sample
                         |> Task.map (Pending >> Benchmark name sample)
                         |> Task.onError (Err >> Complete >> Benchmark name sample >> Task.succeed)

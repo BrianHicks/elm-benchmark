@@ -52,7 +52,7 @@ benchmarkView benchmark =
         statusView : String -> Benchmark.Status -> Html Msg
         statusView name status =
             case status of
-                Benchmark.ToSize (Benchmark.Timebox time) ->
+                Benchmark.ToSize time ->
                     Html.p [] [ Html.text <| "Needs sizing into " ++ toString (Time.inSeconds time) ++ " second(s)" ]
 
                 Benchmark.Pending n ->
