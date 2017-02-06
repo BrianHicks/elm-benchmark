@@ -8,6 +8,7 @@
     ],
     "exposed-modules": [
         "Benchmark",
+        "Benchmark.Stats",
         "Benchmark.LowLevel"
     ],
     "native-modules": true,

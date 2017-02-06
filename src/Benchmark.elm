@@ -3,8 +3,7 @@ module Benchmark
         ( Benchmark(..)
         , name
         , Status(..)
-        , Stats
-        , compareStats
+        , result
         , SizingMethod(..)
         , withSizingMethod
         , defaultSizingMethod
@@ -24,13 +23,14 @@ module Benchmark
 
 {-| Benchmark Elm Programs
 
-@docs Benchmark, Status, name
+Benchmarks represent a runnable operation.
+
+@docs Benchmark, name
+
+@docs Status, result
 
 # Creating Benchmarks
 @docs benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8, describe, compare
-
-# Analysis
-@docs Stats, compareStats
 
 # Sizing
 @docs SizingMethod, withSizingMethod, defaultSizingMethod
@@ -43,6 +43,7 @@ import Benchmark.LowLevel as LowLevel exposing (Error(..), Operation)
 import List.Extra as List
 import Task exposing (Task)
 import Time exposing (Time)
+import Benchmark.Stats as Stats exposing (Stats)
 
 
 -- Benchmarks and Suites
@@ -68,6 +69,18 @@ type Status
     | Failure Error
 
 
+{-| get the result from a Status, if available
+-}
+result : Status -> Maybe Stats
+result status =
+    case status of
+        Success stats ->
+            Just stats
+
+        _ ->
+            Nothing
+
+
 {-| Get the name of a [`Benchmark`](#Benchmark)
 -}
 name : Benchmark -> String
@@ -81,40 +94,6 @@ name benchmark =
 
         Compare a b ->
             name a ++ " vs " ++ name b
-
-
-{-| Stats returned from a successful benchmarking run
--}
-type alias Stats =
-    ( Int, Time )
-
-
-{-| compare the stats from two sucessful benchmarks. This is experimental, don't
-depend on it.
--}
-compareStats : Benchmark -> Benchmark -> Maybe ( Time, Time, Float )
-compareStats a b =
-    case ( a, b ) of
-        ( Benchmark namea _ (Success ( sizea, totala )), Benchmark nameb _ (Success ( sizeb, totalb )) ) ->
-            let
-                meana =
-                    totala / toFloat sizea
-
-                meanb =
-                    totalb / toFloat sizeb
-
-                diff =
-                    (meana / meanb - 1) * 100
-            in
-                Just ( meana, meanb, diff )
-
-        _ ->
-            Nothing
-
-
-stats : Int -> Time -> Stats
-stats sampleSize totalRuntime =
-    ( sampleSize, totalRuntime )
 
 
 {-| Methods to determine how many runs of a particular operation to benchmark.
@@ -309,7 +288,7 @@ nextTask benchmark =
 
                 Pending n ->
                     LowLevel.sample n sample
-                        |> Task.map (stats n >> Success >> Benchmark name sample)
+                        |> Task.map (Stats.stats n >> Success >> Benchmark name sample)
                         |> Task.onError (Failure >> Benchmark name sample >> Task.succeed)
                         |> Just
 

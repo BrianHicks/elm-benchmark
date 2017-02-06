@@ -6,6 +6,7 @@ module Benchmark.Runner exposing (..)
 -}
 
 import Benchmark exposing (Benchmark)
+import Benchmark.Stats as Stats
 import Html exposing (Html)
 import Process
 import Task exposing (Task)
@@ -60,20 +61,22 @@ benchmarkView benchmark =
                 Benchmark.Failure err ->
                     Html.p [] [ Html.text <| "Benchmark \"" ++ name ++ "\" failed: " ++ toString err ]
 
-                Benchmark.Success ( sampleSize, totalTime ) ->
+                Benchmark.Success stats ->
                     Html.table []
                         [ Html.thead []
                             [ Html.tr []
                                 [ Html.th [] [ Html.text "Operation Size" ]
                                 , Html.th [] [ Html.text "Total Run Time" ]
                                 , Html.th [] [ Html.text "Mean Run Time" ]
+                                , Html.th [] [ Html.text "Operations Per Second" ]
                                 ]
                             ]
                         , Html.tbody []
                             [ Html.tr []
-                                [ Html.td [] [ Html.text <| toString sampleSize ++ " runs" ]
-                                , Html.td [] [ Html.text <| humanFriendlyTime totalTime ]
-                                , Html.td [] [ Html.text <| humanFriendlyTime <| totalTime / toFloat sampleSize ]
+                                [ Html.td [] [ Html.text <| toString stats.sampleSize ++ " runs" ]
+                                , Html.td [] [ Html.text <| humanFriendlyTime stats.totalRuntime ]
+                                , Html.td [] [ Html.text <| humanFriendlyTime stats.meanRuntime ]
+                                , Html.td [] [ Html.text <| toString stats.operationsPerSecond ]
                                 ]
                             ]
                         ]
@@ -97,40 +100,44 @@ benchmarkView benchmark =
                         |> Html.ul []
                     ]
 
-            Benchmark.Compare a b ->
+            Benchmark.Compare (Benchmark.Benchmark namea opa statusa) (Benchmark.Benchmark nameb opb statusb) ->
                 Html.section
                     []
                     ([ Html.h1 [] [ Html.text <| "Comparison: " ++ Benchmark.name benchmark ]
-                     , benchmarkView a
-                     , benchmarkView b
+                     , benchmarkView (Benchmark.Benchmark namea opa statusa)
+                     , benchmarkView (Benchmark.Benchmark nameb opb statusb)
                      ]
-                        ++ (Benchmark.compareStats a b
-                                |> Maybe.map
-                                    (\( meana, meanb, diff ) ->
-                                        [ Html.section []
-                                            [ Html.h1 [] [ Html.text "Analysis" ]
-                                            , Html.table []
-                                                [ Html.thead []
-                                                    [ Html.tr []
-                                                        [ Html.th [] [ Html.text <| Benchmark.name a ]
-                                                        , Html.th [] [ Html.text <| Benchmark.name b ]
-                                                        , Html.th [] [ Html.text "Percent Difference" ]
-                                                        ]
+                        ++ (Maybe.map2
+                                (\statsa statsb ->
+                                    [ Html.section []
+                                        [ Html.h1 [] [ Html.text "Analysis" ]
+                                        , Html.table []
+                                            [ Html.thead []
+                                                [ Html.tr []
+                                                    [ Html.th [] [ Html.text namea ]
+                                                    , Html.th [] [ Html.text nameb ]
+                                                    , Html.th [] [ Html.text "Percent Difference" ]
                                                     ]
-                                                , Html.tbody []
-                                                    [ Html.tr []
-                                                        [ Html.td [] [ Html.text <| humanFriendlyTime meana ]
-                                                        , Html.td [] [ Html.text <| humanFriendlyTime meanb ]
-                                                        , Html.td [] [ Html.text <| percent diff ]
-                                                        ]
+                                                ]
+                                            , Html.tbody []
+                                                [ Html.tr []
+                                                    [ Html.td [] [ Html.text <| humanFriendlyTime statsa.meanRuntime ]
+                                                    , Html.td [] [ Html.text <| humanFriendlyTime statsb.meanRuntime ]
+                                                    , Html.td [] [ Html.text <| percent <| Stats.compare statsa statsb ]
                                                     ]
                                                 ]
                                             ]
                                         ]
-                                    )
+                                    ]
+                                )
+                                (Benchmark.result statusa)
+                                (Benchmark.result statusb)
                                 |> Maybe.withDefault []
                            )
                     )
+
+            _ ->
+                Html.section [] [ Html.text <| toString <| benchmark ]
 
 
 percent : Float -> String
