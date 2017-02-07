@@ -22,7 +22,7 @@ type Status
 
 benchmark : String -> Operation -> Benchmark
 benchmark name operation =
-    Benchmark name operation (ToSize Time.second)
+    Benchmark name operation <| ToSize <| 5 * Time.second
 
 
 
