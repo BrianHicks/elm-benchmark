@@ -1,4 +1,4 @@
-module Benchmark.Runner exposing (..)
+module Benchmark.Runner exposing (BenchmarkProgram, program)
 
 {-| HTML Benchmark Runner
 
@@ -312,9 +312,16 @@ view model =
         ]
 
 
-{-| Create a runner program from a benchmark
+{-| Create a runner program from a benchmark. For example:
+
+    main : BenchmarkProgram
+    main =
+        Runner.program <|
+            Benchmark.group "your benchmarks"
+                [ -- your benchmarks here
+                ]
 -}
-program : Benchmark -> Program Never Model Msg
+program : Benchmark -> BenchmarkProgram
 program benchmark =
     Html.program
         { init = init benchmark

@@ -53,14 +53,24 @@ type alias Benchmark =
     Internal.Benchmark
 
 
-{-| Set the expected runtime for a [`Benchmark`](#Benchmark).
+{-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is the
+default method of determining benchmark run size.
 
-    benchmark2 "test" (+) 1 1 |> withRuntime Time.second
+For example, to set the expected runtime to 1 second (away from the default of 5
+seconds):
 
-To do this, we take a small number of samples, then extrapolate to fit. This
-means that the actual benchmarking runs will not fit *exactly* within the given
-time, but we should be fairly close. In practice, expect actual runtime to
-deviate up to about 30%.
+    benchmark1 "list head" List.head [1] |> withRuntime Time.second
+
+This works with all the kinds of benchmarks you can create. If you provide a
+composite benchmark (a group or comparison) the same expected runtime will be
+set for all members.
+
+Note that this sets the *expected* runtime, not *actual* runtime. We take a
+small number of samples, then extrapolate to fit. This means that the actual
+benchmarking runs will not fit *exactly* within the given time, but we should be
+fairly close. In practice, expect actual runtime to deviate up to about 30%.
+However, these actual runtimes should be fairly consistent between runs. NB:
+Larger expected runtimes tend to yield more accurate actual runtimes.
 -}
 withRuntime : Time -> Benchmark -> Benchmark
 withRuntime time benchmark =
@@ -77,9 +87,14 @@ withRuntime time benchmark =
                 (withRuntime time b)
 
 
-{-| Set the exact number of runs to be benchmarked
+{-| Set the exact number of runs to benchmarked. For example, to run a function
+1 million times:
 
-    benchmark2 "test" (+) 1 1 |> withRuns 1000000
+    benchmark1 "list head" List.head [1] |> withRuns 1000000
+
+Doing this is generally not necessary; the runtime-based estimator will provide
+consistent and reasonable results for all sizes of benchmarks without you having
+to account for benchmark size or environmental concerns.
 -}
 withRuns : Int -> Benchmark -> Benchmark
 withRuns n benchmark =
@@ -100,7 +115,15 @@ withRuns n benchmark =
 -- Creation
 
 
-{-| Create a Group from a list of Benchmarks
+{-| Group a number of benchmarks together. Grouping benchmarks using `describe`
+will never effect measurement, only organization.
+
+You'll typically have at least one call to this in your benchmark program, at
+the top level:
+
+    describe "your program"
+        [ -- all your benchmarks
+        ]
 -}
 describe : String -> List Benchmark -> Benchmark
 describe =
@@ -112,12 +135,12 @@ describe =
 The first argument to the benchmark* functions is the name of the thing you're
 measuring.
 
-    benchmark "add" (\_ -> 1 + 1)
+    benchmark "list head" (\_ -> List.head [1])
 
 `benchmark1` through `benchmark8` have a nicer API which doesn't force you to
 define anonymous functions. For example, the benchmark above can be defined as:
 
-    benchmark2 "add" (+) 1 1
+    benchmark1 "list head" List.head [1]
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
@@ -128,7 +151,7 @@ benchmark name fn =
 
     benchmark1 "list head" List.head [1]
 
-See the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark1 : String -> (a -> b) -> a -> Benchmark
 benchmark1 name fn a =
@@ -139,7 +162,7 @@ benchmark1 name fn a =
 
     benchmark2 "dict get" Dict.get "a" (Dict.singleton "a" 1)
 
-See the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark2 : String -> (a -> b -> c) -> a -> b -> Benchmark
 benchmark2 name fn a b =
@@ -150,7 +173,7 @@ benchmark2 name fn a b =
 
     benchmark3 "dict insert" Dict.insert "b" 2 (Dict.singleton "a" 1)
 
-See the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark3 : String -> (a -> b -> c -> d) -> a -> b -> c -> Benchmark
 benchmark3 name fn a b c =
@@ -159,7 +182,7 @@ benchmark3 name fn a b c =
 
 {-| Benchmark a function with four arguments.
 
-See the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark4 : String -> (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Benchmark
 benchmark4 name fn a b c d =
@@ -168,7 +191,7 @@ benchmark4 name fn a b c d =
 
 {-| Benchmark a function with five arguments.
 
-See the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark5 : String -> (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Benchmark
 benchmark5 name fn a b c d e =
@@ -177,7 +200,7 @@ benchmark5 name fn a b c d e =
 
 {-| Benchmark a function with six arguments.
 
-See the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark6 : String -> (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Benchmark
 benchmark6 name fn a b c d e f =
@@ -186,7 +209,7 @@ benchmark6 name fn a b c d e f =
 
 {-| Benchmark a function with seven arguments.
 
-See the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark7 : String -> (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Benchmark
 benchmark7 name fn a b c d e f g =
@@ -195,7 +218,7 @@ benchmark7 name fn a b c d e f g =
 
 {-| Benchmark a function with eight arguments.
 
-See the docs for [`benchmark`](#benchmark).
+See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark8 : String -> (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Benchmark
 benchmark8 name fn a b c d e f g h =
@@ -291,11 +314,6 @@ nextTask benchmark =
 
 
 {-| Fit as many runs as possible into a Time.
-
-To do this, we take a small number of samples, then extrapolate to fit. This
-means that the actual benchmarking runs will not fit *exactly* within the given
-time box, but we should be fairly close. In practice, expect actual runtime to
-deviate up to about 30%.
 -}
 timebox : Time -> Operation -> Task Error Int
 timebox box operation =

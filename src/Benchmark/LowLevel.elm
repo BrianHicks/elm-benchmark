@@ -42,20 +42,14 @@ single function call.
 
 Create these using `operation` through `operation8` and take runtime samples
 using `sample`.
-
-Measure the run time of a function.
 -}
 type Operation
     = Operation
 
 
-
--- TODO: Operation instead of Operation, operation instead of sample
-
-
 {-| Create an operation.
 
-See docs for [`operation`](#operation).
+See docs for [`Operation`](#Operation).
 -}
 operation : (() -> a) -> Operation
 operation =
