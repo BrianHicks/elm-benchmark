@@ -11,6 +11,7 @@ import Benchmark.Stats as Stats exposing (Stats)
 import Html exposing (Html)
 import Html.Attributes as A
 import Json.Encode as Encode
+import List.Extra as List
 import Process
 import Task exposing (Task)
 import Time exposing (Time)
@@ -82,7 +83,8 @@ result status =
 percent : Float -> String
 percent pct =
     pct
-        * 100
+        |> flip (-) 1
+        |> (*) 10000
         |> round
         |> toFloat
         |> flip (/) 100
@@ -90,8 +92,8 @@ percent pct =
         |> flip (++) "%"
 
 
-humanFriendlyTime : Time -> String
-humanFriendlyTime =
+humanizeTime : Time -> String
+humanizeTime =
     let
         chopToThousandth : Float -> Float
         chopToThousandth =
@@ -112,7 +114,18 @@ humanFriendlyTime =
                 _ ->
                     toString time ++ " of unknown unit"
     in
-        helper [ "s", "ns", "µs" ] << Time.inSeconds
+        Time.inSeconds >> helper [ "s", "ms", "ns", "µs" ]
+
+
+humanizeInt : Int -> String
+humanizeInt =
+    toString
+        >> String.reverse
+        >> String.toList
+        >> List.greedyGroupsOf 3
+        >> List.map String.fromList
+        >> String.join ","
+        >> String.reverse
 
 
 attrs : List ( String, String ) -> Html msg
@@ -151,10 +164,10 @@ benchmarkView benchmark =
         humanizeStatus status =
             case status of
                 Internal.ToSize time ->
-                    "Needs sizing into " ++ humanFriendlyTime time
+                    "Needs sizing into " ++ humanizeTime time
 
                 Internal.Pending runs ->
-                    "Waiting for " ++ toString runs ++ " runs"
+                    "Waiting for " ++ humanizeInt runs ++ " runs"
 
                 Internal.Complete (Err error) ->
                     "Error: " ++ toString error
@@ -170,10 +183,10 @@ benchmarkView benchmark =
                     , case status of
                         Internal.Complete (Ok stats) ->
                             attrs
-                                [ ( "sample size", toString stats.sampleSize )
-                                , ( "total runtime", humanFriendlyTime stats.totalRuntime )
-                                , ( "mean runtime", humanFriendlyTime stats.meanRuntime )
-                                , ( "ops/sec", toString stats.operationsPerSecond )
+                                [ ( "sample size", humanizeInt stats.sampleSize )
+                                , ( "total runtime", humanizeTime stats.totalRuntime )
+                                , ( "mean runtime", humanizeTime stats.meanRuntime )
+                                , ( "ops/sec", humanizeInt stats.operationsPerSecond )
                                 ]
 
                         _ ->
@@ -214,23 +227,23 @@ benchmarkView benchmark =
                                             in
                                                 table
                                                     [ [ rowHead "sample size"
-                                                      , cell <| toString statsa.sampleSize
-                                                      , cell <| toString statsb.sampleSize
+                                                      , cell <| humanizeInt statsa.sampleSize
+                                                      , cell <| humanizeInt statsb.sampleSize
                                                       , cell ""
                                                       ]
                                                     , [ rowHead "total runtime"
-                                                      , cell <| humanFriendlyTime statsa.totalRuntime
-                                                      , cell <| humanFriendlyTime statsb.totalRuntime
+                                                      , cell <| humanizeTime statsa.totalRuntime
+                                                      , cell <| humanizeTime statsb.totalRuntime
                                                       , cell ""
                                                       ]
                                                     , [ rowHead "mean runtime"
-                                                      , cell <| humanFriendlyTime statsa.meanRuntime
-                                                      , cell <| humanFriendlyTime statsb.meanRuntime
+                                                      , cell <| humanizeTime statsa.meanRuntime
+                                                      , cell <| humanizeTime statsb.meanRuntime
                                                       , cell <| percent <| statsa.meanRuntime / statsb.meanRuntime
                                                       ]
                                                     , [ rowHead "ops/second"
-                                                      , cell <| toString statsa.operationsPerSecond
-                                                      , cell <| toString statsb.operationsPerSecond
+                                                      , cell <| humanizeInt statsa.operationsPerSecond
+                                                      , cell <| humanizeInt statsb.operationsPerSecond
                                                       , cell <| percent <| toFloat statsa.operationsPerSecond / toFloat statsb.operationsPerSecond
                                                       ]
                                                     ]
@@ -263,7 +276,7 @@ benchmarkView benchmark =
                                         ]
                                         [ Html.code []
                                             [ benchmark
-                                                |> Benchmark.toJSON
+                                                |> Internal.encode
                                                 |> Encode.encode 2
                                                 |> Html.text
                                             ]
