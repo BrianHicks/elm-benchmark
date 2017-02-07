@@ -150,8 +150,8 @@ name benchmark =
         Internal.Benchmark name _ _ ->
             name
 
-        Internal.Compare a b ->
-            name a ++ " vs " ++ name b
+        Internal.Compare cname a b ->
+            cname ++ ": " ++ name a ++ " vs " ++ name b
 
         Internal.Group name _ ->
             name
@@ -193,7 +193,7 @@ benchmarkView benchmark =
                             attrs [ ( "status", humanizeStatus status ) ]
                     ]
 
-            Internal.Compare a b ->
+            Internal.Compare _ a b ->
                 let
                     content =
                         case ( a, b ) of
@@ -285,7 +285,7 @@ benchmarkView benchmark =
                 in
                     Html.section
                         []
-                        [ Html.h1 [] [ Html.text <| "Comparison: " ++ name benchmark ]
+                        [ Html.h1 [] [ Html.text <| "Comparing " ++ name benchmark ]
                         , content
                         ]
 

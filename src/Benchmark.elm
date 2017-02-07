@@ -71,8 +71,8 @@ withRuntime time benchmark =
         Internal.Group name benchmarks ->
             Internal.Group name <| List.map (withRuntime time) benchmarks
 
-        Internal.Compare a b ->
-            Internal.Compare
+        Internal.Compare name a b ->
+            Internal.Compare name
                 (withRuntime time a)
                 (withRuntime time b)
 
@@ -90,8 +90,8 @@ withRuns n benchmark =
         Internal.Group name benchmarks ->
             Internal.Group name <| List.map (withRuns n) benchmarks
 
-        Internal.Compare a b ->
-            Internal.Compare
+        Internal.Compare name a b ->
+            Internal.Compare name
                 (withRuns n a)
                 (withRuns n b)
 
@@ -204,11 +204,14 @@ benchmark8 name fn a b c d e f g h =
 
 {-| Specify that two benchmarks are meant to be directly compared.
 
-    compare
-        (benchmark2 "add" (+) 10 10)
-        (benchmark2 "mul" (*) 10 2)
+As with [`benchmark`](#benchmark), the first argument is the name for the
+comparison.
+
+    compare "initialize"
+        (benchmark2 "HAMT" HAMT.initialize 10000 identity)
+        (benchmark2 "Core" Array.initialize 10000 identity)
 -}
-compare : Benchmark -> Benchmark -> Benchmark
+compare : String -> Benchmark -> Benchmark -> Benchmark
 compare =
     Internal.Compare
 
@@ -271,13 +274,13 @@ nextTask benchmark =
                             |> Task.map (Maybe.withDefault benchmark)
                     )
 
-        Internal.Compare a b ->
+        Internal.Compare name a b ->
             let
                 taska =
-                    nextTask a |> Maybe.map (Task.map (\a -> Internal.Compare a b))
+                    nextTask a |> Maybe.map (Task.map (\a -> Internal.Compare name a b))
 
                 taskb =
-                    nextTask b |> Maybe.map (Task.map (Internal.Compare a))
+                    nextTask b |> Maybe.map (Task.map (Internal.Compare name a))
             in
                 case taska of
                     Just _ ->

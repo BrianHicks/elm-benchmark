@@ -9,7 +9,7 @@ import Time exposing (Time)
 type Benchmark
     = Benchmark String Operation Status
     | Group String (List Benchmark)
-    | Compare Benchmark Benchmark
+    | Compare String Benchmark Benchmark
 
 
 {-| The status of a benchmarking run.
@@ -79,9 +79,10 @@ encode benchmark =
                     , ( "status", encodeStatus status )
                     ]
 
-            Compare a b ->
+            Compare name a b ->
                 Encode.object
                     [ ( "_kind", Encode.string "compare" )
+                    , ( "name", Encode.string name )
                     , ( "a", encode a )
                     , ( "b", encode b )
                     ]
