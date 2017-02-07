@@ -1,18 +1,58 @@
-# Benchmark
+# Elm Benchmark
 
-Benchmarking for Elm.
+Measure the speed of pure functions in Elm, with as little Native code as possible.
 
-**Status**: Pre 1.0.0.
-[`Benchmark.LowLevel`](src/Benchmark/LowLevel.elm) is more-or-less done, depending on the [higher-level API](src/Benchmark.elm)'s needs changing.
-We have the first draft of a [browser runner](src/Benchmark/Runner.elm) and an [example of it's use](src/Example.elm).
+**Status**: 1.0.0-pre1 (tagged).
 
-## Overview
+## Quick Start
 
-`Benchmark.LowLevel` provides tasks to get high-resolution run time for functions.
+Here's a sample, benchmarking [`Array.Hamt`](https://github.com/Skinney/elm-array-exploration).
 
-The higher-level API has named constructor functions that mirror the lower-level constructors.
-So where `Benchmark.LowLevel` has `measure` through `measure8`, `Benchmark` has `benchmark` through `benchmark8`.
-It can also construct suites of benchmarks.
+```elm
+suite : Benchmark
+suite =
+    let
+        sampleArray = Hamt.initialize 1000 identity
+    in
+        describe "Array.Hamt"
+            [ describe "slice" -- nest as many descriptions as you like
+                [ benchmark3 "from beginning" Hamt.slice 3 1000 sampleArray
+                , benchmark3 "from end minor" Hamt.slice 0 -3 sampleArray
+                , benchmark3 "from end major" Hamt.slice 0 500 sampleArray ]
+            , Benchmark.compare "initialize" -- compare the results of two benchmarks
+                (benchmark2 "HAMT" Hamt.initialize n identity)
+                (benchmark2 "core" Array.initialize n identity)
+            ]
+```
+
+This code uses a few common functions:
+
+-   `describe` to organize benchmarks
+-   `benchmark*` to run benchmarks
+-   `compare` to compare the results of two benchmarks
+
+### Running Benchmarks
+
+`Benchmark.Runner` provides `program`, which takes a `Benchmark` and runs it in the browser.
+To run the sample above, you would do:
+
+```elm
+import Benchmark.Runner exposing (BenchmarkProgram, program)
+
+
+main : BenchmarkProgram
+main =
+    program suite
+```
+
+Compile and open in your browser (or use `elm reactor`) to start the benchmarking run.
+
+## Effective Benchmarks
+
+Some general principles:
+
+-   Don't compare raw values across multiple machines.
+-   When you're working on speeding up a function, keep the old implementation around and use `compare` to measure your progress.
 
 ## Prior Art
 
