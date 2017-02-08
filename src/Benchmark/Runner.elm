@@ -183,10 +183,10 @@ benchmarkView benchmark =
                     , case status of
                         Internal.Complete (Ok stats) ->
                             attrs
-                                [ ( "sample size", humanizeInt stats.sampleSize )
-                                , ( "total runtime", humanizeTime stats.totalRuntime )
+                                [ ( "ops/sec", humanizeInt stats.operationsPerSecond )
                                 , ( "mean runtime", humanizeTime stats.meanRuntime )
-                                , ( "ops/sec", humanizeInt stats.operationsPerSecond )
+                                , ( "total runtime", humanizeTime stats.totalRuntime )
+                                , ( "sample size", humanizeInt stats.sampleSize )
                                 ]
 
                         _ ->
@@ -226,25 +226,25 @@ benchmarkView benchmark =
                                                         ]
                                             in
                                                 table
-                                                    [ [ rowHead "sample size"
-                                                      , cell <| humanizeInt statsa.sampleSize
-                                                      , cell <| humanizeInt statsb.sampleSize
-                                                      , cell ""
-                                                      ]
-                                                    , [ rowHead "total runtime"
-                                                      , cell <| humanizeTime statsa.totalRuntime
-                                                      , cell <| humanizeTime statsb.totalRuntime
-                                                      , cell ""
+                                                    [ [ rowHead "ops/second"
+                                                      , cell <| humanizeInt statsa.operationsPerSecond
+                                                      , cell <| humanizeInt statsb.operationsPerSecond
+                                                      , cell <| percent <| toFloat statsa.operationsPerSecond / toFloat statsb.operationsPerSecond
                                                       ]
                                                     , [ rowHead "mean runtime"
                                                       , cell <| humanizeTime statsa.meanRuntime
                                                       , cell <| humanizeTime statsb.meanRuntime
                                                       , cell <| percent <| statsa.meanRuntime / statsb.meanRuntime
                                                       ]
-                                                    , [ rowHead "ops/second"
-                                                      , cell <| humanizeInt statsa.operationsPerSecond
-                                                      , cell <| humanizeInt statsb.operationsPerSecond
-                                                      , cell <| percent <| toFloat statsa.operationsPerSecond / toFloat statsb.operationsPerSecond
+                                                    , [ rowHead "total runtime"
+                                                      , cell <| humanizeTime statsa.totalRuntime
+                                                      , cell <| humanizeTime statsb.totalRuntime
+                                                      , cell ""
+                                                      ]
+                                                    , [ rowHead "sample size"
+                                                      , cell <| humanizeInt statsa.sampleSize
+                                                      , cell <| humanizeInt statsb.sampleSize
+                                                      , cell ""
                                                       ]
                                                     ]
 
