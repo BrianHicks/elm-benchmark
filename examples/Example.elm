@@ -12,8 +12,7 @@ insert =
         dest =
             Dict.singleton "a" 1
     in
-        Benchmark.describe
-            "dictionary"
+        Benchmark.describe "dictionary"
             [ Benchmark.benchmark2 "get" Dict.get "a" dest
             , Benchmark.benchmark3 "insert" Dict.insert "b" 2 dest
             ]
