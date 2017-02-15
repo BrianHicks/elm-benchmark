@@ -53,6 +53,9 @@ Some general principles:
 
 -   Don't compare raw values across multiple machines.
 -   When you're working on speeding up a function, keep the old implementation around and use `compare` to measure your progress.
+-   > As always, if you see numbers that look wildly out of whack, you shouldn’t rejoice that you have magically achieved fast performance—be skeptical and investigate!
+    >
+    > — [Bryan O'Sullivan](http://www.serpentine.com/criterion/tutorial.html)
 
 ## Prior Art
 
