@@ -80,16 +80,21 @@ result status =
             Nothing
 
 
-percent : Float -> String
-percent pct =
+percentChange : Float -> String
+percentChange pct =
     pct
-        |> flip (-) 1
         |> (*) 10000
         |> round
         |> toFloat
         |> flip (/) 100
-        |> toString
-        |> flip (++) "%"
+        |> (\i ->
+                case compare i 0 of
+                    GT ->
+                        "+" ++ toString i ++ "%"
+
+                    _ ->
+                        toString i ++ "%"
+           )
 
 
 humanizeTime : Time -> String
@@ -183,10 +188,10 @@ benchmarkView benchmark =
                     , case status of
                         Internal.Complete (Ok stats) ->
                             attrs
-                                [ ( "ops/sec", humanizeInt stats.operationsPerSecond )
-                                , ( "mean runtime", humanizeTime stats.meanRuntime )
-                                , ( "total runtime", humanizeTime stats.totalRuntime )
-                                , ( "sample size", humanizeInt stats.sampleSize )
+                                [ ( "ops/sec", humanizeInt <| Stats.operationsPerSecond stats )
+                                , ( "mean runtime", humanizeTime <| Stats.meanRuntime stats )
+                                , ( "total runtime", humanizeTime <| stats.runtime )
+                                , ( "sample size", humanizeInt <| stats.operations )
                                 ]
 
                         _ ->
@@ -227,23 +232,23 @@ benchmarkView benchmark =
                                             in
                                                 table
                                                     [ [ rowHead "ops/second"
-                                                      , cell <| humanizeInt statsa.operationsPerSecond
-                                                      , cell <| humanizeInt statsb.operationsPerSecond
-                                                      , cell <| percent <| toFloat statsa.operationsPerSecond / toFloat statsb.operationsPerSecond
+                                                      , cell <| humanizeInt <| Stats.operationsPerSecond statsa
+                                                      , cell <| humanizeInt <| Stats.operationsPerSecond statsb
+                                                      , cell <| percentChange <| Stats.compareOperationsPerSecond statsb statsa
                                                       ]
                                                     , [ rowHead "mean runtime"
-                                                      , cell <| humanizeTime statsa.meanRuntime
-                                                      , cell <| humanizeTime statsb.meanRuntime
-                                                      , cell <| percent <| statsa.meanRuntime / statsb.meanRuntime
+                                                      , cell <| humanizeTime <| Stats.meanRuntime statsa
+                                                      , cell <| humanizeTime <| Stats.meanRuntime statsb
+                                                      , cell <| percentChange <| Stats.compareMeanRuntime statsb statsa
                                                       ]
                                                     , [ rowHead "total runtime"
-                                                      , cell <| humanizeTime statsa.totalRuntime
-                                                      , cell <| humanizeTime statsb.totalRuntime
+                                                      , cell <| humanizeTime statsa.runtime
+                                                      , cell <| humanizeTime statsb.runtime
                                                       , cell ""
                                                       ]
                                                     , [ rowHead "sample size"
-                                                      , cell <| humanizeInt statsa.sampleSize
-                                                      , cell <| humanizeInt statsb.sampleSize
+                                                      , cell <| humanizeInt statsa.operations
+                                                      , cell <| humanizeInt statsb.operations
                                                       , cell ""
                                                       ]
                                                     ]
@@ -276,7 +281,7 @@ benchmarkView benchmark =
                                         ]
                                         [ Html.code []
                                             [ benchmark
-                                                |> Internal.encode
+                                                |> Internal.encoder
                                                 |> Encode.encode 2
                                                 |> Html.text
                                             ]

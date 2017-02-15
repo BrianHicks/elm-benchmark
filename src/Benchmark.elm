@@ -35,7 +35,7 @@ Benchmarks represent a runnable operation.
 
 import Benchmark.Internal as Internal
 import Benchmark.LowLevel as LowLevel exposing (Error(..), Operation)
-import Benchmark.Stats as Stats exposing (Stats)
+import Benchmark.Stats as Stats
 import List.Extra as List
 import Task exposing (Task)
 import Time exposing (Time)
@@ -274,7 +274,7 @@ nextTask benchmark =
 
                 Internal.Pending n ->
                     LowLevel.sample n sample
-                        |> Task.map (Stats.stats n >> Ok >> Internal.Complete >> Internal.Benchmark name sample)
+                        |> Task.map (Stats.run n >> Ok >> Internal.Complete >> Internal.Benchmark name sample)
                         |> Task.onError (Err >> Internal.Complete >> Internal.Benchmark name sample >> Task.succeed)
                         |> Just
 

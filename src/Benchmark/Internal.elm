@@ -1,7 +1,7 @@
 module Benchmark.Internal exposing (..)
 
 import Benchmark.LowLevel as LowLevel exposing (Error, Operation)
-import Benchmark.Stats exposing (Stats)
+import Benchmark.Stats as Stats exposing (Stats)
 import Json.Encode as Encode exposing (Value)
 import Time exposing (Time)
 
@@ -31,8 +31,8 @@ benchmark name operation =
 
 {-| convert a Benchmark to a JSON value
 -}
-encode : Benchmark -> Value
-encode benchmark =
+encoder : Benchmark -> Value
+encoder benchmark =
     let
         encodeStatus : Status -> Value
         encodeStatus status =
@@ -51,8 +51,7 @@ encode benchmark =
 
                 Complete (Err error) ->
                     Encode.object
-                        [ ( "_stage", Encode.string "complete" )
-                        , ( "_status", Encode.string "error" )
+                        [ ( "_stage", Encode.string "failure" )
                         , case error of
                             LowLevel.StackOverflow ->
                                 ( "message", Encode.string "stack overflow" )
@@ -61,14 +60,11 @@ encode benchmark =
                                 ( "message", Encode.string msg )
                         ]
 
-                Complete (Ok stats) ->
+                Complete (Ok run) ->
                     Encode.object
-                        [ ( "_stage", Encode.string "complete" )
-                        , ( "_status", Encode.string "success" )
-                        , ( "sampleSize", Encode.int stats.sampleSize )
-                        , ( "totalRuntime", Encode.float stats.totalRuntime )
-                        , ( "meanRuntime", Encode.float stats.meanRuntime )
-                        , ( "operationsPerSecond", Encode.int stats.operationsPerSecond )
+                        [ ( "_stage", Encode.string "success" )
+                        , ( "sampleSize", Encode.int run.operations )
+                        , ( "totalRuntime", Encode.float run.runtime )
                         ]
     in
         case benchmark of
@@ -83,13 +79,13 @@ encode benchmark =
                 Encode.object
                     [ ( "_kind", Encode.string "compare" )
                     , ( "name", Encode.string name )
-                    , ( "a", encode a )
-                    , ( "b", encode b )
+                    , ( "a", encoder a )
+                    , ( "b", encoder b )
                     ]
 
             Group name benchmarks ->
                 Encode.object
                     [ ( "_kind", Encode.string "group" )
                     , ( "name", Encode.string name )
-                    , ( "benchmarks", benchmarks |> List.map encode |> Encode.list )
+                    , ( "benchmarks", benchmarks |> List.map encoder |> Encode.list )
                     ]
