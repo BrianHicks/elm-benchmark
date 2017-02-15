@@ -1,4 +1,4 @@
-# Elm Benchmark
+# Elm Benchmark [![Build Status](https://travis-ci.org/BrianHicks/elm-benchmark.svg?branch=master)](https://travis-ci.org/BrianHicks/elm-benchmark)
 
 Measure the speed of pure functions in Elm, with as little Native code as possible.
 
