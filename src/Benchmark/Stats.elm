@@ -1,7 +1,7 @@
 module Benchmark.Stats
     exposing
         ( Stats
-        , run
+        , stats
         , compareMeanRuntime
         , meanRuntime
         , operationsPerSecond
@@ -10,14 +10,20 @@ module Benchmark.Stats
 
 {-| Provide statistics for benchmarks
 
-@docs Stats, stats, compare
+@docs Stats, stats
 
+# Analysis
+@docs meanRuntime, compareMeanRuntime
+
+@docs operationsPerSecond, compareOperationsPerSecond
 -}
 
 import Time exposing (Time)
 
 
-{-| Stats returned from a successful benchmarking run
+{-| Stats returned from a successful benchmarking stats
+
+TODO: should the types here be exposed?
 -}
 type alias Stats =
     { operations : Int
@@ -27,28 +33,36 @@ type alias Stats =
 
 {-| Calculate stats from a sample size and total runtime
 -}
-run : Int -> Time -> Stats
-run =
+stats : Int -> Time -> Stats
+stats =
     Stats
 
 
+{-| Calculate mean runtime
+-}
 meanRuntime : Stats -> Time
-meanRuntime run =
-    run.runtime / toFloat run.operations
+meanRuntime stats =
+    stats.runtime / toFloat stats.operations
 
 
-{-| Compare stats from two successful benchmarks.
+{-| Compare mean runtimes, given as a percentage difference of the first to the
+second
 -}
 compareMeanRuntime : Stats -> Stats -> Float
 compareMeanRuntime a b =
     meanRuntime a / meanRuntime b - 1
 
 
+{-| Calculate operations per second
+-}
 operationsPerSecond : Stats -> Int
-operationsPerSecond run =
-    toFloat run.operations * (Time.second / run.runtime) |> round
+operationsPerSecond stats =
+    toFloat stats.operations * (Time.second / stats.runtime) |> round
 
 
+{-| Compare operations per second, given as a percentage difference of the first
+to the second
+-}
 compareOperationsPerSecond : Stats -> Stats -> Float
 compareOperationsPerSecond a b =
     (toFloat <| operationsPerSecond a) / (toFloat <| operationsPerSecond b) - 1

@@ -274,7 +274,7 @@ nextTask benchmark =
 
                 Internal.Pending n ->
                     LowLevel.sample n sample
-                        |> Task.map (Stats.run n >> Ok >> Internal.Complete >> Internal.Benchmark name sample)
+                        |> Task.map (Stats.stats n >> Ok >> Internal.Complete >> Internal.Benchmark name sample)
                         |> Task.onError (Err >> Internal.Complete >> Internal.Benchmark name sample >> Task.succeed)
                         |> Just
 

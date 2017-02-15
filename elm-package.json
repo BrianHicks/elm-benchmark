@@ -9,7 +9,8 @@
     "exposed-modules": [
         "Benchmark",
         "Benchmark.LowLevel",
-        "Benchmark.Runner"
+        "Benchmark.Runner",
+        "Benchmark.Stats"
     ],
     "native-modules": true,
     "dependencies": {
