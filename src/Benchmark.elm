@@ -269,13 +269,13 @@ nextTask benchmark =
                 Internal.ToSize time ->
                     timebox time sample
                         |> Task.map (Internal.Pending >> Internal.Benchmark name sample)
-                        |> Task.onError (Err >> Internal.Complete >> Internal.Benchmark name sample >> Task.succeed)
+                        |> Task.onError (Internal.Failure >> Internal.Benchmark name sample >> Task.succeed)
                         |> Just
 
                 Internal.Pending n ->
                     LowLevel.sample n sample
-                        |> Task.map (Stats.stats n >> Ok >> Internal.Complete >> Internal.Benchmark name sample)
-                        |> Task.onError (Err >> Internal.Complete >> Internal.Benchmark name sample >> Task.succeed)
+                        |> Task.map ((,) n >> Internal.Success >> Internal.Benchmark name sample)
+                        |> Task.onError (Internal.Failure >> Internal.Benchmark name sample >> Task.succeed)
                         |> Just
 
                 _ ->

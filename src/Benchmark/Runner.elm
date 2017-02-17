@@ -7,7 +7,7 @@ module Benchmark.Runner exposing (BenchmarkProgram, program)
 
 import Benchmark exposing (Benchmark)
 import Benchmark.Internal as Internal
-import Benchmark.Stats as Stats exposing (Stats)
+import Benchmark.Stats as Stats exposing (Outcome, Stats)
 import Html exposing (Html)
 import Html.Attributes as A
 import Json.Encode as Encode
@@ -70,10 +70,10 @@ update msg model =
                     )
 
 
-result : Internal.Status -> Maybe Stats
+result : Stats.Status -> Maybe Stats
 result status =
     case status of
-        Internal.Complete (Ok stats) ->
+        Stats.Success stats ->
             Just stats
 
         _ ->
@@ -149,44 +149,44 @@ attrs list =
             (List.map row list)
 
 
-name : Benchmark -> String
+name : Outcome -> String
 name benchmark =
     case benchmark of
-        Internal.Benchmark name _ _ ->
+        Stats.Benchmark name _ ->
             name
 
-        Internal.Compare cname a b ->
+        Stats.Compare cname a b ->
             cname ++ ": " ++ name a ++ " vs " ++ name b
 
-        Internal.Group name _ ->
+        Stats.Group name _ ->
             name
 
 
-benchmarkView : Benchmark -> Html Msg
+benchmarkView : Outcome -> Html Msg
 benchmarkView benchmark =
     let
-        humanizeStatus : Internal.Status -> String
+        humanizeStatus : Stats.Status -> String
         humanizeStatus status =
             case status of
-                Internal.ToSize time ->
+                Stats.ToSize time ->
                     "Needs sizing into " ++ humanizeTime time
 
-                Internal.Pending runs ->
+                Stats.Pending runs ->
                     "Waiting for " ++ humanizeInt runs ++ " runs"
 
-                Internal.Complete (Err error) ->
+                Stats.Failure error ->
                     "Error: " ++ toString error
 
-                Internal.Complete (Ok _) ->
+                Stats.Success _ ->
                     "Complete"
     in
         case benchmark of
-            Internal.Benchmark name _ status ->
+            Stats.Benchmark name status ->
                 Html.section
                     []
                     [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
                     , case status of
-                        Internal.Complete (Ok stats) ->
+                        Stats.Success stats ->
                             attrs
                                 [ ( "ops/sec", humanizeInt <| Stats.operationsPerSecond stats )
                                 , ( "mean runtime", humanizeTime <| Stats.meanRuntime stats )
@@ -198,14 +198,14 @@ benchmarkView benchmark =
                             attrs [ ( "status", humanizeStatus status ) ]
                     ]
 
-            Internal.Compare _ a b ->
+            Stats.Compare _ a b ->
                 let
                     content =
                         case ( a, b ) of
-                            ( Internal.Benchmark namea _ statusa, Internal.Benchmark nameb _ statusb ) ->
+                            ( Stats.Benchmark namea statusa, Stats.Benchmark nameb statusb ) ->
                                 Html.div []
                                     [ case ( statusa, statusb ) of
-                                        ( Internal.Complete (Ok statsa), Internal.Complete (Ok statsb) ) ->
+                                        ( Stats.Success statsa, Stats.Success statsb ) ->
                                             let
                                                 head caption =
                                                     Html.th [] [ Html.text caption ]
@@ -281,7 +281,7 @@ benchmarkView benchmark =
                                         ]
                                         [ Html.code []
                                             [ benchmark
-                                                |> Internal.encoder
+                                                |> Stats.encoder
                                                 |> Encode.encode 2
                                                 |> Html.text
                                             ]
@@ -294,7 +294,7 @@ benchmarkView benchmark =
                         , content
                         ]
 
-            Internal.Group name benchmarks ->
+            Stats.Group name benchmarks ->
                 Html.section
                     []
                     [ Html.h1 [] [ Html.text <| "Group: " ++ name ]
@@ -313,7 +313,9 @@ view model =
               else
                 Html.text "Benchmark Finished"
             ]
-        , benchmarkView model.benchmark
+        , model.benchmark
+            |> Stats.fromBenchmark
+            |> benchmarkView
         ]
 
 
