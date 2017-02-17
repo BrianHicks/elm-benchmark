@@ -10,6 +10,7 @@ module Benchmark.Reporting
         , compareOperationsPerSecond
         , fromBenchmark
         , encoder
+        , decoder
         )
 
 {-| Provide statistics for benchmarks
@@ -25,11 +26,12 @@ module Benchmark.Reporting
 @docs operationsPerSecond, compareOperationsPerSecond
 
 # Interop
-@docs encoder
+@docs encoder, decoder
 -}
 
 import Benchmark.Internal as Internal
 import Benchmark.LowLevel as LowLevel
+import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Time exposing (Time)
 
@@ -191,3 +193,69 @@ encoder benchmark =
                     , ( "name", Encode.string name )
                     , ( "benchmarks", benchmarks |> List.map encoder |> Encode.list )
                     ]
+
+
+{-| TODO: docs
+-}
+decoder : Decoder Report
+decoder =
+    let
+        status : String -> Decoder Status
+        status stage =
+            case stage of
+                "toSize" ->
+                    Decode.map ToSize
+                        (Decode.field "time" Decode.float)
+
+                "pending" ->
+                    Decode.map Pending
+                        (Decode.field "runs" Decode.int)
+
+                "failure" ->
+                    Decode.field "message" Decode.string
+                        |> Decode.andThen
+                            (\message ->
+                                case message of
+                                    "stack overflow" ->
+                                        Failure LowLevel.StackOverflow |> Decode.succeed
+
+                                    _ ->
+                                        LowLevel.UnknownError message |> Failure |> Decode.succeed
+                            )
+
+                "success" ->
+                    Decode.map Success <|
+                        Decode.map2 stats
+                            (Decode.field "sampleSize" Decode.int)
+                            (Decode.field "totalRuntime" Decode.float)
+
+                _ ->
+                    Decode.fail ("I don't know how to decode the \"" ++ stage ++ "\" stage")
+
+        report : String -> Decoder Report
+        report kind =
+            case kind of
+                "benchmark" ->
+                    Decode.map2 Benchmark
+                        (Decode.field "name" Decode.string)
+                        (Decode.field "status" <|
+                            Decode.andThen status <|
+                                Decode.field "_stage" Decode.string
+                        )
+
+                "compare" ->
+                    Decode.map3 Compare
+                        (Decode.field "name" Decode.string)
+                        (Decode.field "a" <| Decode.lazy (\_ -> decoder))
+                        (Decode.field "b" <| Decode.lazy (\_ -> decoder))
+
+                "group" ->
+                    Decode.map2 Group
+                        (Decode.field "name" <| Decode.string)
+                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list decoder))
+
+                _ ->
+                    Decode.fail ("I don't know how to decode a \"" ++ kind ++ "\"")
+    in
+        Decode.field "_kind" Decode.string
+            |> Decode.andThen report
