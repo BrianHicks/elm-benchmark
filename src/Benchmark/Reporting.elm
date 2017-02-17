@@ -1,6 +1,6 @@
-module Benchmark.Stats
+module Benchmark.Reporting
     exposing
-        ( Outcome(..)
+        ( Report(..)
         , Status(..)
         , Stats
         , stats
@@ -14,7 +14,7 @@ module Benchmark.Stats
 
 {-| Provide statistics for benchmarks
 
-@docs Outcome, Status, Stats, stats
+@docs Report, Status, Stats, stats
 
 # ???
 @docs fromBenchmark
@@ -36,10 +36,10 @@ import Time exposing (Time)
 
 {-| TODO: docs
 -}
-type Outcome
+type Report
     = Benchmark String Status
-    | Group String (List Outcome)
-    | Compare String Outcome Outcome
+    | Group String (List Report)
+    | Compare String Report Report
 
 
 {-| TODO: docs
@@ -102,7 +102,7 @@ compareOperationsPerSecond a b =
 
 {-| TODO: docs
 -}
-fromBenchmark : Internal.Benchmark -> Outcome
+fromBenchmark : Internal.Benchmark -> Report
 fromBenchmark internal =
     let
         fromStatus : Internal.Status -> Status
@@ -131,9 +131,9 @@ fromBenchmark internal =
                 Compare name (fromBenchmark a) (fromBenchmark b)
 
 
-{-| convert a Benchmark to a JSON value
+{-| convert a Report to a JSON value
 -}
-encoder : Outcome -> Value
+encoder : Report -> Value
 encoder benchmark =
     let
         encodeStatus : Status -> Value

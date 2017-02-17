@@ -35,7 +35,6 @@ Benchmarks represent a runnable operation.
 
 import Benchmark.Internal as Internal
 import Benchmark.LowLevel as LowLevel exposing (Error(..), Operation)
-import Benchmark.Stats as Stats
 import List.Extra as List
 import Task exposing (Task)
 import Time exposing (Time)

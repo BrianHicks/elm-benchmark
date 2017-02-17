@@ -10,7 +10,7 @@
         "Benchmark",
         "Benchmark.LowLevel",
         "Benchmark.Runner",
-        "Benchmark.Stats"
+        "Benchmark.Reporting"
     ],
     "native-modules": true,
     "dependencies": {

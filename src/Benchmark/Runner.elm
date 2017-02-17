@@ -7,7 +7,7 @@ module Benchmark.Runner exposing (BenchmarkProgram, program)
 
 import Benchmark exposing (Benchmark)
 import Benchmark.Internal as Internal
-import Benchmark.Stats as Stats exposing (Outcome, Stats)
+import Benchmark.Reporting as Reporting exposing (Report, Stats)
 import Html exposing (Html)
 import Html.Attributes as A
 import Json.Encode as Encode
@@ -70,10 +70,10 @@ update msg model =
                     )
 
 
-result : Stats.Status -> Maybe Stats
+result : Reporting.Status -> Maybe Stats
 result status =
     case status of
-        Stats.Success stats ->
+        Reporting.Success stats ->
             Just stats
 
         _ ->
@@ -149,47 +149,47 @@ attrs list =
             (List.map row list)
 
 
-name : Outcome -> String
+name : Report -> String
 name benchmark =
     case benchmark of
-        Stats.Benchmark name _ ->
+        Reporting.Benchmark name _ ->
             name
 
-        Stats.Compare cname a b ->
+        Reporting.Compare cname a b ->
             cname ++ ": " ++ name a ++ " vs " ++ name b
 
-        Stats.Group name _ ->
+        Reporting.Group name _ ->
             name
 
 
-benchmarkView : Outcome -> Html Msg
+benchmarkView : Report -> Html Msg
 benchmarkView benchmark =
     let
-        humanizeStatus : Stats.Status -> String
+        humanizeStatus : Reporting.Status -> String
         humanizeStatus status =
             case status of
-                Stats.ToSize time ->
+                Reporting.ToSize time ->
                     "Needs sizing into " ++ humanizeTime time
 
-                Stats.Pending runs ->
+                Reporting.Pending runs ->
                     "Waiting for " ++ humanizeInt runs ++ " runs"
 
-                Stats.Failure error ->
+                Reporting.Failure error ->
                     "Error: " ++ toString error
 
-                Stats.Success _ ->
+                Reporting.Success _ ->
                     "Complete"
     in
         case benchmark of
-            Stats.Benchmark name status ->
+            Reporting.Benchmark name status ->
                 Html.section
                     []
                     [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
                     , case status of
-                        Stats.Success stats ->
+                        Reporting.Success stats ->
                             attrs
-                                [ ( "ops/sec", humanizeInt <| Stats.operationsPerSecond stats )
-                                , ( "mean runtime", humanizeTime <| Stats.meanRuntime stats )
+                                [ ( "ops/sec", humanizeInt <| Reporting.operationsPerSecond stats )
+                                , ( "mean runtime", humanizeTime <| Reporting.meanRuntime stats )
                                 , ( "total runtime", humanizeTime <| stats.runtime )
                                 , ( "sample size", humanizeInt <| stats.operations )
                                 ]
@@ -198,14 +198,14 @@ benchmarkView benchmark =
                             attrs [ ( "status", humanizeStatus status ) ]
                     ]
 
-            Stats.Compare _ a b ->
+            Reporting.Compare _ a b ->
                 let
                     content =
                         case ( a, b ) of
-                            ( Stats.Benchmark namea statusa, Stats.Benchmark nameb statusb ) ->
+                            ( Reporting.Benchmark namea statusa, Reporting.Benchmark nameb statusb ) ->
                                 Html.div []
                                     [ case ( statusa, statusb ) of
-                                        ( Stats.Success statsa, Stats.Success statsb ) ->
+                                        ( Reporting.Success statsa, Reporting.Success statsb ) ->
                                             let
                                                 head caption =
                                                     Html.th [] [ Html.text caption ]
@@ -232,14 +232,14 @@ benchmarkView benchmark =
                                             in
                                                 table
                                                     [ [ rowHead "ops/second"
-                                                      , cell <| humanizeInt <| Stats.operationsPerSecond statsa
-                                                      , cell <| humanizeInt <| Stats.operationsPerSecond statsb
-                                                      , cell <| percentChange <| Stats.compareOperationsPerSecond statsb statsa
+                                                      , cell <| humanizeInt <| Reporting.operationsPerSecond statsa
+                                                      , cell <| humanizeInt <| Reporting.operationsPerSecond statsb
+                                                      , cell <| percentChange <| Reporting.compareOperationsPerSecond statsb statsa
                                                       ]
                                                     , [ rowHead "mean runtime"
-                                                      , cell <| humanizeTime <| Stats.meanRuntime statsa
-                                                      , cell <| humanizeTime <| Stats.meanRuntime statsb
-                                                      , cell <| percentChange <| Stats.compareMeanRuntime statsb statsa
+                                                      , cell <| humanizeTime <| Reporting.meanRuntime statsa
+                                                      , cell <| humanizeTime <| Reporting.meanRuntime statsb
+                                                      , cell <| percentChange <| Reporting.compareMeanRuntime statsb statsa
                                                       ]
                                                     , [ rowHead "total runtime"
                                                       , cell <| humanizeTime statsa.runtime
@@ -281,7 +281,7 @@ benchmarkView benchmark =
                                         ]
                                         [ Html.code []
                                             [ benchmark
-                                                |> Stats.encoder
+                                                |> Reporting.encoder
                                                 |> Encode.encode 2
                                                 |> Html.text
                                             ]
@@ -294,7 +294,7 @@ benchmarkView benchmark =
                         , content
                         ]
 
-            Stats.Group name benchmarks ->
+            Reporting.Group name benchmarks ->
                 Html.section
                     []
                     [ Html.h1 [] [ Html.text <| "Group: " ++ name ]
@@ -314,7 +314,7 @@ view model =
                 Html.text "Benchmark Finished"
             ]
         , model.benchmark
-            |> Stats.fromBenchmark
+            |> Reporting.fromBenchmark
             |> benchmarkView
         ]
 
