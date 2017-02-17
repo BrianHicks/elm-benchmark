@@ -13,11 +13,14 @@ module Benchmark.Reporting
         , decoder
         )
 
-{-| Provide statistics for benchmarks
+{-| Reporting for Benchmarks
+
+**Hey!**: You probably don't need this module unless you're implementing a runner.
+Save yourself some trouble and use one of the existing runners.
+TODO: links to those.
 
 @docs Report, Status, Stats, stats
 
-# ???
 @docs fromBenchmark
 
 # Analysis
@@ -25,7 +28,7 @@ module Benchmark.Reporting
 
 @docs operationsPerSecond, compareOperationsPerSecond
 
-# Interop
+# Serialization
 @docs encoder, decoder
 -}
 
@@ -36,7 +39,8 @@ import Json.Encode as Encode exposing (Value)
 import Time exposing (Time)
 
 
-{-| TODO: docs
+{-| Each tag of Report has a name and some other information about the structure
+of a benchmarking run.
 -}
 type Report
     = Benchmark String Status
@@ -44,7 +48,7 @@ type Report
     | Compare String Report Report
 
 
-{-| TODO: docs
+{-| The current status of a single benchmark.
 -}
 type Status
     = ToSize Time
@@ -53,7 +57,7 @@ type Status
     | Success Stats
 
 
-{-| Stats returned from a successful benchmarking stats
+{-| Stats returned from a successful benchmarking run
 -}
 type alias Stats =
     { operations : Int
@@ -102,7 +106,7 @@ compareOperationsPerSecond a b =
 -- Interop
 
 
-{-| TODO: docs
+{-| Get a report from a Benchmark.
 -}
 fromBenchmark : Internal.Benchmark -> Report
 fromBenchmark internal =
@@ -195,7 +199,7 @@ encoder benchmark =
                     ]
 
 
-{-| TODO: docs
+{-| parse a Report from a JSON value
 -}
 decoder : Decoder Report
 decoder =
