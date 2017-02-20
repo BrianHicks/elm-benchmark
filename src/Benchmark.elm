@@ -288,17 +288,10 @@ nextTask benchmark =
                             |> Task.onError (Internal.Failure >> Internal.Benchmark name sample >> Task.succeed)
                             |> Just
                     else
-                        let
-                            totalRuntime =
-                                List.sum samples
-
-                            totalSamples =
-                                List.length samples * sampleSize
-                        in
-                            Internal.Success ( totalSamples, totalRuntime )
-                                |> Internal.Benchmark name sample
-                                |> Task.succeed
-                                |> Just
+                        Internal.Success ( sampleSize, samples )
+                            |> Internal.Benchmark name sample
+                            |> Task.succeed
+                            |> Just
 
                 _ ->
                     Nothing

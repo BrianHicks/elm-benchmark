@@ -5,6 +5,8 @@ module Benchmark.Reporting
         , Stats
         , stats
         , compareMeanRuntime
+        , totalOperations
+        , totalRuntime
         , meanRuntime
         , operationsPerSecond
         , compareOperationsPerSecond
@@ -24,6 +26,8 @@ TODO: links to those.
 @docs fromBenchmark
 
 # Analysis
+@docs totalOperations, totalRuntime
+
 @docs meanRuntime, compareMeanRuntime
 
 @docs operationsPerSecond, compareOperationsPerSecond
@@ -60,23 +64,37 @@ type Status
 {-| Stats returned from a successful benchmarking run
 -}
 type alias Stats =
-    { operations : Int
-    , runtime : Time
+    { sampleSize : Int
+    , samples : List Time
     }
 
 
 {-| Calculate stats from a sample size and total runtime
 -}
-stats : Int -> Time -> Stats
+stats : Int -> List Time -> Stats
 stats =
     Stats
+
+
+{-| total number of samples
+-}
+totalOperations : Stats -> Int
+totalOperations stats =
+    stats.sampleSize * List.length stats.samples
+
+
+{-| total runtime
+-}
+totalRuntime : Stats -> Time
+totalRuntime stats =
+    List.sum stats.samples
 
 
 {-| Calculate mean runtime
 -}
 meanRuntime : Stats -> Time
 meanRuntime stats =
-    stats.runtime / toFloat stats.operations
+    totalRuntime stats / toFloat (totalOperations stats)
 
 
 {-| Compare mean runtimes, given as a percentage difference of the first to the
@@ -91,7 +109,7 @@ compareMeanRuntime a b =
 -}
 operationsPerSecond : Stats -> Int
 operationsPerSecond stats =
-    toFloat stats.operations * (Time.second / stats.runtime) |> round
+    toFloat (totalOperations stats) * (Time.second / totalRuntime stats) |> round
 
 
 {-| Compare operations per second, given as a percentage difference of the first
@@ -177,8 +195,8 @@ encoder benchmark =
                 Success run ->
                     Encode.object
                         [ ( "_stage", Encode.string "success" )
-                        , ( "sampleSize", Encode.int run.operations )
-                        , ( "totalRuntime", Encode.float run.runtime )
+                        , ( "sampleSize", Encode.int run.sampleSize )
+                        , ( "samples", Encode.list <| List.map Encode.float run.samples )
                         ]
     in
         case benchmark of
@@ -239,7 +257,7 @@ decoder =
                     Decode.map Success <|
                         Decode.map2 stats
                             (Decode.field "sampleSize" Decode.int)
-                            (Decode.field "totalRuntime" Decode.float)
+                            (Decode.field "samples" <| Decode.list Decode.float)
 
                 _ ->
                     Decode.fail ("I don't know how to decode the \"" ++ stage ++ "\" stage")

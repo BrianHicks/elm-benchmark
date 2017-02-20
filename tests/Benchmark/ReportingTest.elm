@@ -38,7 +38,7 @@ status =
         [ Fuzz.map Reporting.ToSize Fuzz.float
         , Fuzz.map3 Reporting.Pending Fuzz.float Fuzz.int (Fuzz.list Fuzz.float)
         , Fuzz.map Reporting.Failure error
-        , Fuzz.map Reporting.Success (Fuzz.map2 Reporting.stats Fuzz.int Fuzz.float)
+        , Fuzz.map Reporting.Success (Fuzz.map2 Reporting.stats Fuzz.int (Fuzz.list Fuzz.float))
         ]
 
 

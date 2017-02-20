@@ -208,8 +208,8 @@ benchmarkView benchmark =
                             attrs
                                 [ ( "ops/sec", Html.text <| humanizeInt <| Reporting.operationsPerSecond stats )
                                 , ( "mean runtime", Html.text <| humanizeTime <| Reporting.meanRuntime stats )
-                                , ( "total runtime", Html.text <| humanizeTime <| stats.runtime )
-                                , ( "sample size", Html.text <| humanizeInt <| stats.operations )
+                                , ( "total runtime", Html.text <| humanizeTime <| Reporting.totalRuntime stats )
+                                , ( "sample size", Html.text <| humanizeInt <| Reporting.totalOperations stats )
                                 ]
 
                         _ ->
@@ -260,13 +260,13 @@ benchmarkView benchmark =
                                                       , cell <| percentChange <| Reporting.compareMeanRuntime statsb statsa
                                                       ]
                                                     , [ rowHead "total runtime"
-                                                      , cell <| humanizeTime statsa.runtime
-                                                      , cell <| humanizeTime statsb.runtime
+                                                      , cell <| humanizeTime <| Reporting.totalRuntime statsa
+                                                      , cell <| humanizeTime <| Reporting.totalRuntime statsb
                                                       , cell ""
                                                       ]
                                                     , [ rowHead "sample size"
-                                                      , cell <| humanizeInt statsa.operations
-                                                      , cell <| humanizeInt statsb.operations
+                                                      , cell <| humanizeInt <| Reporting.totalOperations statsa
+                                                      , cell <| humanizeInt <| Reporting.totalOperations statsb
                                                       , cell ""
                                                       ]
                                                     ]

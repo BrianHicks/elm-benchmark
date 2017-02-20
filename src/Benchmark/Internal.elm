@@ -16,7 +16,7 @@ type Status
     = ToSize Time
     | Pending Time Int (List Time)
     | Failure Error
-    | Success ( Int, Time )
+    | Success ( Int, List Time )
 
 
 benchmark : String -> Operation -> Benchmark
