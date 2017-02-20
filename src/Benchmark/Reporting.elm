@@ -52,7 +52,7 @@ type Report
 -}
 type Status
     = ToSize Time
-    | Pending Int
+    | Pending Time Int (List Time)
     | Failure LowLevel.Error
     | Success Stats
 
@@ -117,8 +117,8 @@ fromBenchmark internal =
                 Internal.ToSize time ->
                     ToSize time
 
-                Internal.Pending n ->
-                    Pending n
+                Internal.Pending time sampleSize samples ->
+                    Pending time sampleSize samples
 
                 Internal.Failure error ->
                     Failure error
@@ -151,10 +151,16 @@ encoder benchmark =
                         , ( "time", time |> Time.inMilliseconds |> Encode.float )
                         ]
 
-                Pending runs ->
+                Pending time sampleSize samples ->
                     Encode.object
                         [ ( "_stage", Encode.string "pending" )
-                        , ( "runs", Encode.int runs )
+                        , ( "time", Encode.float time )
+                        , ( "sampleSize", Encode.int sampleSize )
+                        , ( "samples"
+                          , samples
+                                |> List.map Encode.float
+                                |> Encode.list
+                          )
                         ]
 
                 Failure error ->
@@ -212,8 +218,10 @@ decoder =
                         (Decode.field "time" Decode.float)
 
                 "pending" ->
-                    Decode.map Pending
-                        (Decode.field "runs" Decode.int)
+                    Decode.map3 Pending
+                        (Decode.field "time" Decode.float)
+                        (Decode.field "sampleSize" Decode.int)
+                        (Decode.field "samples" <| Decode.list Decode.float)
 
                 "failure" ->
                     Decode.field "message" Decode.string

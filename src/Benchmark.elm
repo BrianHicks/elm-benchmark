@@ -2,7 +2,6 @@ module Benchmark
     exposing
         ( Benchmark
         , withRuntime
-        , withRuns
         , describe
         , benchmark
         , benchmark1
@@ -27,7 +26,7 @@ Benchmarks represent a runnable operation.
 @docs benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8, describe, compare
 
 # Sizing
-@docs withRuntime, withRuns
+@docs withRuntime
 
 # Running
 @docs nextTask
@@ -35,7 +34,6 @@ Benchmarks represent a runnable operation.
 
 import Benchmark.Internal as Internal
 import Benchmark.LowLevel as LowLevel exposing (Error(..), Operation)
-import List.Extra as List
 import Task exposing (Task)
 import Time exposing (Time)
 
@@ -84,30 +82,6 @@ withRuntime time benchmark =
             Internal.Compare name
                 (withRuntime time a)
                 (withRuntime time b)
-
-
-{-| Set the exact number of runs to benchmarked. For example, to run a function
-1 million times:
-
-    benchmark1 "list head" List.head [1] |> withRuns 1000000
-
-Doing this is generally not necessary; the runtime-based estimator will provide
-consistent and reasonable results for all sizes of benchmarks without you having
-to account for benchmark size or environmental concerns.
--}
-withRuns : Int -> Benchmark -> Benchmark
-withRuns n benchmark =
-    case benchmark of
-        Internal.Benchmark name sample _ ->
-            Internal.Benchmark name sample <| Internal.Pending n
-
-        Internal.Group name benchmarks ->
-            Internal.Group name <| List.map (withRuns n) benchmarks
-
-        Internal.Compare name a b ->
-            Internal.Compare name
-                (withRuns n a)
-                (withRuns n b)
 
 
 
@@ -242,88 +216,18 @@ compare =
 -- Runners
 
 
-mapFirst : (a -> Maybe b) -> List a -> Maybe b
-mapFirst fn list =
-    case list of
-        [] ->
-            Nothing
-
-        first :: rest ->
-            case fn first of
-                Just thing ->
-                    Just thing
-
-                Nothing ->
-                    mapFirst fn rest
-
-
-{-| Get the next benchmarking task. This is only useful for writing runners. Try
-using `Benchmark.Runner.program` instead.
+{-| Find an appropriate sample size for benchmarking. This should be much
+greater than the clock resolution (5µs in the browser) to make sure we get good
+data.
 -}
-nextTask : Benchmark -> Maybe (Task Never Benchmark)
-nextTask benchmark =
-    case benchmark of
-        Internal.Benchmark name sample status ->
-            case status of
-                Internal.ToSize time ->
-                    timebox time sample
-                        |> Task.map (Internal.Pending >> Internal.Benchmark name sample)
-                        |> Task.onError (Internal.Failure >> Internal.Benchmark name sample >> Task.succeed)
-                        |> Just
-
-                Internal.Pending n ->
-                    LowLevel.sample n sample
-                        |> Task.map ((,) n >> Internal.Success >> Internal.Benchmark name sample)
-                        |> Task.onError (Internal.Failure >> Internal.Benchmark name sample >> Task.succeed)
-                        |> Just
-
-                _ ->
-                    Nothing
-
-        Internal.Group name benchmarks ->
-            benchmarks
-                |> List.indexedMap (,)
-                |> mapFirst
-                    (\( i, benchmark ) ->
-                        nextTask benchmark
-                            |> Maybe.map ((,) i)
-                    )
-                |> Maybe.map
-                    (\( i, task ) ->
-                        task
-                            |> Task.map (\benchmark -> List.setAt i benchmark benchmarks)
-                            |> Task.map (Maybe.map (Internal.Group name))
-                            |> Task.map (Maybe.withDefault benchmark)
-                    )
-
-        Internal.Compare name a b ->
-            let
-                taska =
-                    nextTask a |> Maybe.map (Task.map (\a -> Internal.Compare name a b))
-
-                taskb =
-                    nextTask b |> Maybe.map (Task.map (Internal.Compare name a))
-            in
-                case taska of
-                    Just _ ->
-                        taska
-
-                    Nothing ->
-                        taskb
-
-
-{-| Fit as many runs as possible into a Time.
--}
-timebox : Time -> Operation -> Task Error Int
-timebox box operation =
+findSampleSize : Operation -> Task Error Int
+findSampleSize operation =
     let
         initialSampleSize =
             100
 
         minimumRuntime =
-            max
-                (box * 0.05)
-                Time.millisecond
+            100 * Time.millisecond
 
         sample : Int -> Task Error Time
         sample size =
@@ -340,6 +244,94 @@ timebox box operation =
 
         fit : Time -> Int
         fit single =
-            box / single * 1.3 |> ceiling
+            minimumRuntime / single |> ceiling
     in
         sample initialSampleSize |> Task.map fit
+
+
+{-| We want the sample size to be more-or-less the same across runs, despite
+small differences in measured fit.
+-}
+standardizeSampleSize : Int -> Int
+standardizeSampleSize sampleSize =
+    let
+        helper : Int -> Int -> Int
+        helper rough magnitude =
+            if rough > 10 then
+                helper (toFloat rough / 10 |> round) (magnitude * 10)
+            else
+                rough * magnitude
+    in
+        helper sampleSize 1
+
+
+{-| Get the next benchmarking task. This is only useful for writing runners. Try
+using `Benchmark.Runner.program` instead.
+-}
+nextTask : Benchmark -> Maybe (Task Never Benchmark)
+nextTask benchmark =
+    case benchmark of
+        Internal.Benchmark name sample status ->
+            case status of
+                Internal.ToSize time ->
+                    findSampleSize sample
+                        |> Task.map standardizeSampleSize
+                        |> Task.map (\sampleSize -> Internal.Pending time sampleSize [])
+                        |> Task.map (Internal.Benchmark name sample)
+                        |> Task.onError (Internal.Failure >> Internal.Benchmark name sample >> Task.succeed)
+                        |> Just
+
+                Internal.Pending target sampleSize samples ->
+                    if List.sum samples < target then
+                        LowLevel.sample sampleSize sample
+                            |> Task.map (flip (::) samples >> Internal.Pending target sampleSize >> Internal.Benchmark name sample)
+                            |> Task.onError (Internal.Failure >> Internal.Benchmark name sample >> Task.succeed)
+                            |> Just
+                    else
+                        let
+                            totalRuntime =
+                                List.sum samples
+
+                            totalSamples =
+                                List.length samples * sampleSize
+                        in
+                            Internal.Success ( totalSamples, totalRuntime )
+                                |> Internal.Benchmark name sample
+                                |> Task.succeed
+                                |> Just
+
+                _ ->
+                    Nothing
+
+        Internal.Group name benchmarks ->
+            let
+                tasks =
+                    List.map nextTask benchmarks
+
+                isNothing m =
+                    m == Nothing
+            in
+                if List.all isNothing tasks then
+                    Nothing
+                else
+                    tasks
+                        |> List.map2
+                            (\benchmark task ->
+                                task |> Maybe.withDefault (Task.succeed benchmark)
+                            )
+                            benchmarks
+                        |> Task.sequence
+                        |> Task.map (Internal.Group name)
+                        |> Just
+
+        Internal.Compare name a b ->
+            case ( nextTask a, nextTask b ) of
+                ( Nothing, Nothing ) ->
+                    Nothing
+
+                ( taska, taskb ) ->
+                    Just <|
+                        Task.map2
+                            (Internal.Compare name)
+                            (taska |> Maybe.withDefault (Task.succeed a))
+                            (taskb |> Maybe.withDefault (Task.succeed b))

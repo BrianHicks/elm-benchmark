@@ -36,12 +36,13 @@ status : Fuzzer Reporting.Status
 status =
     choice
         [ Fuzz.map Reporting.ToSize Fuzz.float
-        , Fuzz.map Reporting.Pending Fuzz.int
+        , Fuzz.map3 Reporting.Pending Fuzz.float Fuzz.int (Fuzz.list Fuzz.float)
         , Fuzz.map Reporting.Failure error
         , Fuzz.map Reporting.Success (Fuzz.map2 Reporting.stats Fuzz.int Fuzz.float)
         ]
 
 
+report : Fuzzer Reporting.Report
 report =
     let
         fuzzer =

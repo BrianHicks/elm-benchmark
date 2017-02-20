@@ -80,6 +80,16 @@ result status =
             Nothing
 
 
+percent : Float -> String
+percent pct =
+    pct
+        |> (*) 10000
+        |> round
+        |> toFloat
+        |> flip (/) 100
+        |> toString
+
+
 percentChange : Float -> String
 percentChange pct =
     pct
@@ -171,8 +181,8 @@ benchmarkView benchmark =
                 Reporting.ToSize time ->
                     "Needs sizing into " ++ humanizeTime time
 
-                Reporting.Pending runs ->
-                    "Waiting for " ++ humanizeInt runs ++ " runs"
+                Reporting.Pending time sampleSize samples ->
+                    percent (List.sum samples / time) ++ "% complete"
 
                 Reporting.Failure error ->
                     "Error: " ++ toString error

@@ -14,7 +14,7 @@ type Benchmark
 -}
 type Status
     = ToSize Time
-    | Pending Int
+    | Pending Time Int (List Time)
     | Failure Error
     | Success ( Int, Time )
 
