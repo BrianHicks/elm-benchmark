@@ -47,7 +47,27 @@ main =
 
 Compile and open in your browser (or use `elm reactor`) to start the benchmarking run.
 
-## Effective Benchmarks
+### How Are My Benchmarks Measured?
+
+When we measure the speed of this code, we take the following steps:
+
+1.  We measure how many runs of the function will fit into a given size (currently a tenth of a second.)
+2.  Next, we round this sample size to the nearest order of magnitude.
+    We do this to get a more consistent sample size between benchmarking runs.
+3.  Now that we have our sample size, we start collecting samples until their total passes the expected time.
+    (This is currently 5 seconds, but you can change it with `Benchmark.withRuntime`)
+
+If the run contains multiple benchmarks, sampling is interleaved between all of them.
+This means that given benchmarks named `a`, `b`, and `c`, we would take one sample each then start over.
+
+We do this because computers run many things at once.
+If we don't account for that, the system might be really busy when running `a`, but give its full attention to `b` and `c`.
+This would make `a` artificially slower, so we would get misleading data!
+
+By interleaving samples, the busyness when `a` would be running is replaced by a little busyness in the first runs of all three benchmarks, followed by faster runs of all three benchmarks.
+It sets a more even playing field for all the benchmarks, and gives us better data.
+
+## Writing Effective Benchmarks
 
 Some general principles:
 
