@@ -3,83 +3,73 @@ var _user$project$Native_Benchmark = function() {
         performance.now.bind(performance) :
         Date.now;
 
-    function makeOperation(fn) {
-        return { function: fn };
-    }
-
-    function getFunction(operation) {
-        return operation.function;
-    }
-
     // sample : Int -> Operation -> Task Error Time
-    function sample(n, measurement) {
+    function sample(n, fn) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
-            try {
-                var fn = getFunction(measurement),
-                    start = getTimestamp();
+            var start = getTimestamp();
 
+            try {
                 for (var i = 0; i < n; i++) {
                     fn();
                 }
-
-                callback(_elm_lang$core$Native_Scheduler.succeed(getTimestamp() - start));
             } catch (error) {
-                var elmError;
-
                 if (error instanceof RangeError) {
-                    elmError = { ctor : 'StackOverflow' };
+                    callback(_elm_lang$core$Native_Scheduler.fail({ ctor : 'StackOverflow' }));
                 } else {
-                    elmError = { ctor : 'UnknownError', _0: error.message };
+                    callback(_elm_lang$core$Native_Scheduler.fail({ ctor : 'UnknownError', _0: error.message }));
                 }
-
-                callback(_elm_lang$core$Native_Scheduler.fail(elmError));
+                return;
             }
-        })
+
+            var end = getTimestamp();
+
+            callback(_elm_lang$core$Native_Scheduler.succeed(end - start));
+        });
     }
 
     // operation : (() -> a) -> Operation
     function operation(thunk) {
-        return makeOperation(function() { thunk(); });
+        return function() { thunk(); };
     }
 
     // operation1 : (a -> b) -> a -> Operation
     function operation1(fn, a) {
-        return makeOperation(function() { fn(a); });
+        return function() { fn(a); };
     }
 
     // operation2 : (a -> b -> c) -> a -> b -> Operation
     function operation2(fn, a, b) {
-        return makeOperation(function() { A2(fn, a, b); });
+        return function() { A2(fn, a, b); };
     }
 
     // operation3 : (a -> b -> c -> d) -> a -> b -> c -> Operation
     function operation3(fn, a, b, c) {
-        return makeOperation(function() { A3(fn, a, b, c); });
+        return function() { A3(fn, a, b, c); };
     }
 
     // operation4 : (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Operation
     function operation4(fn, a, b, c, d) {
-        return makeOperation(function() { A4(fn, a, b, c, d); });
+        return function() { A4(fn, a, b, c, d); };
     }
 
     // operation5 : (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Operation
     function operation5(fn, a, b, c, d, e) {
-        return makeOperation(function() { A5(fn, a, b, c, d, e); });
+        return function() { A5(fn, a, b, c, d, e); };
     }
 
     // operation6 : (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Operation
     function operation6(fn, a, b, c, d, e, f) {
-        return makeOperation(function() { A6(fn, a, b, c, d, e, f); });
+        return function() { A6(fn, a, b, c, d, e, f); };
     }
 
     // operation7 : (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Operation
     function operation7(fn, a, b, c, d, e, f, g) {
-        return makeOperation(function() { A7(fn, a, b, c, d, e, f, g); });
+        return function() { A7(fn, a, b, c, d, e, f, g); };
     }
 
     // operation8 : (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Operation
     function operation8(fn, a, b, c, d, e, f, g, h) {
-        return makeOperation(function() { A8(fn, a, b, c, d, e, f, g, h); });
+        return function() { A8(fn, a, b, c, d, e, f, g, h); };
     }
 
     return {
