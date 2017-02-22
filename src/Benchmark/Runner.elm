@@ -6,7 +6,6 @@ module Benchmark.Runner exposing (BenchmarkProgram, program)
 -}
 
 import Benchmark exposing (Benchmark)
-import Benchmark.Internal as Internal
 import Benchmark.Reporting as Reporting exposing (Report, Stats)
 import Html exposing (Html)
 import Html.Attributes as A
@@ -143,15 +142,15 @@ humanizeInt =
         >> String.reverse
 
 
-attrs : List ( String, String ) -> Html msg
+attrs : List ( String, Html msg ) -> Html msg
 attrs list =
     let
-        row : ( String, String ) -> Html msg
+        row : ( String, Html msg ) -> Html msg
         row ( caption, value ) =
             Html.tr
                 []
                 [ Html.th [ A.style [ ( "text-align", "right" ) ] ] [ Html.text caption ]
-                , Html.td [] [ Html.text value ]
+                , Html.td [] [ value ]
                 ]
     in
         Html.table
@@ -175,20 +174,29 @@ name benchmark =
 benchmarkView : Report -> Html Msg
 benchmarkView benchmark =
     let
-        humanizeStatus : Reporting.Status -> String
+        humanizeStatus : Reporting.Status -> Html a
         humanizeStatus status =
             case status of
-                Reporting.ToSize time ->
-                    "Needs sizing into " ++ humanizeTime time
+                Reporting.ToSize _ ->
+                    Html.text "Needs Sizing"
 
                 Reporting.Pending time sampleSize samples ->
-                    percent (List.sum samples / time) ++ "% complete"
+                    Html.div
+                        []
+                        [ Html.progress
+                            [ A.max <| toString time
+                            , A.value <| toString <| List.sum samples
+                            , A.style [ ( "display", "block" ) ]
+                            ]
+                            []
+                        , Html.text <| "Collected " ++ humanizeTime (List.sum samples) ++ " of " ++ humanizeTime time
+                        ]
 
                 Reporting.Failure error ->
-                    "Error: " ++ toString error
+                    Html.text <| "Error: " ++ toString error
 
                 Reporting.Success _ ->
-                    "Complete"
+                    Html.text "Complete"
     in
         case benchmark of
             Reporting.Benchmark name status ->
@@ -198,10 +206,10 @@ benchmarkView benchmark =
                     , case status of
                         Reporting.Success stats ->
                             attrs
-                                [ ( "ops/sec", humanizeInt <| Reporting.operationsPerSecond stats )
-                                , ( "mean runtime", humanizeTime <| Reporting.meanRuntime stats )
-                                , ( "total runtime", humanizeTime <| stats.runtime )
-                                , ( "sample size", humanizeInt <| stats.operations )
+                                [ ( "ops/sec", Html.text <| humanizeInt <| Reporting.operationsPerSecond stats )
+                                , ( "mean runtime", Html.text <| humanizeTime <| Reporting.meanRuntime stats )
+                                , ( "total runtime", Html.text <| humanizeTime <| stats.runtime )
+                                , ( "sample size", Html.text <| humanizeInt <| stats.operations )
                                 ]
 
                         _ ->
@@ -268,11 +276,11 @@ benchmarkView benchmark =
                                                 []
                                                 [ Html.tr []
                                                     [ Html.th [] [ Html.text namea ]
-                                                    , Html.td [] [ Html.text <| humanizeStatus statusa ]
+                                                    , Html.td [] [ humanizeStatus statusa ]
                                                     ]
                                                 , Html.tr []
                                                     [ Html.th [] [ Html.text nameb ]
-                                                    , Html.td [] [ Html.text <| humanizeStatus statusb ]
+                                                    , Html.td [] [ humanizeStatus statusb ]
                                                     ]
                                                 ]
                                     ]
