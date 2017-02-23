@@ -1,6 +1,6 @@
 module Benchmark.Runner exposing (BenchmarkProgram, program)
 
-{-| HTML Benchmark Runner
+{-| Browser Benchmark Runner
 
 @docs program, BenchmarkProgram
 -}
@@ -216,10 +216,6 @@ humanizeOpsPerSec stats =
             ++ "%)"
 
 
-
--- humanizeNumber <| chopDecimal 2 <| Reporting.operationsPerSecond stats
-
-
 attrs : List ( String, Html msg ) -> Html msg
 attrs list =
     let
@@ -423,6 +419,8 @@ view model =
             Benchmark.group "your benchmarks"
                 [ -- your benchmarks here
                 ]
+
+Compile this and visit the result in your browser to run the benchmarks.
 -}
 program : Benchmark -> BenchmarkProgram
 program benchmark =
@@ -434,6 +432,7 @@ program benchmark =
         }
 
 
-{-| -}
+{-| A handy type alias for values produced by [`program`](#program)
+-}
 type alias BenchmarkProgram =
     Program Never Model Msg
