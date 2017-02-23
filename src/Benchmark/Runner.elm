@@ -24,7 +24,7 @@ type alias Model =
 
 breakForRender : Task x a -> Task x a
 breakForRender task =
-    Task.andThen (\_ -> task) (Process.sleep Time.millisecond)
+    Task.andThen (\_ -> task) (Process.sleep 0)
 
 
 next : Benchmark -> Maybe (Cmd Msg)
