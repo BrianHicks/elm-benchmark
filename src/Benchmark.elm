@@ -13,7 +13,7 @@ module Benchmark
         , benchmark7
         , benchmark8
         , compare
-        , nextTask
+        , step
         )
 
 {-| Benchmark Elm Programs
@@ -29,7 +29,7 @@ Benchmarks represent a runnable operation.
 @docs withRuntime
 
 # Running
-@docs nextTask
+@docs step
 -}
 
 import Benchmark.Internal as Internal
@@ -265,11 +265,13 @@ standardizeSampleSize sampleSize =
         helper sampleSize 1
 
 
-{-| Get the next benchmarking task. This is only useful for writing runners. Try
-using `Benchmark.Runner.program` instead.
+{-| Step a benchmark forward to completion. This is where all the interleaving
+magic happens.
+
+`step` is only useful for writing runners. You'll probably never need it!
 -}
-nextTask : Benchmark -> Maybe (Task Never Benchmark)
-nextTask benchmark =
+step : Benchmark -> Maybe (Task Never Benchmark)
+step benchmark =
     case benchmark of
         Internal.Benchmark name sample status ->
             case status of
@@ -299,7 +301,7 @@ nextTask benchmark =
         Internal.Group name benchmarks ->
             let
                 tasks =
-                    List.map nextTask benchmarks
+                    List.map step benchmarks
 
                 isNothing m =
                     m == Nothing
@@ -318,7 +320,7 @@ nextTask benchmark =
                         |> Just
 
         Internal.Compare name a b ->
-            case ( nextTask a, nextTask b ) of
+            case ( step a, step b ) of
                 ( Nothing, Nothing ) ->
                     Nothing
 

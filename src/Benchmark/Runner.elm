@@ -29,7 +29,7 @@ breakForRender task =
 
 next : Benchmark -> Maybe (Cmd Msg)
 next =
-    Benchmark.nextTask
+    Benchmark.step
         >> Maybe.map breakForRender
         >> Maybe.map (Task.perform Update)
 
