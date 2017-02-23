@@ -4,6 +4,7 @@ module Benchmark.Reporting
         , Status(..)
         , Stats
         , stats
+        , sampleRange
         , compareMeanRuntime
         , totalOperations
         , totalRuntime
@@ -26,6 +27,8 @@ TODO: links to those.
 @docs fromBenchmark
 
 # Analysis
+@docs sampleRange
+
 @docs totalOperations, totalRuntime
 
 @docs meanRuntime, compareMeanRuntime
@@ -74,6 +77,15 @@ type alias Stats =
 stats : Int -> List Time -> Stats
 stats =
     Stats
+
+
+{-| the value range of samples, expressed as `(min, max)`
+-}
+sampleRange : Stats -> Maybe ( Time, Time )
+sampleRange stats =
+    Maybe.map2 (,)
+        (List.minimum stats.samples)
+        (List.maximum stats.samples)
 
 
 {-| total number of samples
