@@ -187,7 +187,7 @@ fromBenchmark internal =
 {-| convert a Report to a JSON value
 -}
 encoder : Report -> Value
-encoder benchmark =
+encoder report =
     let
         encodeStatus : Status -> Value
         encodeStatus status =
@@ -227,35 +227,56 @@ encoder benchmark =
                         , ( "sampleSize", Encode.int run.sampleSize )
                         , ( "samples", Encode.list <| List.map Encode.float run.samples )
                         ]
+
+        encodeReport : Report -> Value
+        encodeReport report =
+            case report of
+                Benchmark name status ->
+                    Encode.object
+                        [ ( "_kind", Encode.string "benchmark" )
+                        , ( "name", Encode.string name )
+                        , ( "status", encodeStatus status )
+                        ]
+
+                Compare name a b ->
+                    Encode.object
+                        [ ( "_kind", Encode.string "compare" )
+                        , ( "name", Encode.string name )
+                        , ( "a", encodeReport a )
+                        , ( "b", encodeReport b )
+                        ]
+
+                Group name benchmarks ->
+                    Encode.object
+                        [ ( "_kind", Encode.string "group" )
+                        , ( "name", Encode.string name )
+                        , ( "benchmarks", benchmarks |> List.map encodeReport |> Encode.list )
+                        ]
     in
-        case benchmark of
-            Benchmark name status ->
-                Encode.object
-                    [ ( "_kind", Encode.string "benchmark" )
-                    , ( "name", Encode.string name )
-                    , ( "status", encodeStatus status )
-                    ]
-
-            Compare name a b ->
-                Encode.object
-                    [ ( "_kind", Encode.string "compare" )
-                    , ( "name", Encode.string name )
-                    , ( "a", encoder a )
-                    , ( "b", encoder b )
-                    ]
-
-            Group name benchmarks ->
-                Encode.object
-                    [ ( "_kind", Encode.string "group" )
-                    , ( "name", Encode.string name )
-                    , ( "benchmarks", benchmarks |> List.map encoder |> Encode.list )
-                    ]
+        Encode.object
+            [ ( "version", Encode.int 1 )
+            , ( "report", encodeReport report )
+            ]
 
 
 {-| parse a Report from a JSON value
 -}
 decoder : Decoder Report
 decoder =
+    Decode.field "version" Decode.int
+        |> Decode.andThen
+            (\version ->
+                case version of
+                    1 ->
+                        Decode.field "report" version1Decoder
+
+                    _ ->
+                        Decode.fail <| "I don't know how to decode version" ++ toString version
+            )
+
+
+version1Decoder : Decoder Report
+version1Decoder =
     let
         status : String -> Decoder Status
         status stage =
@@ -305,13 +326,13 @@ decoder =
                 "compare" ->
                     Decode.map3 Compare
                         (Decode.field "name" Decode.string)
-                        (Decode.field "a" <| Decode.lazy (\_ -> decoder))
-                        (Decode.field "b" <| Decode.lazy (\_ -> decoder))
+                        (Decode.field "a" <| Decode.lazy (\_ -> version1Decoder))
+                        (Decode.field "b" <| Decode.lazy (\_ -> version1Decoder))
 
                 "group" ->
                     Decode.map2 Group
                         (Decode.field "name" <| Decode.string)
-                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list decoder))
+                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list version1Decoder))
 
                 _ ->
                     Decode.fail ("I don't know how to decode a \"" ++ kind ++ "\"")
