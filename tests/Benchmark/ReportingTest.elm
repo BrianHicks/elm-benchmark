@@ -71,6 +71,31 @@ report =
 -- now, finally: the tests
 
 
+totalOperations : Test
+totalOperations =
+    describe "totalOperations"
+        [ test "with one sample and sample size one" <|
+            \() ->
+                Reporting.stats 1 [ 1 ]
+                    |> Reporting.totalOperations
+                    |> Expect.equal 1
+        , fuzz (Fuzz.intRange 1 10000) "with many samples" <|
+            \size ->
+                size
+                    |> List.range 1
+                    |> List.map toFloat
+                    |> Reporting.stats 1
+                    |> Reporting.totalOperations
+                    |> Expect.equal size
+        , fuzz (Fuzz.intRange 1 (10 ^ 9)) "with many sample sizes" <|
+            \size ->
+                size
+                    |> flip Reporting.stats [ 1 ]
+                    |> Reporting.totalOperations
+                    |> Expect.equal size
+        ]
+
+
 serialization : Test
 serialization =
     describe "serialization"
@@ -87,4 +112,6 @@ serialization =
 all : Test
 all =
     describe "reporting"
-        [ serialization ]
+        [ totalOperations
+        , serialization
+        ]
