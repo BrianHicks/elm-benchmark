@@ -72,23 +72,23 @@ report =
 -- now, finally: the tests
 
 
-sampleRange : Test
-sampleRange =
-    describe "sampleRange"
+sampleInterval : Test
+sampleInterval =
+    describe "sampleInterval"
         [ test "empty" <|
             \() ->
                 Reporting.stats 1 []
-                    |> Reporting.sampleRange
+                    |> Reporting.sampleInterval
                     |> Expect.equal Nothing
         , fuzz Fuzz.float "a single value" <|
             \a ->
                 Reporting.stats 1 [ a ]
-                    |> Reporting.sampleRange
+                    |> Reporting.sampleInterval
                     |> Expect.equal (Just ( a, a ))
         , fuzz2 Fuzz.float Fuzz.float "any two values" <|
             \a b ->
                 Reporting.stats 1 [ a, b ]
-                    |> Reporting.sampleRange
+                    |> Reporting.sampleInterval
                     |> Expect.equal (Just ( min a b, max a b ))
         ]
 
@@ -197,7 +197,7 @@ serialization =
 all : Test
 all =
     describe "reporting"
-        [ sampleRange
+        [ sampleInterval
         , totalOperations
         , totalRuntime
         , meanRuntime
