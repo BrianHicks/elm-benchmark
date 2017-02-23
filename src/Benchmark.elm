@@ -104,8 +104,7 @@ The first argument to the benchmark* functions is the name of the thing you're
 measuring. The rest of the arguments specify how to take samples.
 
 In the case of `benchmark`, we just need an anonymous function that performs
-some calculation. Since Elm is not a lazily-evaluated language, this doesn't get
-optimized away.
+some calculation.
 
     benchmark "list head" (\_ -> List.head [1])
 
@@ -212,6 +211,7 @@ initialize an array with only 5,000 elements. Likewise, try to **use the same
 benchmark function**. For example, use only `benchmark2` instead of mixing
 `benchmark` and `benchmark2`. The difference between the different benchmark
 functions is small, but not so small that it won't influence your results.
+See the chart in the README for more on the runtime cost of different functions.
 -}
 compare : String -> Benchmark -> Benchmark -> Benchmark
 compare =

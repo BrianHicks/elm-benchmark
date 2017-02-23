@@ -56,7 +56,7 @@ operations created with different functions will result in larger and larger
 skews. Prefer `operation1` through `operation8` if you can (they're easier to
 use) but if in doubt, stick everything in `operation`. Benchmark speed is not an
 *absolute* measure, but a *relative* one. Make sure that you get your relations
-right.
+right. See the chart in the README for more context.
 
 -}
 type Operation
