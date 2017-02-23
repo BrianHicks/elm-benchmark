@@ -113,6 +113,22 @@ totalRuntime =
         ]
 
 
+meanRuntime : Test
+meanRuntime =
+    describe "meanRuntime"
+        [ test "with one sample and sample size one" <|
+            \() ->
+                Reporting.stats 1 [ 1 ]
+                    |> Reporting.meanRuntime
+                    |> Expect.equal 1
+        , test "with one large and one small sample" <|
+            \() ->
+                Reporting.stats 1 [ 0, 2 ]
+                    |> Reporting.meanRuntime
+                    |> Expect.equal 1
+        ]
+
+
 serialization : Test
 serialization =
     describe "serialization"
@@ -131,5 +147,6 @@ all =
     describe "reporting"
         [ totalOperations
         , totalRuntime
+        , meanRuntime
         , serialization
         ]
