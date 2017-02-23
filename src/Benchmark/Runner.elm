@@ -182,6 +182,44 @@ humanizeSamplingMethodology stats =
         ++ " calls"
 
 
+humanizeMeanRuntime : Stats -> String
+humanizeMeanRuntime stats =
+    let
+        ( mean, stddev ) =
+            Reporting.meanRuntime stats
+
+        pctDiff =
+            (stddev + mean) / mean - 1
+    in
+        humanizeTime mean
+            ++ " (stddev: "
+            ++ humanizeTime stddev
+            ++ ", "
+            ++ percent pctDiff
+            ++ "%)"
+
+
+humanizeOpsPerSec : Stats -> String
+humanizeOpsPerSec stats =
+    let
+        ( ops, stddev ) =
+            Reporting.operationsPerSecond stats
+
+        pctDiff =
+            (stddev + ops) / ops - 1
+    in
+        (humanizeNumber <| chopDecimal 2 <| ops)
+            ++ " (stddev: "
+            ++ (humanizeNumber <| chopDecimal 2 <| stddev)
+            ++ ", "
+            ++ percent pctDiff
+            ++ "%)"
+
+
+
+-- humanizeNumber <| chopDecimal 2 <| Reporting.operationsPerSecond stats
+
+
 attrs : List ( String, Html msg ) -> Html msg
 attrs list =
     let
@@ -246,8 +284,8 @@ benchmarkView benchmark =
                     , case status of
                         Reporting.Success stats ->
                             attrs
-                                [ ( "ops/sec", Html.text <| humanizeNumber <| chopDecimal 2 <| Reporting.operationsPerSecond stats )
-                                , ( "mean runtime", Html.text <| humanizeTime <| Reporting.meanRuntime stats )
+                                [ ( "mean ops/sec", Html.text <| humanizeOpsPerSec stats )
+                                , ( "mean runtime", Html.text <| humanizeMeanRuntime stats )
                                 , ( "total runtime", Html.text <| humanizeTime <| Reporting.totalRuntime stats )
                                 , ( "sampling", Html.text <| humanizeSamplingMethodology stats )
                                 ]
@@ -289,14 +327,14 @@ benchmarkView benchmark =
                                                         ]
                                             in
                                                 table
-                                                    [ [ rowHead "ops/second"
-                                                      , cell <| humanizeNumber <| chopDecimal 2 <| Reporting.operationsPerSecond statsa
-                                                      , cell <| humanizeNumber <| chopDecimal 2 <| Reporting.operationsPerSecond statsb
+                                                    [ [ rowHead "mean ops/sec"
+                                                      , cell <| humanizeOpsPerSec statsa
+                                                      , cell <| humanizeOpsPerSec statsb
                                                       , cell <| percentChange <| Reporting.compareOperationsPerSecond statsb statsa
                                                       ]
                                                     , [ rowHead "mean runtime"
-                                                      , cell <| humanizeTime <| Reporting.meanRuntime statsa
-                                                      , cell <| humanizeTime <| Reporting.meanRuntime statsb
+                                                      , cell <| humanizeMeanRuntime statsa
+                                                      , cell <| humanizeMeanRuntime statsb
                                                       , cell <| percentChange <| Reporting.compareMeanRuntime statsb statsa
                                                       ]
                                                     , [ rowHead "total runtime"

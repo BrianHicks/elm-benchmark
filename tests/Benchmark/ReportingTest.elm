@@ -72,27 +72,6 @@ report =
 -- now, finally: the tests
 
 
-sampleInterval : Test
-sampleInterval =
-    describe "sampleInterval"
-        [ test "empty" <|
-            \() ->
-                Reporting.stats 1 []
-                    |> Reporting.sampleInterval
-                    |> Expect.equal Nothing
-        , fuzz Fuzz.float "a single value" <|
-            \a ->
-                Reporting.stats 1 [ a ]
-                    |> Reporting.sampleInterval
-                    |> Expect.equal (Just ( a, a ))
-        , fuzz2 Fuzz.float Fuzz.float "any two values" <|
-            \a b ->
-                Reporting.stats 1 [ a, b ]
-                    |> Reporting.sampleInterval
-                    |> Expect.equal (Just ( min a b, max a b ))
-        ]
-
-
 totalOperations : Test
 totalOperations =
     describe "totalOperations"
@@ -142,12 +121,12 @@ meanRuntime =
             \() ->
                 Reporting.stats 1 [ 1 ]
                     |> Reporting.meanRuntime
-                    |> Expect.equal 1
+                    |> Expect.equal ( 1, 0 )
         , test "with one large and one small sample" <|
             \() ->
                 Reporting.stats 1 [ 0, 2 ]
                     |> Reporting.meanRuntime
-                    |> Expect.equal 1
+                    |> Expect.equal ( 1, 1 )
         ]
 
 
@@ -158,18 +137,18 @@ operationsPerSecond =
             \() ->
                 Reporting.stats 1 [ Time.second ]
                     |> Reporting.operationsPerSecond
-                    |> Expect.equal 1
+                    |> Expect.equal ( 1, 0 )
         , test "when an operation takes longer than a second" <|
             \() ->
                 Reporting.stats 1 [ 2 * Time.second ]
                     |> Reporting.operationsPerSecond
-                    |> Expect.equal 0.5
+                    |> Expect.equal ( 0.5, 0 )
         , fuzz (Fuzz.intRange 1 (1 ^ 6 * 5)) "fit into one second" <|
             \operations ->
                 operations
                     |> flip Reporting.stats [ Time.second ]
                     |> Reporting.operationsPerSecond
-                    |> Expect.equal (toFloat operations)
+                    |> Expect.equal ( toFloat operations, 0 )
         , fuzz (Fuzz.intRange 1 40) "one operation per second for n seconds" <|
             \operations ->
                 operations
@@ -177,7 +156,7 @@ operationsPerSecond =
                     |> List.map (always Time.second)
                     |> Reporting.stats 1
                     |> Reporting.operationsPerSecond
-                    |> Expect.equal 1
+                    |> Expect.equal ( 1, 0 )
         ]
 
 
@@ -197,8 +176,7 @@ serialization =
 all : Test
 all =
     describe "reporting"
-        [ sampleInterval
-        , totalOperations
+        [ totalOperations
         , totalRuntime
         , meanRuntime
         , operationsPerSecond

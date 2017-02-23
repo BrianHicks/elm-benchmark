@@ -4,7 +4,6 @@ module Benchmark.Reporting
         , Status(..)
         , Stats
         , stats
-        , sampleInterval
         , compareMeanRuntime
         , totalOperations
         , totalRuntime
@@ -27,8 +26,6 @@ TODO: links to those.
 @docs fromBenchmark
 
 # Analysis
-@docs sampleInterval
-
 @docs totalOperations, totalRuntime
 
 @docs meanRuntime, compareMeanRuntime
@@ -79,13 +76,21 @@ stats =
     Stats
 
 
-{-| the value range of samples, expressed as `(min, max)`
--}
-sampleInterval : Stats -> Maybe ( Time, Time )
-sampleInterval stats =
-    Maybe.map2 (,)
-        (List.minimum stats.samples)
-        (List.maximum stats.samples)
+mean : List Float -> Float
+mean numbers =
+    List.sum numbers / toFloat (List.length numbers)
+
+
+stddev : List Float -> Float
+stddev numbers =
+    let
+        thisMean =
+            mean numbers
+    in
+        numbers
+            |> List.map (\n -> (n - thisMean) ^ 2)
+            |> mean
+            |> sqrt
 
 
 {-| total number of samples
@@ -102,11 +107,20 @@ totalRuntime stats =
     List.sum stats.samples
 
 
-{-| Calculate mean runtime
+{-| Calculate mean runtime. The returned value is `(runtime, stddev)`
 -}
-meanRuntime : Stats -> Time
+meanRuntime : Stats -> ( Time, Time )
 meanRuntime stats =
-    totalRuntime stats / toFloat (totalOperations stats)
+    let
+        meanStddev =
+            stats.samples
+                |> List.map (\sample -> sample / toFloat stats.sampleSize)
+                |> stddev
+
+        mean =
+            totalRuntime stats / toFloat (totalOperations stats)
+    in
+        ( mean, meanStddev )
 
 
 {-| Compare mean runtimes, given as a percentage difference of the first to the
@@ -114,14 +128,19 @@ second
 -}
 compareMeanRuntime : Stats -> Stats -> Float
 compareMeanRuntime a b =
-    meanRuntime a / meanRuntime b - 1
+    (meanRuntime a |> Tuple.first) / (meanRuntime b |> Tuple.first) - 1
 
 
-{-| Calculate operations per second
+{-| Calculate operations per second. The returned value is `(meanOpsPerSec, stddev)`
 -}
-operationsPerSecond : Stats -> Float
+operationsPerSecond : Stats -> ( Float, Float )
 operationsPerSecond stats =
-    toFloat (totalOperations stats) * (Time.second / totalRuntime stats)
+    let
+        opsPerSec =
+            stats.samples
+                |> List.map (\sample -> toFloat stats.sampleSize * (Time.second / sample))
+    in
+        ( mean opsPerSec, stddev opsPerSec )
 
 
 {-| Compare operations per second, given as a percentage difference of the first
@@ -129,7 +148,7 @@ to the second
 -}
 compareOperationsPerSecond : Stats -> Stats -> Float
 compareOperationsPerSecond a b =
-    (operationsPerSecond a) / (operationsPerSecond b) - 1
+    (operationsPerSecond a |> Tuple.first) / (operationsPerSecond b |> Tuple.first) - 1
 
 
 
