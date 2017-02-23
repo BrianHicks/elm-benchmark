@@ -2,8 +2,6 @@
 
 Measure the speed of pure functions in Elm, with as little Native code as possible.
 
-**Status**: 1.0.0-pre1 (tagged).
-
 ## Quick Start
 
 Here's a sample, benchmarking [`Array.Hamt`](https://github.com/Skinney/elm-array-exploration).
@@ -31,7 +29,22 @@ This code uses a few common functions:
 -   `benchmark*` to run benchmarks
 -   `compare` to compare the results of two benchmarks
 
-### Running Benchmarks
+### Installing
+
+You probably want to keep your benchmarks separate from your code. This is
+because your benchmark dependencies aren't necessarily the same as your runtime
+dependencies. Just a fact of life now; it might change in the future! So, here
+are the commands (with explanation) that you'll run to get started:
+
+```sh
+mkdir benchmarks                             # create a benchmarks directory
+cd benchmarks                                # go into that directory
+elm package install BrianHicks/elm-benchmark # get this project, including the browser runner
+```
+
+And keep reading to run them!
+
+### Running Benchmarks in the Browser
 
 `Benchmark.Runner` provides `program`, which takes a `Benchmark` and runs it in the browser.
 To run the sample above, you would do:
@@ -49,7 +62,7 @@ Compile and open in your browser (or use `elm reactor`) to start the benchmarkin
 
 ### How Are My Benchmarks Measured?
 
-When we measure the speed of this code, we take the following steps:
+When we measure the speed of your code, we take the following steps:
 
 1.  We measure how many runs of the function will fit into a given size (currently a tenth of a second.)
 2.  Next, we round this sample size to the nearest order of magnitude.
@@ -75,10 +88,21 @@ Some general principles:
 -   When you're working on speeding up a function, keep the old implementation around and use `compare` to measure your progress.
 -   "As always, if you see numbers that look wildly out of whack, you shouldn’t rejoice that you have magically achieved fast performance—be skeptical and investigate!" – [Bryan O'Sullivan](http://www.serpentine.com/criterion/tutorial.html)
 
-## Prior Art
+And advice specific to `elm-benchmark`:
+
+-   Don't compare calls to `benchmark` to `benchmark1` through `benchmark8`.
+    `benchmark` uses thunks, while `benchmark1` through `benchmark8` apply functions directly.
+    The difference is stark:
+
+    ![difference](docs/benchmarkVsBenchmarkn.png)
+
+    (You can run `examples/Thunks.elm` to replicate this data yourself.)
+
+## Prior Art and Inspirations
 
 -   [Thread on elm-dev](https://groups.google.com/forum/#!topic/elm-dev/6YyRsZ0vtDg), the source of the LowLevel API
 -   [Luke Westby's Gist](https://gist.github.com/lukewestby/9d8e2b0816d417eae926ed86c01de0b8), the source of the initial LowLevel implementation
+-   [Gary Bernhardt's Readygo](https://github.com/garybernhardt/readygo#timing-methodology), the inspiration for our interleaved runs
 -   [Rust Benchmarks](https://doc.rust-lang.org/1.1.0/src/test/lib.rs.html#1090-1161)
 -   [Go Benchmarks](https://golang.org/src/testing/benchmark.go#L250)
 
