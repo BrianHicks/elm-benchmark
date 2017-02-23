@@ -1,4 +1,4 @@
-module TestBenchmarking exposing (..)
+module Thunks exposing (..)
 
 import Benchmark exposing (Benchmark)
 import Benchmark.Runner exposing (BenchmarkProgram, program)
