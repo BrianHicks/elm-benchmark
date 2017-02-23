@@ -10,7 +10,6 @@ import Benchmark.Reporting as Reporting exposing (Report, Stats)
 import Html exposing (Html)
 import Html.Attributes as A
 import Json.Encode as Encode
-import List.Extra as List
 import Process
 import Task exposing (Task)
 import Time exposing (Time)
@@ -144,13 +143,23 @@ chopDecimal places number =
             |> (flip (/) magnitude)
 
 
+groupsOfThree : List a -> List (List a)
+groupsOfThree items =
+    case List.take 3 items of
+        [] ->
+            []
+
+        xs ->
+            xs :: (groupsOfThree (List.drop 3 items))
+
+
 humanizeNumber : number -> String
 humanizeNumber number =
     let
         humanizeIntegralPart =
             String.reverse
                 >> String.toList
-                >> List.greedyGroupsOf 3
+                >> groupsOfThree
                 >> List.map String.fromList
                 >> String.join ","
                 >> String.reverse
