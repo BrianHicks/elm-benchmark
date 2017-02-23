@@ -96,6 +96,23 @@ totalOperations =
         ]
 
 
+totalRuntime : Test
+totalRuntime =
+    describe "totalRuntime"
+        [ test "with one sample and sample size one" <|
+            \() ->
+                Reporting.stats 1 [ 1 ]
+                    |> Reporting.totalOperations
+                    |> Expect.equal 1
+        , fuzz (Fuzz.list Fuzz.float) "with many samples" <|
+            \samples ->
+                samples
+                    |> Reporting.stats 1
+                    |> Reporting.totalRuntime
+                    |> Expect.equal (List.sum samples)
+        ]
+
+
 serialization : Test
 serialization =
     describe "serialization"
@@ -113,5 +130,6 @@ all : Test
 all =
     describe "reporting"
         [ totalOperations
+        , totalRuntime
         , serialization
         ]
