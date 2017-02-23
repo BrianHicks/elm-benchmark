@@ -18,8 +18,6 @@ module Benchmark
 
 {-| Benchmark Elm Programs
 
-Benchmarks represent a runnable operation.
-
 @docs Benchmark
 
 # Creating Benchmarks
@@ -62,12 +60,9 @@ This works with all the kinds of benchmarks you can create. If you provide a
 composite benchmark (a group or comparison) the same expected runtime will be
 set for all members.
 
-Note that this sets the *expected* runtime, not *actual* runtime. We take a
-small number of samples, then extrapolate to fit. This means that the actual
-benchmarking runs will not fit *exactly* within the given time, but we should be
-fairly close. In practice, expect actual runtime to deviate up to about 30%.
-However, these actual runtimes should be fairly consistent between runs. NB:
-Larger expected runtimes tend to yield more accurate actual runtimes.
+Note that this sets the *expected* runtime, not *actual* runtime. You're
+guaranteed to get *at least* this runtime. It will usually be more (usually on
+the order of a several hundredths of a second.)
 -}
 withRuntime : Time -> Benchmark -> Benchmark
 withRuntime time benchmark =
@@ -106,7 +101,11 @@ describe =
 {-| Benchmark a function.
 
 The first argument to the benchmark* functions is the name of the thing you're
-measuring.
+measuring. The rest of the arguments specify how to take samples.
+
+In the case of `benchmark`, we just need an anonymous function that performs
+some calculation. Since Elm is not a lazily-evaluated language, this doesn't get
+optimized away.
 
     benchmark "list head" (\_ -> List.head [1])
 
@@ -206,6 +205,13 @@ comparison.
     compare "initialize"
         (benchmark2 "HAMT" HAMT.initialize 10000 identity)
         (benchmark2 "Core" Array.initialize 10000 identity)
+
+When you're doing comparisons, try as hard as possible to **make the arguments
+the same**. The comparison above wouldn't be accurate if we told HAMT to
+initialize an array with only 5,000 elements. Likewise, try to **use the same
+benchmark function**. For example, use only `benchmark2` instead of mixing
+`benchmark` and `benchmark2`. The difference between the different benchmark
+functions is small, but not so small that it won't influence your results.
 -}
 compare : String -> Benchmark -> Benchmark -> Benchmark
 compare =
@@ -251,6 +257,11 @@ findSampleSize operation =
 
 {-| We want the sample size to be more-or-less the same across runs, despite
 small differences in measured fit.
+
+We'll do this by rounding to the nearest order of magnitude. So, for example:
+
+    standardizeSampleSize 1234 == 1000
+    standardizeSampleSize 880000 == 900000
 -}
 standardizeSampleSize : Int -> Int
 standardizeSampleSize sampleSize =
