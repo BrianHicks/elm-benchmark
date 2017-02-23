@@ -142,6 +142,14 @@ humanizeInt =
         >> String.reverse
 
 
+humanizeSamplingMethodology : Stats -> String
+humanizeSamplingMethodology stats =
+    (humanizeInt <| List.length stats.samples)
+        ++ " runs of "
+        ++ (humanizeInt stats.sampleSize)
+        ++ " calls"
+
+
 attrs : List ( String, Html msg ) -> Html msg
 attrs list =
     let
@@ -209,7 +217,7 @@ benchmarkView benchmark =
                                 [ ( "ops/sec", Html.text <| humanizeInt <| Reporting.operationsPerSecond stats )
                                 , ( "mean runtime", Html.text <| humanizeTime <| Reporting.meanRuntime stats )
                                 , ( "total runtime", Html.text <| humanizeTime <| Reporting.totalRuntime stats )
-                                , ( "sample size", Html.text <| humanizeInt <| Reporting.totalOperations stats )
+                                , ( "sampling", Html.text <| humanizeSamplingMethodology stats )
                                 ]
 
                         _ ->
@@ -264,9 +272,9 @@ benchmarkView benchmark =
                                                       , cell <| humanizeTime <| Reporting.totalRuntime statsb
                                                       , cell ""
                                                       ]
-                                                    , [ rowHead "sample size"
-                                                      , cell <| humanizeInt <| Reporting.totalOperations statsa
-                                                      , cell <| humanizeInt <| Reporting.totalOperations statsb
+                                                    , [ rowHead "sampling"
+                                                      , cell <| humanizeSamplingMethodology statsa
+                                                      , cell <| humanizeSamplingMethodology statsb
                                                       , cell ""
                                                       ]
                                                     ]
