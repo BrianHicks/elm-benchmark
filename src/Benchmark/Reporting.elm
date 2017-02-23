@@ -107,9 +107,9 @@ compareMeanRuntime a b =
 
 {-| Calculate operations per second
 -}
-operationsPerSecond : Stats -> Int
+operationsPerSecond : Stats -> Float
 operationsPerSecond stats =
-    toFloat (totalOperations stats) * (Time.second / totalRuntime stats) |> round
+    toFloat (totalOperations stats) * (Time.second / totalRuntime stats)
 
 
 {-| Compare operations per second, given as a percentage difference of the first
@@ -117,7 +117,7 @@ to the second
 -}
 compareOperationsPerSecond : Stats -> Stats -> Float
 compareOperationsPerSecond a b =
-    (toFloat <| operationsPerSecond a) / (toFloat <| operationsPerSecond b) - 1
+    (operationsPerSecond a) / (operationsPerSecond b) - 1
 
 
 

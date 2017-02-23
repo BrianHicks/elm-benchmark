@@ -7,6 +7,7 @@ import Fuzz exposing (Fuzzer)
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Test exposing (..)
+import Time
 
 
 lazy : (() -> Fuzzer a) -> Fuzzer a
@@ -129,6 +130,36 @@ meanRuntime =
         ]
 
 
+operationsPerSecond : Test
+operationsPerSecond =
+    describe "operationsPerSecond"
+        [ test "with one sample and sample size one" <|
+            \() ->
+                Reporting.stats 1 [ Time.second ]
+                    |> Reporting.operationsPerSecond
+                    |> Expect.equal 1
+        , test "when an operation takes longer than a second" <|
+            \() ->
+                Reporting.stats 1 [ 2 * Time.second ]
+                    |> Reporting.operationsPerSecond
+                    |> Expect.equal 0.5
+        , fuzz (Fuzz.intRange 1 (1 ^ 6 * 5)) "fit into one second" <|
+            \operations ->
+                operations
+                    |> flip Reporting.stats [ Time.second ]
+                    |> Reporting.operationsPerSecond
+                    |> Expect.equal (toFloat operations)
+        , fuzz (Fuzz.intRange 1 40) "one operation per second for n seconds" <|
+            \operations ->
+                operations
+                    |> List.range 1
+                    |> List.map (always Time.second)
+                    |> Reporting.stats 1
+                    |> Reporting.operationsPerSecond
+                    |> Expect.equal 1
+        ]
+
+
 serialization : Test
 serialization =
     describe "serialization"
@@ -148,5 +179,6 @@ all =
         [ totalOperations
         , totalRuntime
         , meanRuntime
+        , operationsPerSecond
         , serialization
         ]

@@ -131,22 +131,54 @@ humanizeTime =
         Time.inSeconds >> helper [ "s", "ms", "ns", "µs" ]
 
 
-humanizeInt : Int -> String
-humanizeInt =
-    toString
-        >> String.reverse
-        >> String.toList
-        >> List.greedyGroupsOf 3
-        >> List.map String.fromList
-        >> String.join ","
-        >> String.reverse
+chopDecimal : Int -> Float -> Float
+chopDecimal places number =
+    let
+        magnitude =
+            10 ^ places |> toFloat
+    in
+        number
+            * magnitude
+            |> round
+            |> toFloat
+            |> (flip (/) magnitude)
+
+
+humanizeNumber : number -> String
+humanizeNumber number =
+    let
+        humanizeIntegralPart =
+            String.reverse
+                >> String.toList
+                >> List.greedyGroupsOf 3
+                >> List.map String.fromList
+                >> String.join ","
+                >> String.reverse
+
+        humanizeDecimalPart part =
+            if part == "" then
+                ""
+            else if String.endsWith "0" part then
+                humanizeDecimalPart (String.dropRight 1 part)
+            else
+                "." ++ part
+    in
+        case number |> toString |> String.split "." of
+            [ l ] ->
+                humanizeIntegralPart l
+
+            [ l, r ] ->
+                humanizeIntegralPart l ++ humanizeDecimalPart r
+
+            _ ->
+                toString number
 
 
 humanizeSamplingMethodology : Stats -> String
 humanizeSamplingMethodology stats =
-    (humanizeInt <| List.length stats.samples)
+    (humanizeNumber <| List.length stats.samples)
         ++ " runs of "
-        ++ (humanizeInt stats.sampleSize)
+        ++ (humanizeNumber stats.sampleSize)
         ++ " calls"
 
 
@@ -214,7 +246,7 @@ benchmarkView benchmark =
                     , case status of
                         Reporting.Success stats ->
                             attrs
-                                [ ( "ops/sec", Html.text <| humanizeInt <| Reporting.operationsPerSecond stats )
+                                [ ( "ops/sec", Html.text <| humanizeNumber <| chopDecimal 2 <| Reporting.operationsPerSecond stats )
                                 , ( "mean runtime", Html.text <| humanizeTime <| Reporting.meanRuntime stats )
                                 , ( "total runtime", Html.text <| humanizeTime <| Reporting.totalRuntime stats )
                                 , ( "sampling", Html.text <| humanizeSamplingMethodology stats )
@@ -258,8 +290,8 @@ benchmarkView benchmark =
                                             in
                                                 table
                                                     [ [ rowHead "ops/second"
-                                                      , cell <| humanizeInt <| Reporting.operationsPerSecond statsa
-                                                      , cell <| humanizeInt <| Reporting.operationsPerSecond statsb
+                                                      , cell <| humanizeNumber <| chopDecimal 2 <| Reporting.operationsPerSecond statsa
+                                                      , cell <| humanizeNumber <| chopDecimal 2 <| Reporting.operationsPerSecond statsb
                                                       , cell <| percentChange <| Reporting.compareOperationsPerSecond statsb statsa
                                                       ]
                                                     , [ rowHead "mean runtime"
