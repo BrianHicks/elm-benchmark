@@ -17,10 +17,6 @@ module Benchmark.Reporting
 
 {-| Reporting for Benchmarks
 
-**Hey!**: You probably don't need this module unless you're implementing a runner.
-Save yourself some trouble and use one of the existing runners.
-TODO: links to those.
-
 @docs Report, Status, Stats, stats
 
 @docs fromBenchmark
@@ -43,8 +39,10 @@ import Json.Encode as Encode exposing (Value)
 import Time exposing (Time)
 
 
-{-| Each tag of Report has a name and some other information about the structure
-of a benchmarking run.
+{-| Reports are the public version of Benchmarks.
+
+Each tag of Report has a name and some other information about the structure of
+a benchmarking run.
 -}
 type Report
     = Benchmark String Status
