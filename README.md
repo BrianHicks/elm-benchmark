@@ -42,6 +42,8 @@ cd benchmarks                                # go into that directory
 elm package install BrianHicks/elm-benchmark # get this project, including the browser runner
 ```
 
+You'll also need to add `../` or `../src` to the `source-directories` list in `benchmarks/elm-package.json`.
+
 And keep reading to run them!
 
 ### Running Benchmarks in the Browser
