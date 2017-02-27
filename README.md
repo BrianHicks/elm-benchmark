@@ -4,7 +4,7 @@ Measure the speed of pure functions in Elm, with as little Native code as possib
 
 ## Quick Start
 
-Here's a sample, benchmarking [`Array.Hamt`](https://github.com/Skinney/elm-array-exploration).
+Here's a sample, benchmarking [`Array.Hamt`](http://package.elm-lang.org/packages/Skinney/elm-array-exploration/latest).
 
 ```elm
 suite : Benchmark
@@ -31,10 +31,9 @@ This code uses a few common functions:
 
 ### Installing
 
-You probably want to keep your benchmarks separate from your code. This is
-because your benchmark dependencies aren't necessarily the same as your runtime
-dependencies. Just a fact of life now; it might change in the future! So, here
-are the commands (with explanation) that you'll run to get started:
+You should keep your benchmarks separate from your code since you don't want the elm-benchmark code in your production artifacts.
+This is necessary because of how `elm-package` works; it will probably change in the future.
+Here are the commands (with explanation) that you should run to get started:
 
 ```sh
 mkdir benchmarks                             # create a benchmarks directory
@@ -42,9 +41,8 @@ cd benchmarks                                # go into that directory
 elm package install BrianHicks/elm-benchmark # get this project, including the browser runner
 ```
 
-You'll also need to add `../` or `../src` to the `source-directories` list in `benchmarks/elm-package.json`.
-
-And keep reading to run them!
+You'll also need to add your source directory (probably `../` or `../src`) to the `source-directories` list in `benchmarks/elm-package.json`.
+If you don't do this, you won't be able to import the code you're benchmarking.
 
 ### Running Benchmarks in the Browser
 
@@ -60,45 +58,44 @@ main =
     program suite
 ```
 
-Compile and open in your browser (or use `elm reactor`) to start the benchmarking run.
+Compile and open in your browser to start the benchmarking run.
 
 ### How Are My Benchmarks Measured?
 
 When we measure the speed of your code, we take the following steps:
 
-1.  We measure how many runs of the function will fit into a given size (currently a tenth of a second.)
+1.  We measure how many runs of the function will fit into a tenth of a second.
 2.  Next, we round this sample size to the nearest order of magnitude.
-    We do this to get a more consistent sample size between benchmarking runs.
-3.  Now that we have our sample size, we start collecting samples until their total passes the expected time.
-    (This is currently 5 seconds, but you can change it with `Benchmark.withRuntime`)
+    (So if we could fit 23456 runs into a tenth of a second, we would round to 20000.)
+    We do this to get a consistent sample size between runs.
+3.  At this stage, we start collecting samples until we have the total time specified.
+    (The total defaults to 5 seconds, but you can change it with `Benchmark.withRuntime`)
 
-If the run contains multiple benchmarks, sampling is interleaved between all of them.
-This means that given benchmarks named `a`, `b`, and `c`, we would take one sample each then start over.
+If the run contains multiple benchmarks, we interleave sampling between them.
+This means that given three benchmarks we would take one sample of each and continue in that pattern until they were complete.
 
-We do this because computers run many things at once.
-If we don't account for that, the system might be really busy when running `a`, but give its full attention to `b` and `c`.
-This would make `a` artificially slower, so we would get misleading data!
+We do this because the system might be busy with other work when running the first, but give its full attention to the second and third.
+This would make one artificially slower than the others, so we would get misleading data!
 
-By interleaving samples, the busyness when `a` would be running is replaced by a little busyness in the first runs of all three benchmarks, followed by faster runs of all three benchmarks.
+By interleaving samples, we spread this offset among all the benchmarks.
 It sets a more even playing field for all the benchmarks, and gives us better data.
 
 ## Writing Effective Benchmarks
 
 Some general principles:
 
--   Don't compare raw values across multiple machines.
+-   Don't compare raw values from different machines.
 -   When you're working on speeding up a function, keep the old implementation around and use `compare` to measure your progress.
 -   "As always, if you see numbers that look wildly out of whack, you shouldn’t rejoice that you have magically achieved fast performance—be skeptical and investigate!" – [Bryan O'Sullivan](http://www.serpentine.com/criterion/tutorial.html)
 
 And advice specific to `elm-benchmark`:
 
 -   Don't compare calls to `benchmark` to `benchmark1` through `benchmark8`.
-    `benchmark` uses thunks, while `benchmark1` through `benchmark8` apply functions directly.
-    The difference is stark:
-
-    ![difference](docs/benchmarkVsBenchmarkn.png)
-
-    (You can run `examples/Thunks.elm` to replicate this data yourself.)
+    `benchmark` uses thunks, while `benchmark1` through `benchmark8` call functions directly.
+    Thunks are around 50% slower than direct application (increasing with the number of arguments.)
+    Run `examples/Thunks.elm` to replicate this yourself.
+    You won't get accurate results if you mix the two styles.
+    Just don't do it!
 
 ## Prior Art and Inspirations
 
@@ -110,4 +107,4 @@ And advice specific to `elm-benchmark`:
 
 ## License
 
-Benchmark is licensed under a 3-Clause BSD License, located at [LICENSE](LICENSE).
+Benchmark is licensed under a 3-Clause BSD License.
