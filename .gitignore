@@ -1,7 +1,12 @@
 # elm-package generated files
 elm-stuff
+
 # elm-repl generated files
 repl-temp-*
+
 # elm-make generated files
-index.html
+*.html
 documentation.json
+
+# tooling
+elm-ops-tooling

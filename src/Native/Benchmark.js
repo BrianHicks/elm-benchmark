@@ -1,4 +1,4 @@
-var _user$project$Native_Benchmark = function() {
+var _BrianHicks$elm_benchmark$Native_Benchmark = function() {
     var getTimestamp = typeof performance !== 'undefined' ?
         performance.now.bind(performance) :
         Date.now;
