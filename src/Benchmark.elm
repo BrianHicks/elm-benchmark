@@ -230,7 +230,7 @@ findSampleSize : Operation -> Task Error Int
 findSampleSize operation =
     let
         initialSampleSize =
-            100
+            1
 
         minimumRuntime =
             100 * Time.millisecond
