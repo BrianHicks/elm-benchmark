@@ -23,4 +23,4 @@ test: tests/elm-stuff/packages/BrianHicks/elm-benchmark
 	elm-test
 
 examples/%.html: examples/% examples/elm-stuff/packages/BrianHicks/elm-benchmark
-	cd examples; elm make --output $(shell basename $@) $(shell basename $<)
+	cd examples; elm make --yes --output $(shell basename $@) $(shell basename $<)
