@@ -127,7 +127,7 @@ humanizeTime =
                 _ ->
                     toString time ++ " of unknown unit"
     in
-        Time.inSeconds >> helper [ "s", "ms", "ns", "µs" ]
+        Time.inSeconds >> helper [ "s", "ms", "µs", "ns" ]
 
 
 chopDecimal : Int -> Float -> Float
