@@ -29,7 +29,7 @@ var _BrianHicks$elm_benchmark$Native_Benchmark = function() {
 
     // operation : (() -> a) -> Operation
     function operation(thunk) {
-        return function() { thunk(); };
+        return thunk;
     }
 
     return {
