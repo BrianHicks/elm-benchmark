@@ -32,56 +32,8 @@ var _BrianHicks$elm_benchmark$Native_Benchmark = function() {
         return function() { thunk(); };
     }
 
-    // operation1 : (a -> b) -> a -> Operation
-    function operation1(fn, a) {
-        return function() { fn(a); };
-    }
-
-    // operation2 : (a -> b -> c) -> a -> b -> Operation
-    function operation2(fn, a, b) {
-        return function() { A2(fn, a, b); };
-    }
-
-    // operation3 : (a -> b -> c -> d) -> a -> b -> c -> Operation
-    function operation3(fn, a, b, c) {
-        return function() { A3(fn, a, b, c); };
-    }
-
-    // operation4 : (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Operation
-    function operation4(fn, a, b, c, d) {
-        return function() { A4(fn, a, b, c, d); };
-    }
-
-    // operation5 : (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Operation
-    function operation5(fn, a, b, c, d, e) {
-        return function() { A5(fn, a, b, c, d, e); };
-    }
-
-    // operation6 : (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Operation
-    function operation6(fn, a, b, c, d, e, f) {
-        return function() { A6(fn, a, b, c, d, e, f); };
-    }
-
-    // operation7 : (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Operation
-    function operation7(fn, a, b, c, d, e, f, g) {
-        return function() { A7(fn, a, b, c, d, e, f, g); };
-    }
-
-    // operation8 : (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Operation
-    function operation8(fn, a, b, c, d, e, f, g, h) {
-        return function() { A8(fn, a, b, c, d, e, f, g, h); };
-    }
-
     return {
         operation: operation,
-        operation1: F2(operation1),
-        operation2: F3(operation2),
-        operation3: F4(operation3),
-        operation4: F5(operation4),
-        operation5: F6(operation5),
-        operation6: F7(operation6),
-        operation7: F8(operation7),
-        operation8: F9(operation8),
         sample: F2(sample),
     };
 }();
