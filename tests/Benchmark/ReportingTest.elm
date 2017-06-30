@@ -60,12 +60,12 @@ report =
                 , ( 1, lazy (\_ -> Fuzz.map3 Reporting.Compare Fuzz.string report report) )
                 ]
     in
-        case fuzzer of
-            Err err ->
-                Debug.crash "error constructing fuzzer" err
+    case fuzzer of
+        Err err ->
+            Debug.crash "error constructing fuzzer" err
 
-            Ok fuzzer ->
-                fuzzer
+        Ok fuzzer ->
+            fuzzer
 
 
 

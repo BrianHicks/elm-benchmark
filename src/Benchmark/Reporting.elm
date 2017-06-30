@@ -1,18 +1,18 @@
 module Benchmark.Reporting
     exposing
         ( Report(..)
-        , Status(..)
         , Stats
-        , stats
+        , Status(..)
         , compareMeanRuntime
-        , totalOperations
-        , totalRuntime
+        , compareOperationsPerSecond
+        , decoder
+        , encoder
+        , fromBenchmark
         , meanRuntime
         , operationsPerSecond
-        , compareOperationsPerSecond
-        , fromBenchmark
-        , encoder
-        , decoder
+        , stats
+        , totalOperations
+        , totalRuntime
         )
 
 {-| Reporting for Benchmarks
@@ -21,15 +21,20 @@ module Benchmark.Reporting
 
 @docs fromBenchmark
 
+
 # Analysis
+
 @docs totalOperations, totalRuntime
 
 @docs meanRuntime, compareMeanRuntime
 
 @docs operationsPerSecond, compareOperationsPerSecond
 
+
 # Serialization
+
 @docs encoder, decoder
+
 -}
 
 import Benchmark.Internal as Internal
@@ -43,6 +48,7 @@ import Time exposing (Time)
 
 Each tag of Report has a name and some other information about the structure of
 a benchmarking run.
+
 -}
 type Report
     = Benchmark String Status
@@ -85,10 +91,10 @@ stddev numbers =
         thisMean =
             mean numbers
     in
-        numbers
-            |> List.map (\n -> (n - thisMean) ^ 2)
-            |> mean
-            |> sqrt
+    numbers
+        |> List.map (\n -> (n - thisMean) ^ 2)
+        |> mean
+        |> sqrt
 
 
 {-| total number of samples
@@ -118,7 +124,7 @@ meanRuntime stats =
         mean =
             totalRuntime stats / toFloat (totalOperations stats)
     in
-        ( mean, meanStddev )
+    ( mean, meanStddev )
 
 
 {-| Compare mean runtimes, given as a percentage difference of the first to the
@@ -138,7 +144,7 @@ operationsPerSecond stats =
             stats.samples
                 |> List.map (\sample -> toFloat stats.sampleSize * (Time.second / sample))
     in
-        ( mean opsPerSec, stddev opsPerSec )
+    ( mean opsPerSec, stddev opsPerSec )
 
 
 {-| Compare operations per second, given as a percentage difference of the first
@@ -173,15 +179,15 @@ fromBenchmark internal =
                 Internal.Success ( runs, time ) ->
                     Success <| stats runs time
     in
-        case internal of
-            Internal.Benchmark name _ status ->
-                Benchmark name <| fromStatus status
+    case internal of
+        Internal.Benchmark name _ status ->
+            Benchmark name <| fromStatus status
 
-            Internal.Group name benchmarks ->
-                Group name <| List.map fromBenchmark benchmarks
+        Internal.Group name benchmarks ->
+            Group name <| List.map fromBenchmark benchmarks
 
-            Internal.Compare name a b ->
-                Compare name (fromBenchmark a) (fromBenchmark b)
+        Internal.Compare name a b ->
+            Compare name (fromBenchmark a) (fromBenchmark b)
 
 
 {-| convert a Report to a JSON value
@@ -253,10 +259,10 @@ encoder report =
                         , ( "benchmarks", benchmarks |> List.map encodeReport |> Encode.list )
                         ]
     in
-        Encode.object
-            [ ( "version", Encode.int 1 )
-            , ( "report", encodeReport report )
-            ]
+    Encode.object
+        [ ( "version", Encode.int 1 )
+        , ( "report", encodeReport report )
+        ]
 
 
 {-| parse a Report from a JSON value
@@ -337,5 +343,5 @@ version1Decoder =
                 _ ->
                     Decode.fail ("I don't know how to decode a \"" ++ kind ++ "\"")
     in
-        Decode.field "_kind" Decode.string
-            |> Decode.andThen report
+    Decode.field "_kind" Decode.string
+        |> Decode.andThen report

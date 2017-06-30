@@ -3,6 +3,7 @@ module Benchmark.Runner exposing (BenchmarkProgram, program)
 {-| Browser Benchmark Runner
 
 @docs program, BenchmarkProgram
+
 -}
 
 import Benchmark exposing (Benchmark)
@@ -127,7 +128,7 @@ humanizeTime =
                 _ ->
                     toString time ++ " of unknown unit"
     in
-        Time.inSeconds >> helper [ "s", "ms", "µs", "ns" ]
+    Time.inSeconds >> helper [ "s", "ms", "µs", "ns" ]
 
 
 chopDecimal : Int -> Float -> Float
@@ -136,11 +137,11 @@ chopDecimal places number =
         magnitude =
             10 ^ places |> toFloat
     in
-        number
-            * magnitude
-            |> round
-            |> toFloat
-            |> (flip (/) magnitude)
+    number
+        * magnitude
+        |> round
+        |> toFloat
+        |> flip (/) magnitude
 
 
 groupsOfThree : List a -> List (List a)
@@ -150,7 +151,7 @@ groupsOfThree items =
             []
 
         xs ->
-            xs :: (groupsOfThree (List.drop 3 items))
+            xs :: groupsOfThree (List.drop 3 items)
 
 
 humanizeNumber : number -> String
@@ -172,22 +173,22 @@ humanizeNumber number =
             else
                 "." ++ part
     in
-        case number |> toString |> String.split "." of
-            [ l ] ->
-                humanizeIntegralPart l
+    case number |> toString |> String.split "." of
+        [ l ] ->
+            humanizeIntegralPart l
 
-            [ l, r ] ->
-                humanizeIntegralPart l ++ humanizeDecimalPart r
+        [ l, r ] ->
+            humanizeIntegralPart l ++ humanizeDecimalPart r
 
-            _ ->
-                toString number
+        _ ->
+            toString number
 
 
 humanizeSamplingMethodology : Stats -> String
 humanizeSamplingMethodology stats =
     (humanizeNumber <| List.length stats.samples)
         ++ " runs of "
-        ++ (humanizeNumber stats.sampleSize)
+        ++ humanizeNumber stats.sampleSize
         ++ " calls"
 
 
@@ -200,12 +201,12 @@ humanizeMeanRuntime stats =
         pctDiff =
             (stddev + mean) / mean - 1
     in
-        humanizeTime mean
-            ++ " (stddev: "
-            ++ humanizeTime stddev
-            ++ ", "
-            ++ percent pctDiff
-            ++ "%)"
+    humanizeTime mean
+        ++ " (stddev: "
+        ++ humanizeTime stddev
+        ++ ", "
+        ++ percent pctDiff
+        ++ "%)"
 
 
 humanizeOpsPerSec : Stats -> String
@@ -217,12 +218,12 @@ humanizeOpsPerSec stats =
         pctDiff =
             (stddev + ops) / ops - 1
     in
-        (humanizeNumber <| chopDecimal 2 <| ops)
-            ++ " (stddev: "
-            ++ (humanizeNumber <| chopDecimal 2 <| stddev)
-            ++ ", "
-            ++ percent pctDiff
-            ++ "%)"
+    (humanizeNumber <| chopDecimal 2 <| ops)
+        ++ " (stddev: "
+        ++ (humanizeNumber <| chopDecimal 2 <| stddev)
+        ++ ", "
+        ++ percent pctDiff
+        ++ "%)"
 
 
 attrs : List ( String, Html msg ) -> Html msg
@@ -236,9 +237,9 @@ attrs list =
                 , Html.td [] [ value ]
                 ]
     in
-        Html.table
-            []
-            (List.map row list)
+    Html.table
+        []
+        (List.map row list)
 
 
 name : Report -> String
@@ -281,126 +282,126 @@ benchmarkView benchmark =
                 Reporting.Success _ ->
                     Html.text "Complete"
     in
-        case benchmark of
-            Reporting.Benchmark name status ->
-                Html.section
-                    []
-                    [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
-                    , case status of
-                        Reporting.Success stats ->
-                            attrs
-                                [ ( "mean ops/sec", Html.text <| humanizeOpsPerSec stats )
-                                , ( "mean runtime", Html.text <| humanizeMeanRuntime stats )
-                                , ( "total runtime", Html.text <| humanizeTime <| Reporting.totalRuntime stats )
-                                , ( "sampling", Html.text <| humanizeSamplingMethodology stats )
+    case benchmark of
+        Reporting.Benchmark name status ->
+            Html.section
+                []
+                [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
+                , case status of
+                    Reporting.Success stats ->
+                        attrs
+                            [ ( "mean ops/sec", Html.text <| humanizeOpsPerSec stats )
+                            , ( "mean runtime", Html.text <| humanizeMeanRuntime stats )
+                            , ( "total runtime", Html.text <| humanizeTime <| Reporting.totalRuntime stats )
+                            , ( "sampling", Html.text <| humanizeSamplingMethodology stats )
+                            ]
+
+                    _ ->
+                        attrs [ ( "status", humanizeStatus status ) ]
+                ]
+
+        Reporting.Compare _ a b ->
+            let
+                content =
+                    case ( a, b ) of
+                        ( Reporting.Benchmark namea statusa, Reporting.Benchmark nameb statusb ) ->
+                            Html.div []
+                                [ case ( statusa, statusb ) of
+                                    ( Reporting.Success statsa, Reporting.Success statsb ) ->
+                                        let
+                                            head caption =
+                                                Html.th [] [ Html.text caption ]
+
+                                            rowHead caption =
+                                                Html.th
+                                                    [ A.style [ ( "text-align", "right" ) ] ]
+                                                    [ Html.text caption ]
+
+                                            cell caption =
+                                                Html.td [] [ Html.text caption ]
+
+                                            table rows =
+                                                Html.table []
+                                                    [ Html.thead []
+                                                        [ head ""
+                                                        , head namea
+                                                        , head nameb
+                                                        , head "delta"
+                                                        ]
+                                                    , Html.tbody []
+                                                        (rows |> List.map (Html.tr []))
+                                                    ]
+                                        in
+                                        table
+                                            [ [ rowHead "mean ops/sec"
+                                              , cell <| humanizeOpsPerSec statsa
+                                              , cell <| humanizeOpsPerSec statsb
+                                              , cell <| percentChange <| Reporting.compareOperationsPerSecond statsb statsa
+                                              ]
+                                            , [ rowHead "mean runtime"
+                                              , cell <| humanizeMeanRuntime statsa
+                                              , cell <| humanizeMeanRuntime statsb
+                                              , cell <| percentChange <| Reporting.compareMeanRuntime statsb statsa
+                                              ]
+                                            , [ rowHead "total runtime"
+                                              , cell <| humanizeTime <| Reporting.totalRuntime statsa
+                                              , cell <| humanizeTime <| Reporting.totalRuntime statsb
+                                              , cell ""
+                                              ]
+                                            , [ rowHead "sampling"
+                                              , cell <| humanizeSamplingMethodology statsa
+                                              , cell <| humanizeSamplingMethodology statsb
+                                              , cell ""
+                                              ]
+                                            ]
+
+                                    _ ->
+                                        Html.table
+                                            []
+                                            [ Html.tr []
+                                                [ Html.th [] [ Html.text namea ]
+                                                , Html.td [] [ humanizeStatus statusa ]
+                                                ]
+                                            , Html.tr []
+                                                [ Html.th [] [ Html.text nameb ]
+                                                , Html.td [] [ humanizeStatus statusb ]
+                                                ]
+                                            ]
                                 ]
 
                         _ ->
-                            attrs [ ( "status", humanizeStatus status ) ]
-                    ]
-
-            Reporting.Compare _ a b ->
-                let
-                    content =
-                        case ( a, b ) of
-                            ( Reporting.Benchmark namea statusa, Reporting.Benchmark nameb statusb ) ->
-                                Html.div []
-                                    [ case ( statusa, statusb ) of
-                                        ( Reporting.Success statsa, Reporting.Success statsb ) ->
-                                            let
-                                                head caption =
-                                                    Html.th [] [ Html.text caption ]
-
-                                                rowHead caption =
-                                                    Html.th
-                                                        [ A.style [ ( "text-align", "right" ) ] ]
-                                                        [ Html.text caption ]
-
-                                                cell caption =
-                                                    Html.td [] [ Html.text caption ]
-
-                                                table rows =
-                                                    Html.table []
-                                                        [ Html.thead []
-                                                            [ head ""
-                                                            , head namea
-                                                            , head nameb
-                                                            , head "delta"
-                                                            ]
-                                                        , Html.tbody []
-                                                            (rows |> List.map (Html.tr []))
-                                                        ]
-                                            in
-                                                table
-                                                    [ [ rowHead "mean ops/sec"
-                                                      , cell <| humanizeOpsPerSec statsa
-                                                      , cell <| humanizeOpsPerSec statsb
-                                                      , cell <| percentChange <| Reporting.compareOperationsPerSecond statsb statsa
-                                                      ]
-                                                    , [ rowHead "mean runtime"
-                                                      , cell <| humanizeMeanRuntime statsa
-                                                      , cell <| humanizeMeanRuntime statsb
-                                                      , cell <| percentChange <| Reporting.compareMeanRuntime statsb statsa
-                                                      ]
-                                                    , [ rowHead "total runtime"
-                                                      , cell <| humanizeTime <| Reporting.totalRuntime statsa
-                                                      , cell <| humanizeTime <| Reporting.totalRuntime statsb
-                                                      , cell ""
-                                                      ]
-                                                    , [ rowHead "sampling"
-                                                      , cell <| humanizeSamplingMethodology statsa
-                                                      , cell <| humanizeSamplingMethodology statsb
-                                                      , cell ""
-                                                      ]
-                                                    ]
-
-                                        _ ->
-                                            Html.table
-                                                []
-                                                [ Html.tr []
-                                                    [ Html.th [] [ Html.text namea ]
-                                                    , Html.td [] [ humanizeStatus statusa ]
-                                                    ]
-                                                , Html.tr []
-                                                    [ Html.th [] [ Html.text nameb ]
-                                                    , Html.td [] [ humanizeStatus statusb ]
-                                                    ]
-                                                ]
-                                    ]
-
-                            _ ->
-                                Html.div
-                                    [ A.class "invalid" ]
-                                    [ Html.p [] [ Html.text "Sorry, I can't compare these kinds of benchmarks directly." ]
-                                    , Html.p [] [ Html.text "Here are the serialized values so you can do it yourself:" ]
-                                    , Html.pre
-                                        [ A.style
-                                            [ ( "background-color", "#EEE" )
-                                            , ( "border-radius", "5px" )
-                                            , ( "padding", "5px" )
-                                            ]
-                                        ]
-                                        [ Html.code []
-                                            [ benchmark
-                                                |> Reporting.encoder
-                                                |> Encode.encode 2
-                                                |> Html.text
-                                            ]
+                            Html.div
+                                [ A.class "invalid" ]
+                                [ Html.p [] [ Html.text "Sorry, I can't compare these kinds of benchmarks directly." ]
+                                , Html.p [] [ Html.text "Here are the serialized values so you can do it yourself:" ]
+                                , Html.pre
+                                    [ A.style
+                                        [ ( "background-color", "#EEE" )
+                                        , ( "border-radius", "5px" )
+                                        , ( "padding", "5px" )
                                         ]
                                     ]
-                in
-                    Html.section
-                        []
-                        [ Html.h1 [] [ Html.text <| "Comparing " ++ name benchmark ]
-                        , content
-                        ]
+                                    [ Html.code []
+                                        [ benchmark
+                                            |> Reporting.encoder
+                                            |> Encode.encode 2
+                                            |> Html.text
+                                        ]
+                                    ]
+                                ]
+            in
+            Html.section
+                []
+                [ Html.h1 [] [ Html.text <| "Comparing " ++ name benchmark ]
+                , content
+                ]
 
-            Reporting.Group name benchmarks ->
-                Html.section
-                    []
-                    [ Html.h1 [] [ Html.text <| "Group: " ++ name ]
-                    , Html.ol [] (List.map benchmarkView benchmarks)
-                    ]
+        Reporting.Group name benchmarks ->
+            Html.section
+                []
+                [ Html.h1 [] [ Html.text <| "Group: " ++ name ]
+                , Html.ol [] (List.map benchmarkView benchmarks)
+                ]
 
 
 view : Model -> Html Msg
@@ -426,10 +427,11 @@ view model =
     main =
         Runner.program <|
             Benchmark.group "your benchmarks"
-                [ -- your benchmarks here
+                [-- your benchmarks here
                 ]
 
 Compile this and visit the result in your browser to run the benchmarks.
+
 -}
 program : Benchmark -> BenchmarkProgram
 program benchmark =
