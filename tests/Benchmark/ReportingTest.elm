@@ -17,12 +17,7 @@ lazy fuzzer =
 
 choice : List (Fuzzer a) -> Fuzzer a
 choice choices =
-    case choices |> List.map ((,) 1) |> Fuzz.frequency of
-        Err err ->
-            Debug.crash "error constructing fuzzer" err
-
-        Ok fuzzer ->
-            fuzzer
+    choices |> List.map ((,) 1) |> Fuzz.frequency
 
 
 error : Fuzzer LowLevel.Error
@@ -45,27 +40,18 @@ status =
 
 report : Fuzzer Reporting.Report
 report =
-    let
-        fuzzer =
-            Fuzz.frequency
-                [ ( 2, Fuzz.map2 Reporting.Benchmark Fuzz.string status )
-                , ( 1
-                  , lazy
-                        (\_ ->
-                            Fuzz.map2 Reporting.Group
-                                Fuzz.string
-                                (Fuzz.map (flip (::) []) report)
-                        )
-                  )
-                , ( 1, lazy (\_ -> Fuzz.map3 Reporting.Compare Fuzz.string report report) )
-                ]
-    in
-    case fuzzer of
-        Err err ->
-            Debug.crash "error constructing fuzzer" err
-
-        Ok fuzzer ->
-            fuzzer
+    Fuzz.frequency
+        [ ( 2, Fuzz.map2 Reporting.Benchmark Fuzz.string status )
+        , ( 1
+          , lazy
+                (\_ ->
+                    Fuzz.map2 Reporting.Group
+                        Fuzz.string
+                        (Fuzz.map (flip (::) []) report)
+                )
+          )
+        , ( 1, lazy (\_ -> Fuzz.map3 Reporting.Compare Fuzz.string report report) )
+        ]
 
 
 
