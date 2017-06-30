@@ -1,8 +1,6 @@
 module Benchmark
     exposing
         ( Benchmark
-        , withRuntime
-        , describe
         , benchmark
         , benchmark1
         , benchmark2
@@ -13,21 +11,30 @@ module Benchmark
         , benchmark7
         , benchmark8
         , compare
+        , describe
         , step
+        , withRuntime
         )
 
 {-| Benchmark Elm Programs
 
 @docs Benchmark
 
+
 # Creating Benchmarks
+
 @docs benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8, describe, compare
 
+
 # Sizing
+
 @docs withRuntime
 
+
 # Running
+
 @docs step
+
 -}
 
 import Benchmark.Internal as Internal
@@ -43,6 +50,7 @@ import Time exposing (Time)
 
 To make these, try [`benchmark`](#benchmark), [`describe`](#describe), or
 [`compare`](#compare)
+
 -}
 type alias Benchmark =
     Internal.Benchmark
@@ -60,9 +68,10 @@ This works with all the kinds of benchmarks you can create. If you provide a
 composite benchmark (a group or comparison) the same expected runtime will be
 set for all members.
 
-Note that this sets the *expected* runtime, not *actual* runtime. You're
-guaranteed to get *at least* this runtime. It will usually be more (usually on
+Note that this sets the _expected_ runtime, not _actual_ runtime. You're
+guaranteed to get _at least_ this runtime. It will usually be more (usually on
 the order of a several hundredths of a second.)
+
 -}
 withRuntime : Time -> Benchmark -> Benchmark
 withRuntime time benchmark =
@@ -92,6 +101,7 @@ the top level:
     describe "your program"
         [ -- all your benchmarks
         ]
+
 -}
 describe : String -> List Benchmark -> Benchmark
 describe =
@@ -112,6 +122,7 @@ some calculation.
 define anonymous functions. For example, the benchmark above can be defined as:
 
     benchmark1 "list head" List.head [1]
+
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
@@ -123,6 +134,7 @@ benchmark name fn =
     benchmark1 "list head" List.head [1]
 
 See the docs for [`benchmark`](#benchmark) for why this exists.
+
 -}
 benchmark1 : String -> (a -> b) -> a -> Benchmark
 benchmark1 name fn a =
@@ -134,6 +146,7 @@ benchmark1 name fn a =
     benchmark2 "dict get" Dict.get "a" (Dict.singleton "a" 1)
 
 See the docs for [`benchmark`](#benchmark) for why this exists.
+
 -}
 benchmark2 : String -> (a -> b -> c) -> a -> b -> Benchmark
 benchmark2 name fn a b =
@@ -145,6 +158,7 @@ benchmark2 name fn a b =
     benchmark3 "dict insert" Dict.insert "b" 2 (Dict.singleton "a" 1)
 
 See the docs for [`benchmark`](#benchmark) for why this exists.
+
 -}
 benchmark3 : String -> (a -> b -> c -> d) -> a -> b -> c -> Benchmark
 benchmark3 name fn a b c =
@@ -154,6 +168,7 @@ benchmark3 name fn a b c =
 {-| Benchmark a function with four arguments.
 
 See the docs for [`benchmark`](#benchmark) for why this exists.
+
 -}
 benchmark4 : String -> (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Benchmark
 benchmark4 name fn a b c d =
@@ -163,6 +178,7 @@ benchmark4 name fn a b c d =
 {-| Benchmark a function with five arguments.
 
 See the docs for [`benchmark`](#benchmark) for why this exists.
+
 -}
 benchmark5 : String -> (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Benchmark
 benchmark5 name fn a b c d e =
@@ -172,6 +188,7 @@ benchmark5 name fn a b c d e =
 {-| Benchmark a function with six arguments.
 
 See the docs for [`benchmark`](#benchmark) for why this exists.
+
 -}
 benchmark6 : String -> (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Benchmark
 benchmark6 name fn a b c d e f =
@@ -181,6 +198,7 @@ benchmark6 name fn a b c d e f =
 {-| Benchmark a function with seven arguments.
 
 See the docs for [`benchmark`](#benchmark) for why this exists.
+
 -}
 benchmark7 : String -> (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Benchmark
 benchmark7 name fn a b c d e f g =
@@ -190,6 +208,7 @@ benchmark7 name fn a b c d e f g =
 {-| Benchmark a function with eight arguments.
 
 See the docs for [`benchmark`](#benchmark) for why this exists.
+
 -}
 benchmark8 : String -> (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Benchmark
 benchmark8 name fn a b c d e f g h =
@@ -212,6 +231,7 @@ benchmark function**. For example, use only `benchmark2` instead of mixing
 `benchmark` and `benchmark2`. The difference between the different benchmark
 functions is small, but not so small that it won't influence your results.
 See the chart in the README for more on the runtime cost of different functions.
+
 -}
 compare : String -> Benchmark -> Benchmark -> Benchmark
 compare =
@@ -252,7 +272,7 @@ findSampleSize operation =
         fit single =
             minimumRuntime / single |> ceiling
     in
-        sample initialSampleSize |> Task.map fit
+    sample initialSampleSize |> Task.map fit
 
 
 {-| We want the sample size to be more-or-less the same across runs, despite
@@ -262,6 +282,7 @@ We'll do this by rounding to the nearest order of magnitude. So, for example:
 
     standardizeSampleSize 1234 == 1000
     standardizeSampleSize 880000 == 900000
+
 -}
 standardizeSampleSize : Int -> Int
 standardizeSampleSize sampleSize =
@@ -273,13 +294,14 @@ standardizeSampleSize sampleSize =
             else
                 rough * magnitude
     in
-        helper sampleSize 1
+    helper sampleSize 1
 
 
 {-| Step a benchmark forward to completion. This is where all the interleaving
 magic happens.
 
 `step` is only useful for writing runners. You'll probably never need it!
+
 -}
 step : Benchmark -> Maybe (Task Never Benchmark)
 step benchmark =
@@ -317,18 +339,18 @@ step benchmark =
                 isNothing m =
                     m == Nothing
             in
-                if List.all isNothing tasks then
-                    Nothing
-                else
-                    tasks
-                        |> List.map2
-                            (\benchmark task ->
-                                task |> Maybe.withDefault (Task.succeed benchmark)
-                            )
-                            benchmarks
-                        |> Task.sequence
-                        |> Task.map (Internal.Group name)
-                        |> Just
+            if List.all isNothing tasks then
+                Nothing
+            else
+                tasks
+                    |> List.map2
+                        (\benchmark task ->
+                            task |> Maybe.withDefault (Task.succeed benchmark)
+                        )
+                        benchmarks
+                    |> Task.sequence
+                    |> Task.map (Internal.Group name)
+                    |> Just
 
         Internal.Compare name a b ->
             case ( step a, step b ) of

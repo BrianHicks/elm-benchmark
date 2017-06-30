@@ -2,7 +2,7 @@ port module Main exposing (..)
 
 import Benchmark.ReportingTest as ReportingTest
 import Json.Encode exposing (Value)
-import Test.Runner.Node exposing (run, TestProgram)
+import Test.Runner.Node exposing (TestProgram, run)
 
 
 main : TestProgram
