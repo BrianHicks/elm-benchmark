@@ -9,9 +9,6 @@ elm-ops-tooling:
 tests/elm-stuff: elm-ops-tooling
 	cd tests; ../elm-ops-tooling/with_retry.rb elm package install --yes
 
-tests/elm-stuff/packages/BrianHicks/elm-benchmark: tests/elm-stuff ${ELM_FILES}
-	./elm-ops-tooling/elm_self_publish.py . tests
-
 examples/elm-stuff: elm-ops-tooling
 	cd examples; ../elm-ops-tooling/with_retry.rb elm package install --yes
 
@@ -19,7 +16,7 @@ examples/elm-stuff/packages/BrianHicks/elm-benchmark: examples/elm-stuff ${ELM_F
 	./elm-ops-tooling/elm_self_publish.py . examples
 
 .PHONY: test
-test: tests/elm-stuff/packages/BrianHicks/elm-benchmark
+test: tests/elm-stuff
 	elm-test
 
 examples/%.html: examples/% examples/elm-stuff/packages/BrianHicks/elm-benchmark
