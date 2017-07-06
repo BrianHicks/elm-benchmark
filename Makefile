@@ -18,3 +18,8 @@ test: tests/elm-stuff
 
 examples/%.html: examples/% examples/elm-stuff
 	cd examples; elm make --yes --output $(shell basename $@) $(shell basename $<)
+
+.PHONY: clean
+clean:
+	find . -name 'elm-stuff' -type d | xargs rm -rf
+	find . -name '*.html' -type f -delete

@@ -15,14 +15,9 @@ lazy fuzzer =
     Fuzz.andThen fuzzer Fuzz.unit
 
 
-choice : List (Fuzzer a) -> Fuzzer a
-choice choices =
-    choices |> List.map ((,) 1) |> Fuzz.frequency
-
-
 error : Fuzzer LowLevel.Error
 error =
-    choice
+    Fuzz.oneOf
         [ Fuzz.constant LowLevel.StackOverflow
         , Fuzz.map LowLevel.UnknownError Fuzz.string
         ]
@@ -30,7 +25,7 @@ error =
 
 status : Fuzzer Reporting.Status
 status =
-    choice
+    Fuzz.oneOf
         [ Fuzz.map Reporting.ToSize Fuzz.float
         , Fuzz.map3 Reporting.Pending Fuzz.float Fuzz.int (Fuzz.list Fuzz.float)
         , Fuzz.map Reporting.Failure error
