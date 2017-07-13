@@ -138,7 +138,7 @@ See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark1 : String -> (a -> b) -> a -> Benchmark
 benchmark1 name fn a =
-    Internal.benchmark name (LowLevel.operation1 fn a)
+    Internal.benchmark name (LowLevel.operation <| \_ -> fn a)
 
 
 {-| Benchmark a function with two arguments.
@@ -150,7 +150,7 @@ See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark2 : String -> (a -> b -> c) -> a -> b -> Benchmark
 benchmark2 name fn a b =
-    Internal.benchmark name (LowLevel.operation2 fn a b)
+    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b)
 
 
 {-| Benchmark a function with three arguments.
@@ -162,7 +162,7 @@ See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark3 : String -> (a -> b -> c -> d) -> a -> b -> c -> Benchmark
 benchmark3 name fn a b c =
-    Internal.benchmark name (LowLevel.operation3 fn a b c)
+    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c)
 
 
 {-| Benchmark a function with four arguments.
@@ -172,7 +172,7 @@ See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark4 : String -> (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Benchmark
 benchmark4 name fn a b c d =
-    Internal.benchmark name (LowLevel.operation4 fn a b c d)
+    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d)
 
 
 {-| Benchmark a function with five arguments.
@@ -182,7 +182,7 @@ See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark5 : String -> (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Benchmark
 benchmark5 name fn a b c d e =
-    Internal.benchmark name (LowLevel.operation5 fn a b c d e)
+    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d e)
 
 
 {-| Benchmark a function with six arguments.
@@ -192,7 +192,7 @@ See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark6 : String -> (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Benchmark
 benchmark6 name fn a b c d e f =
-    Internal.benchmark name (LowLevel.operation6 fn a b c d e f)
+    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d e f)
 
 
 {-| Benchmark a function with seven arguments.
@@ -202,7 +202,7 @@ See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark7 : String -> (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Benchmark
 benchmark7 name fn a b c d e f g =
-    Internal.benchmark name (LowLevel.operation7 fn a b c d e f g)
+    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d e f g)
 
 
 {-| Benchmark a function with eight arguments.
@@ -212,7 +212,7 @@ See the docs for [`benchmark`](#benchmark) for why this exists.
 -}
 benchmark8 : String -> (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Benchmark
 benchmark8 name fn a b c d e f g h =
-    Internal.benchmark name (LowLevel.operation8 fn a b c d e f g h)
+    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d e f g h)
 
 
 {-| Specify that two benchmarks are meant to be directly compared.
