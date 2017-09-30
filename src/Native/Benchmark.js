@@ -34,6 +34,6 @@ var _BrianHicks$elm_benchmark$Native_Benchmark = function() {
 
     return {
         operation: operation,
-        sample: F2(sample),
+        sample: F2(sample)
     };
 }();
