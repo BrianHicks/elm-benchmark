@@ -8,6 +8,7 @@ module Benchmark.Runner exposing (BenchmarkProgram, program)
 
 import Benchmark exposing (Benchmark)
 import Benchmark.Reporting as Reporting exposing (Report, Stats)
+import Benchmark.Status as Status exposing (Status)
 import Html exposing (Html)
 import Html.Attributes as A
 import Process
@@ -56,16 +57,6 @@ update msg model =
                 ( benchmark, Cmd.none )
             else
                 ( benchmark, next benchmark )
-
-
-result : Reporting.Status -> Maybe Stats
-result status =
-    case status of
-        Reporting.Success stats ->
-            Just stats
-
-        _ ->
-            Nothing
 
 
 percent : Float -> String
@@ -247,13 +238,13 @@ name benchmark =
 benchmarkView : Report -> Html Msg
 benchmarkView benchmark =
     let
-        humanizeStatus : Reporting.Status -> Html a
+        humanizeStatus : Status -> Html a
         humanizeStatus status =
             case status of
-                Reporting.ToSize _ ->
+                Status.ToSize _ ->
                     Html.text "Needs Sizing"
 
-                Reporting.Pending time sampleSize samples ->
+                Status.Pending sampleSize time samples ->
                     Html.div
                         []
                         [ Html.progress
@@ -265,10 +256,10 @@ benchmarkView benchmark =
                         , Html.text <| "Collected " ++ humanizeTime (List.sum samples) ++ " of " ++ humanizeTime time
                         ]
 
-                Reporting.Failure error ->
+                Status.Failure error ->
                     Html.text <| "Error: " ++ toString error
 
-                Reporting.Success _ ->
+                Status.Success _ _ ->
                     Html.text "Complete"
     in
     case benchmark of
@@ -277,7 +268,11 @@ benchmarkView benchmark =
                 []
                 [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
                 , case status of
-                    Reporting.Success stats ->
+                    Status.Success sampleSize samples ->
+                        let
+                            stats =
+                                Reporting.stats sampleSize samples
+                        in
                         attrs
                             [ ( "mean ops/sec", Html.text <| humanizeOpsPerSec stats )
                             , ( "mean runtime", Html.text <| humanizeMeanRuntime stats )

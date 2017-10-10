@@ -2,6 +2,7 @@ module Benchmark.ReportingTest exposing (..)
 
 import Benchmark.LowLevel as LowLevel
 import Benchmark.Reporting as Reporting
+import Benchmark.Status as Status exposing (Status)
 import Expect
 import Fuzz exposing (Fuzzer)
 import Json.Decode as Decode
@@ -23,13 +24,13 @@ error =
         ]
 
 
-status : Fuzzer Reporting.Status
+status : Fuzzer Status
 status =
     Fuzz.oneOf
-        [ Fuzz.map Reporting.ToSize Fuzz.float
-        , Fuzz.map3 Reporting.Pending Fuzz.float Fuzz.int (Fuzz.list Fuzz.float)
-        , Fuzz.map Reporting.Failure error
-        , Fuzz.map Reporting.Success (Fuzz.map2 Reporting.stats Fuzz.int (Fuzz.list Fuzz.float))
+        [ Fuzz.map Status.ToSize Fuzz.float
+        , Fuzz.map3 Status.Pending Fuzz.int Fuzz.float (Fuzz.list Fuzz.float)
+        , Fuzz.map Status.Failure error
+        , Fuzz.map2 Status.Success Fuzz.int (Fuzz.list Fuzz.float)
         ]
 
 

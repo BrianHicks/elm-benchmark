@@ -1,6 +1,6 @@
 ELM_FILES = $(wildcard src/*.elm) $(wildcard src/**/*.elm) $(wildcard src/**/*.js)
 
-documentation.json: ${ELM_FILES}
+documentation.json: ${ELM_FILES} elm-package.json
 	elm make --yes --docs=$@
 
 elm-ops-tooling:

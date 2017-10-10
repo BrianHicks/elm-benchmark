@@ -2,7 +2,6 @@ module Benchmark.Reporting
     exposing
         ( Report(..)
         , Stats
-        , Status(..)
         , compareMeanRuntime
         , compareOperationsPerSecond
         , decoder
@@ -17,7 +16,7 @@ module Benchmark.Reporting
 
 {-| Reporting for Benchmarks
 
-@docs Report, Status, Stats, stats
+@docs Report, Stats, stats
 
 @docs fromBenchmark
 
@@ -39,7 +38,7 @@ module Benchmark.Reporting
 
 import Benchmark.Benchmark as Benchmark exposing (Benchmark)
 import Benchmark.LowLevel as LowLevel
-import Benchmark.Status as Status
+import Benchmark.Status as Status exposing (Status(..))
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Time exposing (Time)
@@ -55,15 +54,6 @@ type Report
     = Single String Status
     | Series String (List Report)
     | Group String (List Report)
-
-
-{-| The current status of a single benchmark.
--}
-type Status
-    = ToSize Time
-    | Pending Time Int (List Time)
-    | Failure LowLevel.Error
-    | Success Stats
 
 
 {-| Stats returned from a successful benchmarking run
@@ -164,25 +154,9 @@ compareOperationsPerSecond a b =
 -}
 fromBenchmark : Benchmark -> Report
 fromBenchmark internal =
-    let
-        fromStatus : Status.Status -> Status
-        fromStatus internal =
-            case internal of
-                Status.ToSize time ->
-                    ToSize time
-
-                Status.Pending time sampleSize samples ->
-                    Pending time sampleSize samples
-
-                Status.Failure error ->
-                    Failure error
-
-                Status.Success runs time ->
-                    Success <| stats runs time
-    in
     case internal of
         Benchmark.Single benchmark status ->
-            Single (LowLevel.name benchmark) <| fromStatus status
+            Single (LowLevel.name benchmark) status
 
         Benchmark.Series name benchmarks ->
             benchmarks
@@ -190,7 +164,7 @@ fromBenchmark internal =
                     (\( benchmark, status ) ->
                         Single
                             (LowLevel.name benchmark)
-                            (fromStatus status)
+                            status
                     )
                 |> Series name
 
@@ -212,11 +186,11 @@ encoder report =
                         , ( "time", time |> Time.inMilliseconds |> Encode.float )
                         ]
 
-                Pending time sampleSize samples ->
+                Pending sampleSize time samples ->
                     Encode.object
                         [ ( "_stage", Encode.string "pending" )
-                        , ( "time", Encode.float time )
                         , ( "sampleSize", Encode.int sampleSize )
+                        , ( "time", Encode.float time )
                         , ( "samples"
                           , samples
                                 |> List.map Encode.float
@@ -235,11 +209,11 @@ encoder report =
                                 ( "message", Encode.string msg )
                         ]
 
-                Success run ->
+                Success sampleSize samples ->
                     Encode.object
                         [ ( "_stage", Encode.string "success" )
-                        , ( "sampleSize", Encode.int run.sampleSize )
-                        , ( "samples", Encode.list <| List.map Encode.float run.samples )
+                        , ( "sampleSize", Encode.int sampleSize )
+                        , ( "samples", Encode.list <| List.map Encode.float samples )
                         ]
 
         encodeReport : Report -> Value
@@ -300,8 +274,8 @@ status stage =
 
         "pending" ->
             Decode.map3 Pending
-                (Decode.field "time" Decode.float)
                 (Decode.field "sampleSize" Decode.int)
+                (Decode.field "time" Decode.float)
                 (Decode.field "samples" <| Decode.list Decode.float)
 
         "failure" ->
@@ -317,10 +291,9 @@ status stage =
                     )
 
         "success" ->
-            Decode.map Success <|
-                Decode.map2 stats
-                    (Decode.field "sampleSize" Decode.int)
-                    (Decode.field "samples" <| Decode.list Decode.float)
+            Decode.map2 Success
+                (Decode.field "sampleSize" Decode.int)
+                (Decode.field "samples" <| Decode.list Decode.float)
 
         _ ->
             Decode.fail ("I don't know how to decode the \"" ++ stage ++ "\" stage")

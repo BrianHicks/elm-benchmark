@@ -248,18 +248,18 @@ step benchmark =
 stepLowLevel : LowLevel.Benchmark -> Status -> Task Never Status
 stepLowLevel benchmark status =
     case status of
-        ToSize eventualTotalSampleSize ->
+        ToSize eventualTotalRuntime ->
             LowLevel.findSampleSize benchmark
                 |> Task.map
                     (\sampleSize ->
                         Pending
-                            eventualTotalSampleSize
                             sampleSize
+                            eventualTotalRuntime
                             []
                     )
                 |> Task.onError (Task.succeed << Failure)
 
-        Pending total sampleSize samples ->
+        Pending sampleSize total samples ->
             LowLevel.sample sampleSize benchmark
                 |> Task.map
                     (\newSample ->
@@ -270,7 +270,7 @@ stepLowLevel benchmark status =
                         if List.sum newSamples >= total then
                             Success sampleSize newSamples
                         else
-                            Pending total sampleSize newSamples
+                            Pending sampleSize total newSamples
                     )
                 |> Task.onError (Task.succeed << Failure)
 
