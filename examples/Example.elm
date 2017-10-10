@@ -13,14 +13,15 @@ insert =
             Dict.singleton "a" 1
     in
     Benchmark.describe "dictionary"
-        [ Benchmark.benchmark2 "get" Dict.get "a" dest
-        , Benchmark.benchmark3 "insert" Dict.insert "b" 2 dest
+        [ Benchmark.benchmark "get" (\_ -> Dict.get "a" dest)
+        , Benchmark.benchmark "insert" (\_ -> Dict.insert "b" 2 dest)
         ]
 
 
 match : Benchmark
 match =
-    Benchmark.benchmark2 "regex match" Regex.contains (Regex.regex "^a+") "aaaaaaaaaaaaaaaaaaaaaaaaaa"
+    Benchmark.benchmark "regex match" <|
+        \_ -> Regex.contains (Regex.regex "^a+") "aaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 
 main : BenchmarkProgram

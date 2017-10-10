@@ -10,16 +10,13 @@ import Benchmark exposing (Benchmark)
 import Benchmark.Reporting as Reporting exposing (Report, Stats)
 import Html exposing (Html)
 import Html.Attributes as A
-import Json.Encode as Encode
 import Process
 import Task exposing (Task)
 import Time exposing (Time)
 
 
 type alias Model =
-    { running : Bool
-    , benchmark : Benchmark
-    }
+    Benchmark
 
 
 breakForRender : Task x a -> Task x a
@@ -27,20 +24,24 @@ breakForRender task =
     Task.andThen (\_ -> task) (Process.sleep 0)
 
 
-next : Benchmark -> Maybe (Cmd Msg)
-next =
-    Benchmark.step
-        >> Maybe.map breakForRender
-        >> Maybe.map (Task.perform Update)
+next : Benchmark -> Cmd Msg
+next benchmark =
+    if Benchmark.done benchmark then
+        Cmd.none
+    else
+        Benchmark.step benchmark
+            |> breakForRender
+            |> Task.perform Update
 
 
 init : Benchmark -> ( Model, Cmd Msg )
 init benchmark =
-    update
-        (Update benchmark)
-        { benchmark = benchmark
-        , running = True
-        }
+    ( benchmark
+    , if Benchmark.done benchmark then
+        Cmd.none
+      else
+        next benchmark
+    )
 
 
 type Msg
@@ -51,22 +52,10 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Update benchmark ->
-            case next benchmark of
-                Just cmd ->
-                    ( { model
-                        | benchmark = benchmark
-                        , running = True
-                      }
-                    , cmd
-                    )
-
-                Nothing ->
-                    ( { model
-                        | benchmark = benchmark
-                        , running = False
-                      }
-                    , Cmd.none
-                    )
+            if Benchmark.done benchmark then
+                ( benchmark, Cmd.none )
+            else
+                ( benchmark, next benchmark )
 
 
 result : Reporting.Status -> Maybe Stats
@@ -245,11 +234,11 @@ attrs list =
 name : Report -> String
 name benchmark =
     case benchmark of
-        Reporting.Benchmark name _ ->
+        Reporting.Single name _ ->
             name
 
-        Reporting.Compare cname a b ->
-            cname ++ ": " ++ name a ++ " vs " ++ name b
+        Reporting.Series name _ ->
+            name
 
         Reporting.Group name _ ->
             name
@@ -283,7 +272,7 @@ benchmarkView benchmark =
                     Html.text "Complete"
     in
     case benchmark of
-        Reporting.Benchmark name status ->
+        Reporting.Single name status ->
             Html.section
                 []
                 [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
@@ -300,100 +289,11 @@ benchmarkView benchmark =
                         attrs [ ( "status", humanizeStatus status ) ]
                 ]
 
-        Reporting.Compare _ a b ->
-            let
-                content =
-                    case ( a, b ) of
-                        ( Reporting.Benchmark namea statusa, Reporting.Benchmark nameb statusb ) ->
-                            Html.div []
-                                [ case ( statusa, statusb ) of
-                                    ( Reporting.Success statsa, Reporting.Success statsb ) ->
-                                        let
-                                            head caption =
-                                                Html.th [] [ Html.text caption ]
-
-                                            rowHead caption =
-                                                Html.th
-                                                    [ A.style [ ( "text-align", "right" ) ] ]
-                                                    [ Html.text caption ]
-
-                                            cell caption =
-                                                Html.td [] [ Html.text caption ]
-
-                                            table rows =
-                                                Html.table []
-                                                    [ Html.thead []
-                                                        [ head ""
-                                                        , head namea
-                                                        , head nameb
-                                                        , head "delta"
-                                                        ]
-                                                    , Html.tbody []
-                                                        (rows |> List.map (Html.tr []))
-                                                    ]
-                                        in
-                                        table
-                                            [ [ rowHead "mean ops/sec"
-                                              , cell <| humanizeOpsPerSec statsa
-                                              , cell <| humanizeOpsPerSec statsb
-                                              , cell <| percentChange <| Reporting.compareOperationsPerSecond statsb statsa
-                                              ]
-                                            , [ rowHead "mean runtime"
-                                              , cell <| humanizeMeanRuntime statsa
-                                              , cell <| humanizeMeanRuntime statsb
-                                              , cell <| percentChange <| Reporting.compareMeanRuntime statsb statsa
-                                              ]
-                                            , [ rowHead "total runtime"
-                                              , cell <| humanizeTime <| Reporting.totalRuntime statsa
-                                              , cell <| humanizeTime <| Reporting.totalRuntime statsb
-                                              , cell ""
-                                              ]
-                                            , [ rowHead "sampling"
-                                              , cell <| humanizeSamplingMethodology statsa
-                                              , cell <| humanizeSamplingMethodology statsb
-                                              , cell ""
-                                              ]
-                                            ]
-
-                                    _ ->
-                                        Html.table
-                                            []
-                                            [ Html.tr []
-                                                [ Html.th [] [ Html.text namea ]
-                                                , Html.td [] [ humanizeStatus statusa ]
-                                                ]
-                                            , Html.tr []
-                                                [ Html.th [] [ Html.text nameb ]
-                                                , Html.td [] [ humanizeStatus statusb ]
-                                                ]
-                                            ]
-                                ]
-
-                        _ ->
-                            Html.div
-                                [ A.class "invalid" ]
-                                [ Html.p [] [ Html.text "Sorry, I can't compare these kinds of benchmarks directly." ]
-                                , Html.p [] [ Html.text "Here are the serialized values so you can do it yourself:" ]
-                                , Html.pre
-                                    [ A.style
-                                        [ ( "background-color", "#EEE" )
-                                        , ( "border-radius", "5px" )
-                                        , ( "padding", "5px" )
-                                        ]
-                                    ]
-                                    [ Html.code []
-                                        [ benchmark
-                                            |> Reporting.encoder
-                                            |> Encode.encode 2
-                                            |> Html.text
-                                        ]
-                                    ]
-                                ]
-            in
+        Reporting.Series _ benchmarks ->
             Html.section
                 []
                 [ Html.h1 [] [ Html.text <| "Comparing " ++ name benchmark ]
-                , content
+                , Html.ol [] (List.map benchmarkView benchmarks)
                 ]
 
         Reporting.Group name benchmarks ->
@@ -410,12 +310,12 @@ view model =
         []
         [ Html.p
             []
-            [ if model.running then
-                Html.text "Benchmark Running"
-              else
+            [ if Benchmark.done model then
                 Html.text "Benchmark Finished"
+              else
+                Html.text "Benchmark Running"
             ]
-        , model.benchmark
+        , model
             |> Reporting.fromBenchmark
             |> benchmarkView
         ]

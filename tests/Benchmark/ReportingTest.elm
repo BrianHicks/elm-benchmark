@@ -33,19 +33,17 @@ status =
         ]
 
 
+single : Fuzzer Reporting.Report
+single =
+    Fuzz.map2 Reporting.Single Fuzz.string status
+
+
 report : Fuzzer Reporting.Report
 report =
     Fuzz.frequency
-        [ ( 2, Fuzz.map2 Reporting.Benchmark Fuzz.string status )
-        , ( 1
-          , lazy
-                (\_ ->
-                    Fuzz.map2 Reporting.Group
-                        Fuzz.string
-                        (Fuzz.map (flip (::) []) report)
-                )
-          )
-        , ( 1, lazy (\_ -> Fuzz.map3 Reporting.Compare Fuzz.string report report) )
+        [ ( 2, single )
+        , ( 1, lazy (\_ -> Fuzz.map2 Reporting.Series Fuzz.string (Fuzz.map List.singleton single)) )
+        , ( 1, lazy (\_ -> Fuzz.map2 Reporting.Group Fuzz.string (Fuzz.map List.singleton report)) )
         ]
 
 

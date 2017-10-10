@@ -1,8 +1,10 @@
 module Benchmark.LowLevel
     exposing
-        ( Error(..)
-        , Operation
-        , operation
+        ( Benchmark
+        , Error(..)
+        , benchmark
+        , findSampleSize
+        , name
         , sample
         )
 
@@ -18,14 +20,14 @@ yourself using this library often, please [open an issue on
 we'll find a way to make your use case friendlier.
 
 
-# Operations
+# Benchmarks
 
-@docs Operation, operation
+@docs Benchmark, benchmark, name
 
 
 # Measuring
 
-@docs Error, sample
+@docs findSampleSize, sample, Error
 
 -}
 
@@ -34,44 +36,40 @@ import Task exposing (Task)
 import Time exposing (Time)
 
 
-{-| Error states that can terminate a sample.
+{-| A low-level representation of a benchmarking operation. Each named benchmark
+contains a single function call.
+-}
+type Benchmark
+    = Benchmark String Operation
+
+
+{-| Create a benchmark, given a name and a testing function.
+-}
+benchmark : String -> (() -> a) -> Benchmark
+benchmark name fn =
+    Benchmark name (operation fn)
+
+
+{-| get the name of a benchmark, for display purposes
+-}
+name : Benchmark -> String
+name (Benchmark name _) =
+    name
+
+
+
+-- running benchmarks
+
+
+{-| Error states that can terminate a sampling run.
 -}
 type Error
     = StackOverflow
     | UnknownError String
 
 
-{-| A low-level representation of a benchmarking operation. This contains a
-single function call.
-
-Create these using `operation` through `operation8` and take runtime samples
-using `sample`.
-
-**Note:** Small samples of `operation` through `operation8` produce results that
-are close enough to be deceiving. Across large enough sample sizes, comparing
-operations created with different functions will result in larger and larger
-skews. Prefer `operation1` through `operation8` if you can (they're easier to
-use) but if in doubt, stick everything in `operation`. Benchmark speed is not an
-_absolute_ measure, but a _relative_ one. Make sure that you get your relations
-right. See the chart in the README for more context.
-
--}
-type Operation
-    = Operation
-
-
-{-| Create an operation.
-
-See docs for [`Operation`](#Operation).
-
--}
-operation : (() -> a) -> Operation
-operation =
-    Native.Benchmark.operation
-
-
-{-| Run an operation a specified number of times. The returned value is the
-total time it took for the given number of runs.
+{-| Run a benchmark a number of times. The returned value is the total time it
+took for the given number of runs.
 
 In the browser, high-resolution timing data from these functions comes from the
 [Performance API](https://developer.mozilla.org/en-US/docs/Web/API/Performance)
@@ -79,10 +77,73 @@ and is accurate to 5µs. If `performance.now` is unavailable, it will fall back
 to [Date](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date),
 accurate to 1ms.
 
-In alternative runners, consult the runner documentation for resolution
-information.
+-}
+sample : Int -> Benchmark -> Task Error Time
+sample n (Benchmark _ operation) =
+    Native.Benchmark.sample n operation
+
+
+{-| Find an appropriate sample size for benchmarking. This should be much
+greater than the clock resolution (5µs in the browser) to make sure we get good
+data.
+
+We want the sample size to be more-or-less the same across runs, despite
+small differences in measured fit. We do this by rounding to the nearest order
+of magnitude. So, for example, if the sample size is 1234 we round to 1000. If
+it's 8800, we round to 9000.
+
+    standardizeSampleSize 1234 == 1000
+    standardizeSampleSize 880000 == 900000
 
 -}
-sample : Int -> Operation -> Task Error Time
-sample =
-    Native.Benchmark.sample
+findSampleSize : Benchmark -> Task Error Int
+findSampleSize benchmark =
+    let
+        initialSampleSize =
+            1
+
+        minimumRuntime =
+            25 * Time.millisecond
+
+        -- increase the sample size by powers of 10 until we meet the minimum runtime
+        resample : Int -> Time -> Task Error Int
+        resample size total =
+            if total < minimumRuntime then
+                sample (size * 10) benchmark
+                    |> Task.andThen (resample (size * 10))
+            else
+                Task.succeed size
+    in
+    sample initialSampleSize benchmark
+        |> Task.andThen (resample initialSampleSize)
+        |> Task.map standardizeSampleSize
+
+
+standardizeSampleSize : Int -> Int
+standardizeSampleSize sampleSize =
+    let
+        helper : Int -> Int -> Int
+        helper rough magnitude =
+            if rough > 10 then
+                helper (toFloat rough / 10 |> round) (magnitude * 10)
+            else
+                rough * magnitude
+    in
+    helper sampleSize 1
+
+
+
+-- Internal stuff!
+
+
+{-| Operation is a slim wrapper over (() -> a). We need it though, because
+otherwise `Benchmark` would be `Benchmark a`, and tons of operations would get
+more difficult.
+-}
+type Operation
+    = Operation
+
+
+operation : (() -> a) -> Operation
+operation =
+    Native.Benchmark.operation

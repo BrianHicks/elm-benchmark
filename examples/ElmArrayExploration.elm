@@ -27,20 +27,30 @@ suite n =
     describe
         ("Array (" ++ toString n ++ " elements)")
         [ Benchmark.compare "initialize"
-            (benchmark2 "Core" NArray.initialize n identity)
-            (benchmark2 "HAMT" Array.initialize n identity)
+            "Core"
+            (\_ -> NArray.initialize n identity)
+            "HAMT"
+            (\_ -> Array.initialize n identity)
         , Benchmark.compare "set"
-            (benchmark3 "Core" NArray.set 7 5 cSampleArray)
-            (benchmark3 "HAMT" Array.set 7 5 sampleArray)
+            "Core"
+            (\_ -> NArray.set 7 5 cSampleArray)
+            "HAMT"
+            (\_ -> Array.set 7 5 sampleArray)
         , Benchmark.compare "push"
-            (benchmark2 "Core" NArray.push 5 cSampleArray)
-            (benchmark2 "HAMT" Array.push 5 sampleArray)
+            "Core"
+            (\_ -> NArray.push 5 cSampleArray)
+            "HAMT"
+            (\_ -> Array.push 5 sampleArray)
         , Benchmark.compare "get"
-            (benchmark2 "Core" NArray.get 5 cSampleArray)
-            (benchmark2 "HAMT" Array.get 5 sampleArray)
+            "Core"
+            (\_ -> NArray.get 5 cSampleArray)
+            "HAMT"
+            (\_ -> Array.get 5 sampleArray)
         , Benchmark.compare "append"
-            (benchmark2 "Core" NArray.append cSampleArray cSampleArray)
-            (benchmark2 "HAMT" Array.append sampleArray sampleArray)
+            "Core"
+            (\_ -> NArray.append cSampleArray cSampleArray)
+            "HAMT"
+            (\_ -> Array.append sampleArray sampleArray)
         ]
 
 

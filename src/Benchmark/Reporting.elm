@@ -37,8 +37,9 @@ module Benchmark.Reporting
 
 -}
 
-import Benchmark.Internal as Internal
+import Benchmark.Benchmark as Benchmark exposing (Benchmark)
 import Benchmark.LowLevel as LowLevel
+import Benchmark.Status as Status
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Time exposing (Time)
@@ -51,9 +52,9 @@ a benchmarking run.
 
 -}
 type Report
-    = Benchmark String Status
+    = Single String Status
+    | Series String (List Report)
     | Group String (List Report)
-    | Compare String Report Report
 
 
 {-| The current status of a single benchmark.
@@ -161,33 +162,40 @@ compareOperationsPerSecond a b =
 
 {-| Get a report from a Benchmark.
 -}
-fromBenchmark : Internal.Benchmark -> Report
+fromBenchmark : Benchmark -> Report
 fromBenchmark internal =
     let
-        fromStatus : Internal.Status -> Status
+        fromStatus : Status.Status -> Status
         fromStatus internal =
             case internal of
-                Internal.ToSize time ->
+                Status.ToSize time ->
                     ToSize time
 
-                Internal.Pending time sampleSize samples ->
+                Status.Pending time sampleSize samples ->
                     Pending time sampleSize samples
 
-                Internal.Failure error ->
+                Status.Failure error ->
                     Failure error
 
-                Internal.Success ( runs, time ) ->
+                Status.Success runs time ->
                     Success <| stats runs time
     in
     case internal of
-        Internal.Benchmark name _ status ->
-            Benchmark name <| fromStatus status
+        Benchmark.Single benchmark status ->
+            Single (LowLevel.name benchmark) <| fromStatus status
 
-        Internal.Group name benchmarks ->
-            Group name <| List.map fromBenchmark benchmarks
+        Benchmark.Series name benchmarks ->
+            benchmarks
+                |> List.map
+                    (\( benchmark, status ) ->
+                        Single
+                            (LowLevel.name benchmark)
+                            (fromStatus status)
+                    )
+                |> Series name
 
-        Internal.Compare name a b ->
-            Compare name (fromBenchmark a) (fromBenchmark b)
+        Benchmark.Group name benchmarks ->
+            Group name (List.map fromBenchmark benchmarks)
 
 
 {-| convert a Report to a JSON value
@@ -237,19 +245,18 @@ encoder report =
         encodeReport : Report -> Value
         encodeReport report =
             case report of
-                Benchmark name status ->
+                Single name status ->
                     Encode.object
-                        [ ( "_kind", Encode.string "benchmark" )
+                        [ ( "_kind", Encode.string "single" )
                         , ( "name", Encode.string name )
                         , ( "status", encodeStatus status )
                         ]
 
-                Compare name a b ->
+                Series name benchmarks ->
                     Encode.object
-                        [ ( "_kind", Encode.string "compare" )
+                        [ ( "_kind", Encode.string "series" )
                         , ( "name", Encode.string name )
-                        , ( "a", encodeReport a )
-                        , ( "b", encodeReport b )
+                        , ( "benchmarks", benchmarks |> List.map encodeReport |> Encode.list )
                         ]
 
                 Group name benchmarks ->
@@ -260,7 +267,7 @@ encoder report =
                         ]
     in
     Encode.object
-        [ ( "version", Encode.int 1 )
+        [ ( "version", Encode.int 2 )
         , ( "report", encodeReport report )
         ]
 
@@ -276,53 +283,88 @@ decoder =
                     1 ->
                         Decode.field "report" version1Decoder
 
+                    2 ->
+                        Decode.field "report" version2Decoder
+
                     _ ->
-                        Decode.fail <| "I don't know how to decode version" ++ toString version
+                        Decode.fail <| "I don't know how to decode version " ++ toString version
             )
+
+
+status : String -> Decoder Status
+status stage =
+    case stage of
+        "toSize" ->
+            Decode.map ToSize
+                (Decode.field "time" Decode.float)
+
+        "pending" ->
+            Decode.map3 Pending
+                (Decode.field "time" Decode.float)
+                (Decode.field "sampleSize" Decode.int)
+                (Decode.field "samples" <| Decode.list Decode.float)
+
+        "failure" ->
+            Decode.field "message" Decode.string
+                |> Decode.andThen
+                    (\message ->
+                        case message of
+                            "stack overflow" ->
+                                Failure LowLevel.StackOverflow |> Decode.succeed
+
+                            _ ->
+                                LowLevel.UnknownError message |> Failure |> Decode.succeed
+                    )
+
+        "success" ->
+            Decode.map Success <|
+                Decode.map2 stats
+                    (Decode.field "sampleSize" Decode.int)
+                    (Decode.field "samples" <| Decode.list Decode.float)
+
+        _ ->
+            Decode.fail ("I don't know how to decode the \"" ++ stage ++ "\" stage")
+
+
+version2Decoder : Decoder Report
+version2Decoder =
+    let
+        report : String -> Decoder Report
+        report kind =
+            case kind of
+                "single" ->
+                    Decode.map2 Single
+                        (Decode.field "name" Decode.string)
+                        (Decode.field "status" <|
+                            Decode.andThen status <|
+                                Decode.field "_stage" Decode.string
+                        )
+
+                "series" ->
+                    Decode.map2 Series
+                        (Decode.field "name" Decode.string)
+                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list version2Decoder))
+
+                "group" ->
+                    Decode.map2 Group
+                        (Decode.field "name" <| Decode.string)
+                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list version2Decoder))
+
+                _ ->
+                    Decode.fail ("I don't know how to decode a \"" ++ kind ++ "\"")
+    in
+    Decode.field "_kind" Decode.string
+        |> Decode.andThen report
 
 
 version1Decoder : Decoder Report
 version1Decoder =
     let
-        status : String -> Decoder Status
-        status stage =
-            case stage of
-                "toSize" ->
-                    Decode.map ToSize
-                        (Decode.field "time" Decode.float)
-
-                "pending" ->
-                    Decode.map3 Pending
-                        (Decode.field "time" Decode.float)
-                        (Decode.field "sampleSize" Decode.int)
-                        (Decode.field "samples" <| Decode.list Decode.float)
-
-                "failure" ->
-                    Decode.field "message" Decode.string
-                        |> Decode.andThen
-                            (\message ->
-                                case message of
-                                    "stack overflow" ->
-                                        Failure LowLevel.StackOverflow |> Decode.succeed
-
-                                    _ ->
-                                        LowLevel.UnknownError message |> Failure |> Decode.succeed
-                            )
-
-                "success" ->
-                    Decode.map Success <|
-                        Decode.map2 stats
-                            (Decode.field "sampleSize" Decode.int)
-                            (Decode.field "samples" <| Decode.list Decode.float)
-
-                _ ->
-                    Decode.fail ("I don't know how to decode the \"" ++ stage ++ "\" stage")
-
         report : String -> Decoder Report
         report kind =
             case kind of
                 "benchmark" ->
-                    Decode.map2 Benchmark
+                    Decode.map2 Single
                         (Decode.field "name" Decode.string)
                         (Decode.field "status" <|
                             Decode.andThen status <|
@@ -330,10 +372,12 @@ version1Decoder =
                         )
 
                 "compare" ->
-                    Decode.map3 Compare
+                    Decode.map2 Series
                         (Decode.field "name" Decode.string)
-                        (Decode.field "a" <| Decode.lazy (\_ -> version1Decoder))
-                        (Decode.field "b" <| Decode.lazy (\_ -> version1Decoder))
+                        (Decode.map2 (\a b -> [ a, b ])
+                            (Decode.field "a" <| Decode.lazy (\_ -> version1Decoder))
+                            (Decode.field "b" <| Decode.lazy (\_ -> version1Decoder))
+                        )
 
                 "group" ->
                     Decode.map2 Group

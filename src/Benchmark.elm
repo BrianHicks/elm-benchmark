@@ -2,16 +2,11 @@ module Benchmark
     exposing
         ( Benchmark
         , benchmark
-        , benchmark1
-        , benchmark2
-        , benchmark3
-        , benchmark4
-        , benchmark5
-        , benchmark6
-        , benchmark7
-        , benchmark8
         , compare
         , describe
+        , done
+        , progress
+        , series
         , step
         , withRuntime
         )
@@ -21,24 +16,20 @@ module Benchmark
 @docs Benchmark
 
 
-# Creating Benchmarks
+# Creating and Organizing Benchmarks
 
-@docs benchmark, benchmark1, benchmark2, benchmark3, benchmark4, benchmark5, benchmark6, benchmark7, benchmark8, describe, compare
-
-
-# Sizing
-
-@docs withRuntime
+@docs benchmark, compare, series, withRuntime, describe
 
 
 # Running
 
-@docs step
+@docs done, step, progress
 
 -}
 
-import Benchmark.Internal as Internal
-import Benchmark.LowLevel as LowLevel exposing (Error(..), Operation)
+import Benchmark.Benchmark exposing (Benchmark(..))
+import Benchmark.LowLevel as LowLevel exposing (Error(..))
+import Benchmark.Status as Status exposing (Status(..))
 import Task exposing (Task)
 import Time exposing (Time)
 
@@ -53,7 +44,7 @@ To make these, try [`benchmark`](#benchmark), [`describe`](#describe), or
 
 -}
 type alias Benchmark =
-    Internal.Benchmark
+    Benchmark.Benchmark.Benchmark
 
 
 {-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is the
@@ -76,16 +67,14 @@ the order of a several hundredths of a second.)
 withRuntime : Time -> Benchmark -> Benchmark
 withRuntime time benchmark =
     case benchmark of
-        Internal.Benchmark name sample _ ->
-            Internal.Benchmark name sample <| Internal.ToSize time
+        Single inner _ ->
+            Single inner (ToSize time)
 
-        Internal.Group name benchmarks ->
-            Internal.Group name <| List.map (withRuntime time) benchmarks
+        Series name inners ->
+            Series name <| List.map (\( inner, _ ) -> ( inner, ToSize time )) inners
 
-        Internal.Compare name a b ->
-            Internal.Compare name
-                (withRuntime time a)
-                (withRuntime time b)
+        Group name benchmarks ->
+            Group name <| List.map (withRuntime time) benchmarks
 
 
 
@@ -105,7 +94,7 @@ the top level:
 -}
 describe : String -> List Benchmark -> Benchmark
 describe =
-    Internal.Group
+    Group
 
 
 {-| Benchmark a function.
@@ -126,93 +115,7 @@ define anonymous functions. For example, the benchmark above can be defined as:
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
-    Internal.benchmark name (LowLevel.operation fn)
-
-
-{-| Benchmark a function with a single argument.
-
-    benchmark1 "list head" List.head [1]
-
-See the docs for [`benchmark`](#benchmark) for why this exists.
-
--}
-benchmark1 : String -> (a -> b) -> a -> Benchmark
-benchmark1 name fn a =
-    Internal.benchmark name (LowLevel.operation <| \_ -> fn a)
-
-
-{-| Benchmark a function with two arguments.
-
-    benchmark2 "dict get" Dict.get "a" (Dict.singleton "a" 1)
-
-See the docs for [`benchmark`](#benchmark) for why this exists.
-
--}
-benchmark2 : String -> (a -> b -> c) -> a -> b -> Benchmark
-benchmark2 name fn a b =
-    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b)
-
-
-{-| Benchmark a function with three arguments.
-
-    benchmark3 "dict insert" Dict.insert "b" 2 (Dict.singleton "a" 1)
-
-See the docs for [`benchmark`](#benchmark) for why this exists.
-
--}
-benchmark3 : String -> (a -> b -> c -> d) -> a -> b -> c -> Benchmark
-benchmark3 name fn a b c =
-    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c)
-
-
-{-| Benchmark a function with four arguments.
-
-See the docs for [`benchmark`](#benchmark) for why this exists.
-
--}
-benchmark4 : String -> (a -> b -> c -> d -> e) -> a -> b -> c -> d -> Benchmark
-benchmark4 name fn a b c d =
-    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d)
-
-
-{-| Benchmark a function with five arguments.
-
-See the docs for [`benchmark`](#benchmark) for why this exists.
-
--}
-benchmark5 : String -> (a -> b -> c -> d -> e -> f) -> a -> b -> c -> d -> e -> Benchmark
-benchmark5 name fn a b c d e =
-    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d e)
-
-
-{-| Benchmark a function with six arguments.
-
-See the docs for [`benchmark`](#benchmark) for why this exists.
-
--}
-benchmark6 : String -> (a -> b -> c -> d -> e -> f -> g) -> a -> b -> c -> d -> e -> f -> Benchmark
-benchmark6 name fn a b c d e f =
-    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d e f)
-
-
-{-| Benchmark a function with seven arguments.
-
-See the docs for [`benchmark`](#benchmark) for why this exists.
-
--}
-benchmark7 : String -> (a -> b -> c -> d -> e -> f -> g -> h) -> a -> b -> c -> d -> e -> f -> g -> Benchmark
-benchmark7 name fn a b c d e f g =
-    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d e f g)
-
-
-{-| Benchmark a function with eight arguments.
-
-See the docs for [`benchmark`](#benchmark) for why this exists.
-
--}
-benchmark8 : String -> (a -> b -> c -> d -> e -> f -> g -> h -> i) -> a -> b -> c -> d -> e -> f -> g -> h -> Benchmark
-benchmark8 name fn a b c d e f g h =
-    Internal.benchmark name (LowLevel.operation <| \_ -> fn a b c d e f g h)
+    Single (LowLevel.benchmark name fn) Status.init
 
 
 {-| Specify that two benchmarks are meant to be directly compared.
@@ -233,133 +136,143 @@ functions is small, but not so small that it won't influence your results.
 See the chart in the README for more on the runtime cost of different functions.
 
 -}
-compare : String -> Benchmark -> Benchmark -> Benchmark
-compare =
-    Internal.Compare
+compare : String -> String -> (() -> a) -> String -> (() -> b) -> Benchmark
+compare name name1 fn1 name2 fn2 =
+    Series name
+        [ ( LowLevel.benchmark name1 fn1, Status.init )
+        , ( LowLevel.benchmark name2 fn2, Status.init )
+        ]
+
+
+{-| Create (and compmare) a series of benchmarks.
+
+This is especially good for testing out the performance of your data structures
+at various scales.
+
+    -- TODO: example!
+
+Beware that large series can make very intensive benchmarks, and adjust your
+size and expectations accordingly!
+
+-}
+series : String -> List ( String, () -> a ) -> Benchmark
+series name series =
+    series
+        |> List.map
+            (\( subName, fn ) ->
+                ( LowLevel.benchmark subName fn
+                , Status.init
+                )
+            )
+        |> Series name
 
 
 
 -- Runners
 
 
-{-| Find an appropriate sample size for benchmarking. This should be much
-greater than the clock resolution (5µs in the browser) to make sure we get good
-data.
+{-| find out the progress a benchmark has made through its run. This does not
+include sizing information, which should be reported separately.
+
+The returned float is between 0 and 1, and represents percentage of progress.
+
 -}
-findSampleSize : Operation -> Task Error Int
-findSampleSize operation =
+progress : Benchmark -> Float
+progress benchmark =
     let
-        initialSampleSize =
-            1
+        progressHelp : Benchmark -> List Float
+        progressHelp benchmark =
+            case benchmark of
+                Single _ status ->
+                    [ Status.progress status ]
 
-        minimumRuntime =
-            100 * Time.millisecond
+                Series _ benchmarks ->
+                    List.map (Tuple.second >> Status.progress) benchmarks
 
-        sample : Int -> Task Error Time
-        sample size =
-            LowLevel.sample size operation
-                |> Task.andThen (resample size)
+                -- this is our odd duck case. `Group` is the only case that can
+                -- contain benchmarks as defined in this module. This means that
+                -- if we have a group with two members, one of which has tons of
+                -- benchmarks, and the other of which has very few, an average
+                -- of the two averages is inaccurate. Instead, we need to
+                -- collect all the numbers and push them up.
+                Group _ benchmarks ->
+                    List.map progressHelp benchmarks
+                        |> List.concat
 
-        -- increase the sample size by powers of 10 until we meet the minimum runtime
-        resample : Int -> Time -> Task Error Time
-        resample size total =
-            if total < minimumRuntime then
-                sample (size * 10)
-            else
-                total / toFloat size |> Task.succeed
-
-        fit : Time -> Int
-        fit single =
-            minimumRuntime / single |> ceiling
+        allProgress =
+            progressHelp benchmark
     in
-    sample initialSampleSize |> Task.map fit
+    List.sum allProgress
+        / toFloat (List.length allProgress)
+        |> clamp 0 1
 
 
-{-| We want the sample size to be more-or-less the same across runs, despite
-small differences in measured fit.
+{-| is this benchmark done yet?
+-}
+done : Benchmark -> Bool
+done benchmark =
+    progress benchmark == 1
 
-We'll do this by rounding to the nearest order of magnitude. So, for example:
 
-    standardizeSampleSize 1234 == 1000
-    standardizeSampleSize 880000 == 900000
+{-| Step a benchmark forward to completion.
+
+`step` is only useful for writing runners. You'll probably never need it! If you
+do, check if a benchmark is finished with `progress` or `done` before running
+this to avoid doing extra work.
 
 -}
-standardizeSampleSize : Int -> Int
-standardizeSampleSize sampleSize =
-    let
-        helper : Int -> Int -> Int
-        helper rough magnitude =
-            if rough > 10 then
-                helper (toFloat rough / 10 |> round) (magnitude * 10)
-            else
-                rough * magnitude
-    in
-    helper sampleSize 1
-
-
-{-| Step a benchmark forward to completion. This is where all the interleaving
-magic happens.
-
-`step` is only useful for writing runners. You'll probably never need it!
-
--}
-step : Benchmark -> Maybe (Task Never Benchmark)
+step : Benchmark -> Task Never Benchmark
 step benchmark =
     case benchmark of
-        Internal.Benchmark name sample status ->
-            case status of
-                Internal.ToSize time ->
-                    findSampleSize sample
-                        |> Task.map standardizeSampleSize
-                        |> Task.map (\sampleSize -> Internal.Pending time sampleSize [])
-                        |> Task.map (Internal.Benchmark name sample)
-                        |> Task.onError (Internal.Failure >> Internal.Benchmark name sample >> Task.succeed)
-                        |> Just
+        Single inner status ->
+            stepLowLevel inner status
+                |> Task.map (Single inner)
 
-                Internal.Pending target sampleSize samples ->
-                    if List.sum samples < target then
-                        LowLevel.sample sampleSize sample
-                            |> Task.map (flip (::) samples >> Internal.Pending target sampleSize >> Internal.Benchmark name sample)
-                            |> Task.onError (Internal.Failure >> Internal.Benchmark name sample >> Task.succeed)
-                            |> Just
-                    else
-                        Internal.Success ( sampleSize, samples )
-                            |> Internal.Benchmark name sample
-                            |> Task.succeed
-                            |> Just
+        Series name benchmarks ->
+            benchmarks
+                |> List.map
+                    (\( inner, status ) ->
+                        stepLowLevel inner status
+                            |> Task.map ((,) inner)
+                    )
+                |> Task.sequence
+                |> Task.map (Series name)
 
-                _ ->
-                    Nothing
+        Group name benchmarks ->
+            benchmarks
+                |> List.map step
+                |> Task.sequence
+                |> Task.map (Group name)
 
-        Internal.Group name benchmarks ->
-            let
-                tasks =
-                    List.map step benchmarks
 
-                isNothing m =
-                    m == Nothing
-            in
-            if List.all isNothing tasks then
-                Nothing
-            else
-                tasks
-                    |> List.map2
-                        (\benchmark task ->
-                            task |> Maybe.withDefault (Task.succeed benchmark)
-                        )
-                        benchmarks
-                    |> Task.sequence
-                    |> Task.map (Internal.Group name)
-                    |> Just
+stepLowLevel : LowLevel.Benchmark -> Status -> Task Never Status
+stepLowLevel benchmark status =
+    case status of
+        ToSize eventualTotalSampleSize ->
+            LowLevel.findSampleSize benchmark
+                |> Task.map
+                    (\sampleSize ->
+                        Pending
+                            eventualTotalSampleSize
+                            sampleSize
+                            []
+                    )
+                |> Task.onError (Task.succeed << Failure)
 
-        Internal.Compare name a b ->
-            case ( step a, step b ) of
-                ( Nothing, Nothing ) ->
-                    Nothing
+        Pending total sampleSize samples ->
+            LowLevel.sample sampleSize benchmark
+                |> Task.map
+                    (\newSample ->
+                        let
+                            newSamples =
+                                newSample :: samples
+                        in
+                        if List.sum newSamples >= total then
+                            Success sampleSize newSamples
+                        else
+                            Pending total sampleSize newSamples
+                    )
+                |> Task.onError (Task.succeed << Failure)
 
-                ( taska, taskb ) ->
-                    Just <|
-                        Task.map2
-                            (Internal.Compare name)
-                            (taska |> Maybe.withDefault (Task.succeed a))
-                            (taskb |> Maybe.withDefault (Task.succeed b))
+        _ ->
+            Task.succeed status
