@@ -43,7 +43,7 @@ report : Fuzzer Reporting.Report
 report =
     Fuzz.frequency
         [ ( 2, single )
-        , ( 1, lazy (\_ -> Fuzz.map2 Reporting.Series Fuzz.string (Fuzz.map List.singleton single)) )
+        , ( 1, lazy (\_ -> Fuzz.map2 Reporting.Series Fuzz.string (Fuzz.map List.singleton (Fuzz.tuple ( Fuzz.string, status )))) )
         , ( 1, lazy (\_ -> Fuzz.map2 Reporting.Group Fuzz.string (Fuzz.map List.singleton report)) )
         ]
 

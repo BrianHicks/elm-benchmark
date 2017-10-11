@@ -52,7 +52,7 @@ a benchmarking run.
 -}
 type Report
     = Single String Status
-    | Series String (List Report)
+    | Series String (List ( String, Status ))
     | Group String (List Report)
 
 
@@ -160,12 +160,7 @@ fromBenchmark internal =
 
         Benchmark.Series name benchmarks ->
             benchmarks
-                |> List.map
-                    (\( benchmark, status ) ->
-                        Single
-                            (LowLevel.name benchmark)
-                            status
-                    )
+                |> List.map (Tuple.mapFirst LowLevel.name)
                 |> Series name
 
         Benchmark.Group name benchmarks ->
@@ -230,7 +225,17 @@ encoder report =
                     Encode.object
                         [ ( "_kind", Encode.string "series" )
                         , ( "name", Encode.string name )
-                        , ( "benchmarks", benchmarks |> List.map encodeReport |> Encode.list )
+                        , ( "benchmarks"
+                          , benchmarks
+                                |> List.map
+                                    (\( name, status ) ->
+                                        Encode.object
+                                            [ ( "name", Encode.string name )
+                                            , ( "status", encodeStatus status )
+                                            ]
+                                    )
+                                |> Encode.list
+                          )
                         ]
 
                 Group name benchmarks ->
@@ -254,9 +259,6 @@ decoder =
         |> Decode.andThen
             (\version ->
                 case version of
-                    1 ->
-                        Decode.field "report" version1Decoder
-
                     2 ->
                         Decode.field "report" version2Decoder
 
@@ -265,38 +267,44 @@ decoder =
             )
 
 
-status : String -> Decoder Status
-status stage =
-    case stage of
-        "toSize" ->
-            Decode.map ToSize
-                (Decode.field "time" Decode.float)
+status : Decoder Status
+status =
+    let
+        inner : String -> Decoder Status
+        inner stage =
+            case stage of
+                "toSize" ->
+                    Decode.map ToSize
+                        (Decode.field "time" Decode.float)
 
-        "pending" ->
-            Decode.map3 Pending
-                (Decode.field "sampleSize" Decode.int)
-                (Decode.field "time" Decode.float)
-                (Decode.field "samples" <| Decode.list Decode.float)
+                "pending" ->
+                    Decode.map3 Pending
+                        (Decode.field "sampleSize" Decode.int)
+                        (Decode.field "time" Decode.float)
+                        (Decode.field "samples" <| Decode.list Decode.float)
 
-        "failure" ->
-            Decode.field "message" Decode.string
-                |> Decode.andThen
-                    (\message ->
-                        case message of
-                            "stack overflow" ->
-                                Failure LowLevel.StackOverflow |> Decode.succeed
+                "failure" ->
+                    Decode.field "message" Decode.string
+                        |> Decode.andThen
+                            (\message ->
+                                case message of
+                                    "stack overflow" ->
+                                        Failure LowLevel.StackOverflow |> Decode.succeed
 
-                            _ ->
-                                LowLevel.UnknownError message |> Failure |> Decode.succeed
-                    )
+                                    _ ->
+                                        LowLevel.UnknownError message |> Failure |> Decode.succeed
+                            )
 
-        "success" ->
-            Decode.map2 Success
-                (Decode.field "sampleSize" Decode.int)
-                (Decode.field "samples" <| Decode.list Decode.float)
+                "success" ->
+                    Decode.map2 Success
+                        (Decode.field "sampleSize" Decode.int)
+                        (Decode.field "samples" <| Decode.list Decode.float)
 
-        _ ->
-            Decode.fail ("I don't know how to decode the \"" ++ stage ++ "\" stage")
+                _ ->
+                    Decode.fail ("I don't know how to decode the \"" ++ stage ++ "\" stage")
+    in
+    Decode.field "_stage" Decode.string
+        |> Decode.andThen inner
 
 
 version2Decoder : Decoder Report
@@ -308,54 +316,22 @@ version2Decoder =
                 "single" ->
                     Decode.map2 Single
                         (Decode.field "name" Decode.string)
-                        (Decode.field "status" <|
-                            Decode.andThen status <|
-                                Decode.field "_stage" Decode.string
-                        )
+                        (Decode.field "status" status)
 
                 "series" ->
                     Decode.map2 Series
                         (Decode.field "name" Decode.string)
-                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list version2Decoder))
-
-                "group" ->
-                    Decode.map2 Group
-                        (Decode.field "name" <| Decode.string)
-                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list version2Decoder))
-
-                _ ->
-                    Decode.fail ("I don't know how to decode a \"" ++ kind ++ "\"")
-    in
-    Decode.field "_kind" Decode.string
-        |> Decode.andThen report
-
-
-version1Decoder : Decoder Report
-version1Decoder =
-    let
-        report : String -> Decoder Report
-        report kind =
-            case kind of
-                "benchmark" ->
-                    Decode.map2 Single
-                        (Decode.field "name" Decode.string)
-                        (Decode.field "status" <|
-                            Decode.andThen status <|
-                                Decode.field "_stage" Decode.string
-                        )
-
-                "compare" ->
-                    Decode.map2 Series
-                        (Decode.field "name" Decode.string)
-                        (Decode.map2 (\a b -> [ a, b ])
-                            (Decode.field "a" <| Decode.lazy (\_ -> version1Decoder))
-                            (Decode.field "b" <| Decode.lazy (\_ -> version1Decoder))
+                        (Decode.field "benchmarks" <|
+                            Decode.list <|
+                                Decode.map2 (,)
+                                    (Decode.field "name" Decode.string)
+                                    (Decode.field "status" status)
                         )
 
                 "group" ->
                     Decode.map2 Group
                         (Decode.field "name" <| Decode.string)
-                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list version1Decoder))
+                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list version2Decoder))
 
                 _ ->
                     Decode.fail ("I don't know how to decode a \"" ++ kind ++ "\"")

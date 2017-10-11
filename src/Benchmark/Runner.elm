@@ -288,7 +288,10 @@ benchmarkView benchmark =
             Html.section
                 []
                 [ Html.h1 [] [ Html.text <| "Comparing " ++ name benchmark ]
-                , Html.ol [] (List.map benchmarkView benchmarks)
+                , benchmarks
+                    |> List.map (uncurry Reporting.Single)
+                    |> List.map benchmarkView
+                    |> Html.ol []
                 ]
 
         Reporting.Group name benchmarks ->
