@@ -106,20 +106,33 @@ describe =
     Group
 
 
-{-| Benchmark a function.
+{-| Benchmark a named function.
 
-The first argument to the benchmark* functions is the name of the thing you're
-measuring. The rest of the arguments specify how to take samples.
+    benchmark "head" (\_ -> List.head [1])
 
-In the case of `benchmark`, we just need an anonymous function that performs
-some calculation.
+The name here should be short and descriptive. Ideally, it should also uniquely
+identify a single benchmark among your whole suite.
 
-    benchmark "list head" (\_ -> List.head [1])
+Your code is wrapped in an anonymous function, which we will call repeatedly to
+measure speed. Note that this is slightly slower than calling functions
+directly. This is OK! The point of this library is to _reliably_ measure
+execution speed. In this case, we get more consistent results between functions
+and runs by calling them inside thunks like this.
 
-`benchmark1` through `benchmark8` have a nicer API which doesn't force you to
-define anonymous functions. For example, the benchmark above can be defined as:
+Now, a note about benchmark design: when you first write benchmarks, you usually
+think something along the lines of "I need to test the worst possible case."
+This is a fair observation and a useful thing to measure eventually, but it's
+not a good _first_ step. Unless you're careful, you'll end up with too small a
+sample size to be useful, and a very difficult benchmark to maintain.
 
-    benchmark1 "list head" List.head [1]
+Instead, benchmark the smallest _real_ sample. If your typical use of a data
+structure has 20 items, measure with 20 items. If your model is in one
+particular state 90% of the time, measure that. It's helpful to get edge cases
+eventually, but better to get the basics right first. Solve the problems you
+know are real instead of fabricating more out of whole cloth.
+
+When you get the point where you _know_ you need to test a bunch of different
+sizes, we've got your back: that's what [`series`](#series) is for.
 
 -}
 benchmark : String -> (() -> a) -> Benchmark
