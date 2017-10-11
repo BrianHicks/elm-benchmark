@@ -211,7 +211,7 @@ measuring the performance of your data structures under various sized workloads.
                         size =
                             10 ^ n
 
-                        -- a tip: prepare your data structures _outside_ the
+                        -- tip: prepare your data structures _outside_ the
                         -- benchmark function. Here, we're measuring `Dict.size`
                         -- without interference from `dictOfSize` and the
                         -- functions that it uses.
