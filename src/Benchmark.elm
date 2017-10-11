@@ -6,7 +6,7 @@ module Benchmark
         , describe
         , done
         , progress
-        , series
+        , scale
         , step
         , withRuntime
         )
@@ -18,7 +18,7 @@ module Benchmark
 
 # Creating and Organizing Benchmarks
 
-@docs benchmark, compare, series, withRuntime, describe
+@docs benchmark, compare, scale, withRuntime, describe
 
 
 # Running
@@ -169,19 +169,48 @@ compare name name1 fn1 name2 fn2 =
         ]
 
 
-{-| Create (and compmare) a series of benchmarks.
+{-| Specify scale benchmarks for a function. This is especially good for
+measuring the performance of your data structures under various sized workloads.
 
-This is especially good for testing out the performance of your data structures
-at various scales.
+    dictOfSize : Int -> Dict Int ()
+    dictOfSize size =
+        List.range 0 size
+            |> List.map (flip (,) ())
+            |> Dict.fromList
 
-    -- TODO: example!
+    dictSize : Benchmark
+    dictSize =
+        List.range 0 5
+            |> List.map
+                (\n ->
+                    let
+                        size =
+                            10 ^ n
+
+                        -- a tip: prepare your data structures _outside_ the
+                        -- benchmark function. Here, we're measuring `Dict.size`
+                        -- without interference from `dictOfSize` and the
+                        -- functions that it uses.
+                        target =
+                            dictOfSize size
+                    in
+                    ( toString size
+                    , \_ -> Dict.size target
+                    )
+                )
+            |> scale "Dict.size"
 
 Beware that large series can make very intensive benchmarks, and adjust your
 size and expectations accordingly!
 
+The API for this function is newer, and may change in the future than other
+functions. If you use it, please [open an
+issue](https://github.com/brianhicks/elm-benchmark/issues) with your use case so
+we can know the right situations to optimize for in future releases.
+
 -}
-series : String -> List ( String, () -> a ) -> Benchmark
-series name series =
+scale : String -> List ( String, () -> a ) -> Benchmark
+scale name series =
     series
         |> List.map
             (\( subName, fn ) ->
