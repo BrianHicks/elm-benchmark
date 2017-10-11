@@ -87,7 +87,7 @@ withRuntime time benchmark =
 
 
 
--- Creation
+-- Creation and Organization
 
 
 {-| Group a number of benchmarks together. Grouping benchmarks using `describe`
