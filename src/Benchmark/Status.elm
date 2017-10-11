@@ -8,7 +8,7 @@ module Benchmark.Status exposing (Status(..), init, progress)
 @docs Status, progress
 
 
-# Runners
+# Writing Runners
 
 You're probably only interested in these functions if you're writing a runner.
 
@@ -36,6 +36,9 @@ import Time exposing (Time)
   - `Success`: We finished collecting all our sample data at the given sample
     size (first argument, `Int`.) The samples at that size are contained in the
     second argument.
+
+See "The Life of a Benchmark" in the docs for `Benchmark` for an explanation of
+how these fit together.
 
 -}
 type Status
