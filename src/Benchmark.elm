@@ -13,49 +13,6 @@ module Benchmark
 
 {-| Benchmark Elm Programs
 
-
-# The Life of a Benchmark
-
-[`Benchmark`](#Benchmark)s are created with functions like
-[`benchmark`](#benchmark). Once created, benchmarks know their expected total
-runtime (see [`withRuntime`](#withRuntime) for more on this), but without any
-knowledge of an appropriate sample size.
-
-Fortunately, sample size is something we can determine automatically! This means
-our next step is to find that by running small but increasingly large samples
-until we exceed a minimum threshold. (We must do this because the underlying
-timing APIs we use have a minimum reporting resolution for security purposes.)
-
-Once we know both total expected runtime and sample size, we start collecting
-samples until we pass the total expected runtime or encounter an error. The
-final result takes the form of an error or a list of samples and their sample
-size.
-
-         ┌─────────────┐
-         │   unsized   │
-         │  benchmark  │
-         └─────────────┘
-                │
-                │  determine
-                │  sample size
-                ▼
-        ┌──────────────┐
-        │              │ ───┐
-        │    sized     │    │ collect
-        │  (running)   │    │ another
-        │  benchmark   │    │ sample
-        │              │ ◀──┘
-        └──────────────┘
-            │      │
-         ┌──┘      └──┐
-         │            │
-         ▼            ▼
-    ┌─────────┐  ┌─────────┐
-    │         │  │         │
-    │ Success │  │  Error  │
-    │         │  │         │
-    └─────────┘  └─────────┘
-
 @docs Benchmark
 
 
@@ -332,6 +289,55 @@ library, you'll probably never need it!
 If a benchmark has no more work to do, this is a no-op. But you probably want to
 know if everything is done so you can present results to the user, so use
 [`done`](#done) to find out before you call this.
+
+
+## The Life of a Benchmark
+
+[`Benchmark`](#Benchmark)s are created with functions like
+[`benchmark`](#benchmark). Once created, benchmarks know their expected total
+runtime (see [`withRuntime`](#withRuntime) for more on this), but without any
+knowledge of an appropriate sample size.
+
+Fortunately, sample size is something we can determine automatically! This means
+our next step is to find that by running small but increasingly large samples
+until we exceed a minimum threshold. (We must do this because the underlying
+timing APIs we use have a minimum reporting resolution for security purposes.)
+
+Once we know both total expected runtime and sample size, we start collecting
+samples until we pass the total expected runtime or encounter an error. The
+final result takes the form of an error or a list of samples and their sample
+size.
+
+In terms of a state machine, it all looks like this:
+
+         ┌─────────────┐
+         │   unsized   │
+         │  benchmark  │
+         └─────────────┘
+                │
+                │  determine
+                │  sample size
+                ▼
+        ┌──────────────┐
+        │              │ ───┐
+        │    sized     │    │ collect
+        │  benchmark   │    │ another
+        │  (running)   │    │ sample
+        │              │ ◀──┘
+        └──────────────┘
+            │      │
+         ┌──┘      └──┐
+         │            │
+         ▼            ▼
+    ┌─────────┐  ┌─────────┐
+    │         │  │         │
+    │ success │  │  error  │
+    │         │  │         │
+    └─────────┘  └─────────┘
+
+This function contains all the nuance about what and when steps need to happen.
+You _mostly_ don't need to worry about it, but should know roughly how it works
+in order to present this information well to the user.
 
 -}
 step : Benchmark -> Task Never Benchmark
