@@ -28,7 +28,7 @@ module Benchmark
 
 # Writing Runners
 
-@docs done, step, progress
+@docs step, done, progress
 
 -}
 
@@ -286,29 +286,42 @@ done benchmark =
 `step` is only useful for writing runners. As a consumer of the `elm-benchmark`
 library, you'll probably never need it!
 
-If a benchmark has no more work to do, this is a no-op. But you probably want to
-know if everything is done so you can present results to the user, so use
-[`done`](#done) to find out before you call this.
+...
+
+Still with me? Ok, let's go.
+
+This function "advances" a benchmark through a series of states (described
+below.) If the benchmark has no more work to do, this is a no-op. But you
+probably want to know about that so you can present results to the user, so use
+[`done`](#done) to figure it out before you call this.
+
+At a high level, a runner just needs to receive benchmarks from the user,
+iterate over them using this function, and convert them to `Report`s whenever it
+makes sense to you to do so. You shouldn't need to care _too much_ about the
+nuances of the internal benchmark state, but a little knowledge is useful for
+making a really great user experience, so read on.
 
 
 ## The Life of a Benchmark
 
-[`Benchmark`](#Benchmark)s are created with functions like
-[`benchmark`](#benchmark). Once created, benchmarks know their expected total
-runtime (see [`withRuntime`](#withRuntime) for more on this), but without any
-knowledge of an appropriate sample size.
+When you get a [`Benchmark`](#Benchmark) from the user it will contain an
+expected total runtime (see [`withRuntime`](#withRuntime)), but it _won't_ have
+any idea how big the sample size should be. In fact, we can't know this in
+advance because different functions will have different performance
+characteristics on different machines and browsers and phases of the moon and so
+on and so forth.
 
-Fortunately, sample size is something we can determine automatically! This means
-our next step is to find that by running small but increasingly large samples
-until we exceed a minimum threshold. (We must do this because the underlying
-timing APIs we use have a minimum reporting resolution for security purposes.)
+This is difficult, but not hopeless! We can determine sample size automatically
+by running the benchmark a few times to get a feel for how it behaves in this
+particular environment. This becomes our first step. (If you're curious about
+how exactly we do this, check the `Benchmark.LowLevel` documentation.)
 
 Once we know both total expected runtime and sample size, we start collecting
-samples until we pass the total expected runtime or encounter an error. The
-final result takes the form of an error or a list of samples and their sample
-size.
+samples. We add these together and keep taking them until we pass the total
+expected runtime or encounter an error. The final result takes the form of an
+error or a list of samples and their sample size.
 
-In terms of a state machine, it all looks like this:
+In terms of a state machine, it looks like this:
 
          ┌─────────────┐
          │   unsized   │
@@ -334,10 +347,6 @@ In terms of a state machine, it all looks like this:
     │ success │  │  error  │
     │         │  │         │
     └─────────┘  └─────────┘
-
-This function contains all the nuance about what and when steps need to happen.
-You _mostly_ don't need to worry about it, but should know roughly how it works
-in order to present this information well to the user.
 
 -}
 step : Benchmark -> Task Never Benchmark
