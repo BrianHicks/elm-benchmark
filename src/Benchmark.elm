@@ -269,7 +269,11 @@ progress benchmark =
         |> clamp 0 1
 
 
-{-| is this benchmark done yet?
+{-| find out if a Benchmark is done yet. For progress information for reporting
+purposes, see `Benchmark.Status.progress`.
+
+Use this function to find out if you should call `step` any more.
+
 -}
 done : Benchmark -> Bool
 done benchmark =
@@ -278,9 +282,12 @@ done benchmark =
 
 {-| Step a benchmark forward to completion.
 
-`step` is only useful for writing runners. You'll probably never need it! If you
-do, check if a benchmark is finished with `progress` or `done` before running
-this to avoid doing extra work.
+`step` is only useful for writing runners. As a consumer of the `elm-benchmark`
+library, you'll probably never need it!
+
+If a benchmark has no more work to do, this is a no-op. But you probably want to
+know if everything is done so you can present results to the user, so use
+[`done`](#done) to find out before you call this.
 
 -}
 step : Benchmark -> Task Never Benchmark
