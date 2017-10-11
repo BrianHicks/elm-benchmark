@@ -31,6 +31,31 @@ samples until we pass the total expected runtime or encounter an error. The
 final result takes the form of an error or a list of samples and their sample
 size.
 
+         ┌─────────────┐
+         │   unsized   │
+         │  benchmark  │
+         └─────────────┘
+                │
+                │  determine
+                │  sample size
+                ▼
+        ┌──────────────┐
+        │              │ ───┐
+        │    sized     │    │ collect
+        │  (running)   │    │ another
+        │  benchmark   │    │ sample
+        │              │ ◀──┘
+        └──────────────┘
+            │      │
+         ┌──┘      └──┐
+         │            │
+         ▼            ▼
+    ┌─────────┐  ┌─────────┐
+    │         │  │         │
+    │ Success │  │  Error  │
+    │         │  │         │
+    └─────────┘  └─────────┘
+
 @docs Benchmark
 
 
