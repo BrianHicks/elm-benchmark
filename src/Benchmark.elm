@@ -180,8 +180,8 @@ particular state 90% of the time, measure that. It's helpful to get edge cases
 eventually, but better to get the basics right first. Solve the problems you
 know are real instead of fabricating more out of whole cloth.
 
-When you get the point where you _know_ you need to test a bunch of different
-sizes, we've got your back: that's what [`series`](#series) is for.
+When you get the point where you _know_ you need to measure a bunch of different
+sizes, we've got your back: that's what [`scale`](#scale) is for.
 
 -}
 benchmark : String -> (() -> a) -> Benchmark
