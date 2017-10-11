@@ -13,6 +13,24 @@ module Benchmark
 
 {-| Benchmark Elm Programs
 
+
+# The Life of a Benchmark
+
+[`Benchmark`](#Benchmark)s are created with functions like
+[`benchmark`](#benchmark). Once created, benchmarks know their expected total
+runtime (see [`withRuntime`](#withRuntime) for more on this), but without any
+knowledge of an appropriate sample size.
+
+Fortunately, sample size is something we can determine automatically! This means
+our next step is to find that by running small but increasingly large samples
+until we exceed a minimum threshold. (We must do this because the underlying
+timing APIs we use have a minimum reporting resolution for security purposes.)
+
+Once we know both total expected runtime and sample size, we start collecting
+samples until we pass the total expected runtime or encounter an error. The
+final result takes the form of an error or a list of samples and their sample
+size.
+
 @docs Benchmark
 
 
@@ -75,7 +93,8 @@ benchmark into this function:
 
 This works with all the kinds of benchmarks you can create. If you provide a
 composite benchmark (a series or group) the same expected runtime will be set
-for all members recursively.
+for all members recursively. Be aware that this will also reset any progress
+made on the benchmark (see "The Life of a Benchmark") in the documentation.
 
 -}
 withRuntime : Time -> Benchmark -> Benchmark
