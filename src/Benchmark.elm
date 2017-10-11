@@ -39,8 +39,8 @@ import Time exposing (Time)
 
 {-| Benchmarks that contain potential, in-progress, and completed runs.
 
-To make these, try [`benchmark`](#benchmark), [`describe`](#describe), or
-[`compare`](#compare)
+To make these, try [`benchmark`](#benchmark), [`compare`](#compare), or
+[`series`](#series), and organize them with [`describe`](#describe).
 
 -}
 type alias Benchmark =
