@@ -5,7 +5,6 @@ module Benchmark
         , compare
         , describe
         , done
-        , progress
         , scale
         , step
         , withRuntime
@@ -28,7 +27,7 @@ module Benchmark
 
 # Writing Runners
 
-@docs step, done, progress
+@docs step, done
 
 -}
 
@@ -236,45 +235,6 @@ scale name series =
 -- Runners
 
 
-{-| find out the progress a benchmark has made through its run. This does not
-include sizing information, which should be reported separately.
-
-The returned float is between 0 and 1, and represents percentage of progress.
-
-TODO: remove me in favor of `done`. It's not super useful for runners since
-they'll be looking at reports instead.
-
--}
-progress : Benchmark -> Float
-progress benchmark =
-    let
-        progressHelp : Benchmark -> List Float
-        progressHelp benchmark =
-            case benchmark of
-                Single _ status ->
-                    [ Status.progress status ]
-
-                Series _ benchmarks ->
-                    List.map (Tuple.second >> Status.progress) benchmarks
-
-                -- this is our odd duck case. `Group` is the only case that can
-                -- contain benchmarks as defined in this module. This means that
-                -- if we have a group with two members, one of which has tons of
-                -- benchmarks, and the other of which has very few, an average
-                -- of the two averages is inaccurate. Instead, we need to
-                -- collect all the numbers and push them up.
-                Group _ benchmarks ->
-                    List.map progressHelp benchmarks
-                        |> List.concat
-
-        allProgress =
-            progressHelp benchmark
-    in
-    List.sum allProgress
-        / toFloat (List.length allProgress)
-        |> clamp 0 1
-
-
 {-| find out if a Benchmark is done yet. For progress information for reporting
 purposes, see `Benchmark.Status.progress`.
 
@@ -283,7 +243,18 @@ Use this function to find out if you should call `step` any more.
 -}
 done : Benchmark -> Bool
 done benchmark =
-    progress benchmark == 1
+    case benchmark of
+        Single _ status ->
+            Status.progress status == 1
+
+        Series _ benchmarks ->
+            benchmarks
+                |> List.map Tuple.second
+                |> List.map Status.progress
+                |> List.all ((==) 1)
+
+        Group _ benchmarks ->
+            List.all done benchmarks
 
 
 {-| Step a benchmark forward to completion.
