@@ -18,7 +18,12 @@ module Benchmark
 
 # Creating and Organizing Benchmarks
 
-@docs benchmark, compare, scale, withRuntime, describe
+@docs benchmark, compare, scale, describe
+
+
+## Modifying Benchmarks
+
+@docs withRuntime
 
 
 # Running
