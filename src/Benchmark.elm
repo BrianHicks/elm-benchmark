@@ -235,6 +235,9 @@ include sizing information, which should be reported separately.
 
 The returned float is between 0 and 1, and represents percentage of progress.
 
+TODO: remove me in favor of `done`. It's not super useful for runners since
+they'll be looking at reports instead.
+
 -}
 progress : Benchmark -> Float
 progress benchmark =
