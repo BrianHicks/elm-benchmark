@@ -140,22 +140,25 @@ benchmark name fn =
     Single (LowLevel.benchmark name fn) Status.init
 
 
-{-| Specify that two benchmarks are meant to be directly compared.
+{-| Specify two benchmarks which are meant to be compared directly. This is most
+useful when optimizing data structures and other situations where you can make
+apples-to-apples comparisons between different approaches.
 
 As with [`benchmark`](#benchmark), the first argument is the name for the
-comparison.
+comparison. The other string arguments are the names of the functions that
+follow them directly.
 
     compare "initialize"
-        (benchmark2 "HAMT" HAMT.initialize 10000 identity)
-        (benchmark2 "Core" Array.initialize 10000 identity)
+        "HAMT"
+        (\_ -> Array.HAMT.initialize 10000 identity)
+        "Core"
+        (\_ -> Array.initialize 10000 identity)
 
-When you're doing comparisons, try as hard as possible to **make the arguments
-the same**. The comparison above wouldn't be accurate if we told HAMT to
-initialize an array with only 5,000 elements. Likewise, try to **use the same
-benchmark function**. For example, use only `benchmark2` instead of mixing
-`benchmark` and `benchmark2`. The difference between the different benchmark
-functions is small, but not so small that it won't influence your results.
-See the chart in the README for more on the runtime cost of different functions.
+The same advice as single benchmarks applies to comparison benchmarks. In
+addition, try as hard as possible to make the arguments the same. It wouldn't be
+a valid comparison if, in the example above, we told `Array.HAMT` to use 5,000
+items instead of 10,000. In the cases where you can't get _exactly_ the same
+arguments, at least try to match functionality.
 
 -}
 compare : String -> String -> (() -> a) -> String -> (() -> b) -> Benchmark
