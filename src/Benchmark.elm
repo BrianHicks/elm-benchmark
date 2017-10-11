@@ -52,6 +52,11 @@ type alias Benchmark =
     Benchmark.Benchmark.Benchmark
 
 
+defaultStatus : Status
+defaultStatus =
+    ToSize (5 * Time.second)
+
+
 {-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is how we
 determine when the benchmark is "done". Note that this sets the _expected_
 runtime, not _actual_ runtime. In other words, your function will be run for _at
@@ -143,7 +148,7 @@ sizes, we've got your back: that's what [`scale`](#scale) is for.
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
-    Single (LowLevel.benchmark name fn) Status.init
+    Single (LowLevel.benchmark name fn) defaultStatus
 
 
 {-| Specify two benchmarks which are meant to be compared directly. This is most
@@ -170,8 +175,8 @@ arguments, at least try to match functionality.
 compare : String -> String -> (() -> a) -> String -> (() -> b) -> Benchmark
 compare name name1 fn1 name2 fn2 =
     Series name
-        [ ( LowLevel.benchmark name1 fn1, Status.init )
-        , ( LowLevel.benchmark name2 fn2, Status.init )
+        [ ( LowLevel.benchmark name1 fn1, defaultStatus )
+        , ( LowLevel.benchmark name2 fn2, defaultStatus )
         ]
 
 
@@ -221,7 +226,7 @@ scale name series =
         |> List.map
             (\( subName, fn ) ->
                 ( LowLevel.benchmark subName fn
-                , Status.init
+                , defaultStatus
                 )
             )
         |> Series name
