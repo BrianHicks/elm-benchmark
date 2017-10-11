@@ -47,21 +47,30 @@ type alias Benchmark =
     Benchmark.Benchmark.Benchmark
 
 
-{-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is the
-default method of determining benchmark run size.
+{-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is how we
+determine when the benchmark is "done". Note that this sets the _expected_
+runtime, not _actual_ runtime. In other words, your function will be run for _at
+least_ this long. In practice, it will usually be slightly more.
 
-For example, to set the expected runtime to 1 second (away from the default of 5
-seconds):
+The default runtime is 5 seconds, which is good enough for most applications. If
+you are benchmarking a very expensive function, this may not be high enough. You
+will know that this is the case when you see a low number of total samples
+(rough guide: under 10,000.)
 
-    benchmark1 "list head" List.head [1] |> withRuntime Time.second
+On the other hand, 5 seconds is almost never _too much_ time, and usually hits
+the sweet spot between getting enough data to be useful while not keeping you
+waiting. While there's nothing preventing you from lowering this value, think
+about it for a long time before you do. It's easy way to get bad data.
+
+All that said, to set the expected runtime to 10 seconds, pass your constructed
+benchmark into this function:
+
+    benchmark "list head" (\_ -> List.head [1])
+        |> withRuntime (10 * Time.second)
 
 This works with all the kinds of benchmarks you can create. If you provide a
-composite benchmark (a group or comparison) the same expected runtime will be
-set for all members.
-
-Note that this sets the _expected_ runtime, not _actual_ runtime. You're
-guaranteed to get _at least_ this runtime. It will usually be more (usually on
-the order of a several hundredths of a second.)
+composite benchmark (a series or group) the same expected runtime will be set
+for all members recursively.
 
 -}
 withRuntime : Time -> Benchmark -> Benchmark
