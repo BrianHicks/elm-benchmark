@@ -103,14 +103,17 @@ findSampleSize benchmark =
             1
 
         minimumRuntime =
-            25 * Time.millisecond
+            50 * Time.millisecond
 
-        -- increase the sample size by powers of 10 until we meet the minimum runtime
         resample : Int -> Time -> Task Error Int
         resample size total =
             if total < minimumRuntime then
-                sample (size * 10) benchmark
-                    |> Task.andThen (resample (size * 10))
+                let
+                    new =
+                        ceiling <| toFloat size * 1.618103
+                in
+                sample new benchmark
+                    |> Task.andThen (resample new)
             else
                 Task.succeed size
     in
