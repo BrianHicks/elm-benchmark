@@ -1,4 +1,4 @@
-module Benchmark.Status exposing (Status(..), init, progress)
+module Benchmark.Status exposing (Status(..), progress)
 
 {-| Report the status of a Benchmark.
 
@@ -6,13 +6,6 @@ module Benchmark.Status exposing (Status(..), init, progress)
 # Reporting
 
 @docs Status, progress
-
-
-# Runners
-
-You're probably only interested in these functions if you're writing a runner.
-
-@docs init
 
 -}
 
@@ -37,19 +30,15 @@ import Time exposing (Time)
     size (first argument, `Int`.) The samples at that size are contained in the
     second argument.
 
+See "The Life of a Benchmark" in the docs for `Benchmark` for an explanation of
+how these fit together.
+
 -}
 type Status
     = ToSize Time
     | Pending Int Time (List Time)
     | Failure Error
     | Success Int (List Time)
-
-
-{-| The default status for all benchmarks.
--}
-init : Status
-init =
-    ToSize (5 * Time.second)
 
 
 {-| How far along is this benchmark? This is a percentage, represented as a

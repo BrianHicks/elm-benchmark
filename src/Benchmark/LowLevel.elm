@@ -87,13 +87,14 @@ sample n (Benchmark _ operation) =
 greater than the clock resolution (5µs in the browser) to make sure we get good
 data.
 
-We want the sample size to be more-or-less the same across runs, despite
-small differences in measured fit. We do this by rounding to the nearest order
-of magnitude. So, for example, if the sample size is 1234 we round to 1000. If
-it's 8800, we round to 9000.
+We do this by starting at sample size 1. If that doesn't pass our threshold, we
+multiply by [the golden ratio](https://en.wikipedia.org/wiki/Golden_ratio) and
+try again until we get a large enough sample.
 
-    standardizeSampleSize 1234 == 1000
-    standardizeSampleSize 880000 == 900000
+In addition, we want the sample size to be more-or-less the same across runs,
+despite small differences in measured fit. We do this by rounding to the nearest
+order of magnitude. So, for example, if the sample size is 1,234 we round to
+1,000. If it's 8,800, we round to 9,000.
 
 -}
 findSampleSize : Benchmark -> Task Error Int

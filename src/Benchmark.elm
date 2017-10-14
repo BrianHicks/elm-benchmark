@@ -5,8 +5,7 @@ module Benchmark
         , compare
         , describe
         , done
-        , progress
-        , series
+        , scale
         , step
         , withRuntime
         )
@@ -18,12 +17,17 @@ module Benchmark
 
 # Creating and Organizing Benchmarks
 
-@docs benchmark, compare, series, withRuntime, describe
+@docs benchmark, compare, scale, describe
 
 
-# Running
+## Modifying Benchmarks
 
-@docs done, step, progress
+@docs withRuntime
+
+
+# Writing Runners
+
+@docs step, done
 
 -}
 
@@ -39,29 +43,44 @@ import Time exposing (Time)
 
 {-| Benchmarks that contain potential, in-progress, and completed runs.
 
-To make these, try [`benchmark`](#benchmark), [`describe`](#describe), or
-[`compare`](#compare)
+To make these, try [`benchmark`](#benchmark), [`compare`](#compare), or
+[`scale`](#scale), and organize them with [`describe`](#describe).
 
 -}
 type alias Benchmark =
     Benchmark.Benchmark.Benchmark
 
 
-{-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is the
-default method of determining benchmark run size.
+defaultStatus : Status
+defaultStatus =
+    ToSize (5 * Time.second)
 
-For example, to set the expected runtime to 1 second (away from the default of 5
-seconds):
 
-    benchmark1 "list head" List.head [1] |> withRuntime Time.second
+{-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is how we
+determine when the benchmark is "done". Note that this sets the _expected_
+runtime, not _actual_ runtime. In other words, your function will be run for _at
+least_ this long. In practice, it will usually be slightly more.
+
+The default runtime is 5 seconds, which is good enough for most applications. If
+you are benchmarking a very expensive function, this may not be high enough. You
+will know that this is the case when you see a low number of total samples
+(rough guide: under 10,000.)
+
+On the other hand, 5 seconds is almost never _too much_ time, and usually hits
+the sweet spot between getting enough data to be useful while not keeping you
+waiting. While there's nothing preventing you from lowering this value, think
+about it for a long time before you do. It's easy way to get bad data.
+
+All that said, to set the expected runtime to 10 seconds, pass your constructed
+benchmark into this function:
+
+    benchmark "list head" (\_ -> List.head [1])
+        |> withRuntime (10 * Time.second)
 
 This works with all the kinds of benchmarks you can create. If you provide a
-composite benchmark (a group or comparison) the same expected runtime will be
-set for all members.
-
-Note that this sets the _expected_ runtime, not _actual_ runtime. You're
-guaranteed to get _at least_ this runtime. It will usually be more (usually on
-the order of a several hundredths of a second.)
+composite benchmark (a series or group) the same expected runtime will be set
+for all members recursively. Be aware that this will also reset any progress
+made on the benchmark (see "The Life of a Benchmark") in the documentation.
 
 -}
 withRuntime : Time -> Benchmark -> Benchmark
@@ -78,7 +97,7 @@ withRuntime time benchmark =
 
 
 
--- Creation
+-- Creation and Organization
 
 
 {-| Group a number of benchmarks together. Grouping benchmarks using `describe`
@@ -97,71 +116,116 @@ describe =
     Group
 
 
-{-| Benchmark a function.
+{-| Benchmark a named function.
 
-The first argument to the benchmark* functions is the name of the thing you're
-measuring. The rest of the arguments specify how to take samples.
+    benchmark "head" (\_ -> List.head [1])
 
-In the case of `benchmark`, we just need an anonymous function that performs
-some calculation.
+The name here should be short and descriptive. Ideally, it should also uniquely
+identify a single benchmark among your whole suite.
 
-    benchmark "list head" (\_ -> List.head [1])
+Your code is wrapped in an anonymous function, which we will call repeatedly to
+measure speed. Note that this is slightly slower than calling functions
+directly. This is OK! The point of this library is to _reliably_ measure
+execution speed. In this case, we get more consistent results between functions
+and runs by calling them inside thunks like this.
 
-`benchmark1` through `benchmark8` have a nicer API which doesn't force you to
-define anonymous functions. For example, the benchmark above can be defined as:
+Now, a note about benchmark design: when you first write benchmarks, you usually
+think something along the lines of "I need to test the worst possible case."
+This is a fair observation and a useful thing to measure eventually, but it's
+not a good _first_ step. Unless you're careful, you'll end up with too small a
+sample size to be useful, and a very difficult benchmark to maintain.
 
-    benchmark1 "list head" List.head [1]
+Instead, benchmark the smallest _real_ sample. If your typical use of a data
+structure has 20 items, measure with 20 items. If your model is in one
+particular state 90% of the time, measure that. It's helpful to get edge cases
+eventually, but better to get the basics right first. Solve the problems you
+know are real instead of fabricating more out of whole cloth.
+
+When you get the point where you _know_ you need to measure a bunch of different
+sizes, we've got your back: that's what [`scale`](#scale) is for.
 
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
-    Single (LowLevel.benchmark name fn) Status.init
+    Single (LowLevel.benchmark name fn) defaultStatus
 
 
-{-| Specify that two benchmarks are meant to be directly compared.
+{-| Specify two benchmarks which are meant to be compared directly. This is most
+useful when optimizing data structures and other situations where you can make
+apples-to-apples comparisons between different approaches.
 
 As with [`benchmark`](#benchmark), the first argument is the name for the
-comparison.
+comparison. The other string arguments are the names of the functions that
+follow them directly.
 
     compare "initialize"
-        (benchmark2 "HAMT" HAMT.initialize 10000 identity)
-        (benchmark2 "Core" Array.initialize 10000 identity)
+        "HAMT"
+        (\_ -> Array.HAMT.initialize 10000 identity)
+        "Core"
+        (\_ -> Array.initialize 10000 identity)
 
-When you're doing comparisons, try as hard as possible to **make the arguments
-the same**. The comparison above wouldn't be accurate if we told HAMT to
-initialize an array with only 5,000 elements. Likewise, try to **use the same
-benchmark function**. For example, use only `benchmark2` instead of mixing
-`benchmark` and `benchmark2`. The difference between the different benchmark
-functions is small, but not so small that it won't influence your results.
-See the chart in the README for more on the runtime cost of different functions.
+The same advice as single benchmarks applies to comparison benchmarks. In
+addition, try as hard as possible to make the arguments the same. It wouldn't be
+a valid comparison if, in the example above, we told `Array.HAMT` to use 5,000
+items instead of 10,000. In the cases where you can't get _exactly_ the same
+arguments, at least try to match functionality.
 
 -}
 compare : String -> String -> (() -> a) -> String -> (() -> b) -> Benchmark
 compare name name1 fn1 name2 fn2 =
     Series name
-        [ ( LowLevel.benchmark name1 fn1, Status.init )
-        , ( LowLevel.benchmark name2 fn2, Status.init )
+        [ ( LowLevel.benchmark name1 fn1, defaultStatus )
+        , ( LowLevel.benchmark name2 fn2, defaultStatus )
         ]
 
 
-{-| Create (and compmare) a series of benchmarks.
+{-| Specify scale benchmarks for a function. This is especially good for
+measuring the performance of your data structures under various sized workloads.
 
-This is especially good for testing out the performance of your data structures
-at various scales.
+    dictOfSize : Int -> Dict Int ()
+    dictOfSize size =
+        List.range 0 size
+            |> List.map (flip (,) ())
+            |> Dict.fromList
 
-    -- TODO: example!
+    dictSize : Benchmark
+    dictSize =
+        List.range 0 5
+            |> List.map
+                (\n ->
+                    let
+                        size =
+                            10 ^ n
+
+                        -- tip: prepare your data structures _outside_ the
+                        -- benchmark function. Here, we're measuring `Dict.size`
+                        -- without interference from `dictOfSize` and the
+                        -- functions that it uses.
+                        target =
+                            dictOfSize size
+                    in
+                    ( toString size
+                    , \_ -> Dict.size target
+                    )
+                )
+            |> scale "Dict.size"
 
 Beware that large series can make very intensive benchmarks, and adjust your
 size and expectations accordingly!
 
+The API for this function is newer, and may change in the future than other
+functions. If you use it, please [open an
+issue](https://github.com/brianhicks/elm-benchmark/issues) with your use case so
+we can know the right situations to optimize for in future releases.
+
 -}
-series : String -> List ( String, () -> a ) -> Benchmark
-series name series =
+scale : String -> List ( String, () -> a ) -> Benchmark
+scale name series =
     series
         |> List.map
             (\( subName, fn ) ->
                 ( LowLevel.benchmark subName fn
-                , Status.init
+                , defaultStatus
                 )
             )
         |> Series name
@@ -171,54 +235,94 @@ series name series =
 -- Runners
 
 
-{-| find out the progress a benchmark has made through its run. This does not
-include sizing information, which should be reported separately.
+{-| find out if a Benchmark is done yet. For progress information for reporting
+purposes, see `Benchmark.Status.progress`.
 
-The returned float is between 0 and 1, and represents percentage of progress.
+Use this function to find out if you should call `step` any more.
 
--}
-progress : Benchmark -> Float
-progress benchmark =
-    let
-        progressHelp : Benchmark -> List Float
-        progressHelp benchmark =
-            case benchmark of
-                Single _ status ->
-                    [ Status.progress status ]
-
-                Series _ benchmarks ->
-                    List.map (Tuple.second >> Status.progress) benchmarks
-
-                -- this is our odd duck case. `Group` is the only case that can
-                -- contain benchmarks as defined in this module. This means that
-                -- if we have a group with two members, one of which has tons of
-                -- benchmarks, and the other of which has very few, an average
-                -- of the two averages is inaccurate. Instead, we need to
-                -- collect all the numbers and push them up.
-                Group _ benchmarks ->
-                    List.map progressHelp benchmarks
-                        |> List.concat
-
-        allProgress =
-            progressHelp benchmark
-    in
-    List.sum allProgress
-        / toFloat (List.length allProgress)
-        |> clamp 0 1
-
-
-{-| is this benchmark done yet?
 -}
 done : Benchmark -> Bool
 done benchmark =
-    progress benchmark == 1
+    case benchmark of
+        Single _ status ->
+            Status.progress status == 1
+
+        Series _ benchmarks ->
+            benchmarks
+                |> List.map Tuple.second
+                |> List.map Status.progress
+                |> List.all ((==) 1)
+
+        Group _ benchmarks ->
+            List.all done benchmarks
 
 
 {-| Step a benchmark forward to completion.
 
-`step` is only useful for writing runners. You'll probably never need it! If you
-do, check if a benchmark is finished with `progress` or `done` before running
-this to avoid doing extra work.
+`step` is only useful for writing runners. As a consumer of the `elm-benchmark`
+library, you'll probably never need it!
+
+...
+
+Still with me? Ok, let's go.
+
+This function "advances" a benchmark through a series of states (described
+below.) If the benchmark has no more work to do, this is a no-op. But you
+probably want to know about that so you can present results to the user, so use
+[`done`](#done) to figure it out before you call this.
+
+At a high level, a runner just needs to receive benchmarks from the user,
+iterate over them using this function, and convert them to `Report`s whenever it
+makes sense to you to do so. You shouldn't need to care _too much_ about the
+nuances of the internal benchmark state, but a little knowledge is useful for
+making a really great user experience, so read on.
+
+
+## The Life of a Benchmark
+
+When you get a [`Benchmark`](#Benchmark) from the user it will contain an
+expected total runtime (see [`withRuntime`](#withRuntime)), but it _won't_ have
+any idea how big the sample size should be. In fact, we can't know this in
+advance because different functions will have different performance
+characteristics on different machines and browsers and phases of the moon and so
+on and so forth.
+
+This is difficult, but not hopeless! We can determine sample size automatically
+by running the benchmark a few times to get a feel for how it behaves in this
+particular environment. This becomes our first step. (If you're curious about
+how exactly we do this, check the `Benchmark.LowLevel` documentation.)
+
+Once we know both total expected runtime and sample size, we start collecting
+samples. We add these together and keep taking them until we pass the total
+expected runtime or encounter an error. The final result takes the form of an
+error or a list of samples and their sample size.
+
+In terms of a state machine, it looks like this:
+
+         ┌─────────────┐
+         │   unsized   │
+         │  benchmark  │
+         └─────────────┘
+                │
+                │  determine
+                │  sample size
+                ▼
+        ┌──────────────┐
+        │              │ ───┐
+        │    sized     │    │ collect
+        │  benchmark   │    │ another
+        │  (running)   │    │ sample
+        │              │ ◀──┘
+        └──────────────┘
+            │      │
+         ┌──┘      └──┐
+         │            │
+         ▼            ▼
+    ┌─────────┐  ┌─────────┐
+    │         │  │         │
+    │ success │  │  error  │
+    │         │  │         │
+    └─────────┘  └─────────┘
 
 -}
 step : Benchmark -> Task Never Benchmark
