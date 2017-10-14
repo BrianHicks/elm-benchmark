@@ -53,7 +53,7 @@ type alias Benchmark =
 
 defaultStatus : Status
 defaultStatus =
-    Unsized (5 * Time.second)
+    Cold (5 * Time.second)
 
 
 {-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is how we
