@@ -6,8 +6,8 @@ import Dict
 import Regex
 
 
-insert : Benchmark
-insert =
+dict : Benchmark
+dict =
     let
         dest =
             Dict.singleton "a" 1
@@ -28,6 +28,6 @@ main : BenchmarkProgram
 main =
     program <|
         Benchmark.describe "sample"
-            [ insert
+            [ dict
             , match
             ]
