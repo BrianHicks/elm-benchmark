@@ -175,6 +175,12 @@ encoder report =
         encodeStatus : Status -> Value
         encodeStatus status =
             case status of
+                Cold time ->
+                    Encode.object
+                        [ ( "_stage", Encode.string "cold" )
+                        , ( "time", time |> Time.inMilliseconds |> Encode.float )
+                        ]
+
                 Unsized time ->
                     Encode.object
                         [ ( "_stage", Encode.string "unsized" )
@@ -273,6 +279,10 @@ status =
         inner : String -> Decoder Status
         inner stage =
             case stage of
+                "cold" ->
+                    Decode.map Cold
+                        (Decode.field "time" Decode.float)
+
                 "unsized" ->
                     Decode.map Unsized
                         (Decode.field "time" Decode.float)

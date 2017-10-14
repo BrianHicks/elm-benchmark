@@ -300,6 +300,13 @@ error or a list of samples and their sample size.
 In terms of a state machine, it looks like this:
 
          ┌─────────────┐
+         │    cold     │
+         │  benchmark  │
+         └─────────────┘
+                │
+                │  warm up JIT
+                ▼
+         ┌─────────────┐
          │   unsized   │
          │  benchmark  │
          └─────────────┘
@@ -352,6 +359,11 @@ step benchmark =
 stepLowLevel : LowLevel.Benchmark -> Status -> Task Never Status
 stepLowLevel benchmark status =
     case status of
+        Cold eventualTotalRuntime ->
+            LowLevel.sample 100 benchmark
+                |> Task.map (\_ -> Unsized eventualTotalRuntime)
+                |> Task.onError (Task.succeed << Failure)
+
         Unsized eventualTotalRuntime ->
             LowLevel.findSampleSize benchmark
                 |> Task.map
