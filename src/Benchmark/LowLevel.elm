@@ -88,7 +88,10 @@ sample n (Benchmark _ operation) =
 [`findSampleSize`](#findSampleSize) or trusting the times coming out of
 [`measure`](#measure).
 
-TODO: why?
+If we don't warm up the JIT beforehand, it will slow down your benchmark and
+result in inaccurate data. (By the way, [Mozilla has an excellent
+explanation](https://hacks.mozilla.org/2017/02/a-crash-course-in-just-in-time-jit-compilers/)
+of how this all works.)
 
 -}
 warmup : Benchmark -> Task Error ()
