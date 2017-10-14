@@ -27,7 +27,7 @@ error =
 status : Fuzzer Status
 status =
     Fuzz.oneOf
-        [ Fuzz.map Status.ToSize Fuzz.float
+        [ Fuzz.map Status.Unsized Fuzz.float
         , Fuzz.map3 Status.Pending Fuzz.int Fuzz.float (Fuzz.list Fuzz.float)
         , Fuzz.map Status.Failure error
         , Fuzz.map2 Status.Success Fuzz.int (Fuzz.list Fuzz.float)

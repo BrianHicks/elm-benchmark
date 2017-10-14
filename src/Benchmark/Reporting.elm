@@ -175,9 +175,9 @@ encoder report =
         encodeStatus : Status -> Value
         encodeStatus status =
             case status of
-                ToSize time ->
+                Unsized time ->
                     Encode.object
-                        [ ( "_stage", Encode.string "toSize" )
+                        [ ( "_stage", Encode.string "unsized" )
                         , ( "time", time |> Time.inMilliseconds |> Encode.float )
                         ]
 
@@ -273,8 +273,8 @@ status =
         inner : String -> Decoder Status
         inner stage =
             case stage of
-                "toSize" ->
-                    Decode.map ToSize
+                "unsized" ->
+                    Decode.map Unsized
                         (Decode.field "time" Decode.float)
 
                 "pending" ->

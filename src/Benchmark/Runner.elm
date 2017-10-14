@@ -241,7 +241,7 @@ benchmarkView benchmark =
         humanizeStatus : Status -> Html a
         humanizeStatus status =
             case status of
-                Status.ToSize _ ->
+                Status.Unsized _ ->
                     Html.text "Needs Sizing"
 
                 Status.Pending sampleSize time samples ->
