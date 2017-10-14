@@ -360,7 +360,7 @@ stepLowLevel : LowLevel.Benchmark -> Status -> Task Never Status
 stepLowLevel benchmark status =
     case status of
         Cold eventualTotalRuntime ->
-            LowLevel.sample 100 benchmark
+            LowLevel.warmup benchmark
                 |> Task.map (\_ -> Unsized eventualTotalRuntime)
                 |> Task.onError (Task.succeed << Failure)
 
