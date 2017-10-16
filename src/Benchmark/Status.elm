@@ -15,7 +15,10 @@ import Time exposing (Time)
 
 {-| Indicate the status of a benchmark.
 
-  - `ToSize`: We have not yet determined the best sample size for this
+  - `Cold`: We have not warmed up the JIT yet. Benchmark run will eventually fit
+    into the `Time` value (the only argument.)
+
+  - `Unsized`: We have not yet determined the best sample size for this
     benchmark. It will eventually fit into the `Time` value (the only argument.)
 
   - `Pending`: We are in the process of collecting sample data. We should keep
@@ -35,7 +38,8 @@ how these fit together.
 
 -}
 type Status
-    = ToSize Time
+    = Cold Time
+    | Unsized Time
     | Pending Int Time (List Time)
     | Failure Error
     | Success Int (List Time)
@@ -47,7 +51,10 @@ type Status
 progress : Status -> Float
 progress status =
     case status of
-        ToSize _ ->
+        Cold _ ->
+            0
+
+        Unsized _ ->
             0
 
         Pending _ total samples ->

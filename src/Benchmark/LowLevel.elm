@@ -6,6 +6,7 @@ module Benchmark.LowLevel
         , findSampleSize
         , name
         , sample
+        , warmup
         )
 
 {-| Low Level Elm Benchmarking API
@@ -27,7 +28,7 @@ we'll find a way to make your use case friendlier.
 
 # Measuring
 
-@docs findSampleSize, sample, Error
+@docs warmup, findSampleSize, sample, Error
 
 -}
 
@@ -81,6 +82,22 @@ accurate to 1ms.
 sample : Int -> Benchmark -> Task Error Time
 sample n (Benchmark _ operation) =
     Native.Benchmark.sample n operation
+
+
+{-| Warm up the JIT for a benchmarking run. You should call this before calling
+[`findSampleSize`](#findSampleSize) or trusting the times coming out of
+[`measure`](#measure).
+
+If we don't warm up the JIT beforehand, it will slow down your benchmark and
+result in inaccurate data. (By the way, [Mozilla has an excellent
+explanation](https://hacks.mozilla.org/2017/02/a-crash-course-in-just-in-time-jit-compilers/)
+of how this all works.)
+
+-}
+warmup : Benchmark -> Task Error ()
+warmup =
+    sample 1000
+        >> Task.map (always ())
 
 
 {-| Find an appropriate sample size for benchmarking. This should be much

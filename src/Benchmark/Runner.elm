@@ -241,7 +241,10 @@ benchmarkView benchmark =
         humanizeStatus : Status -> Html a
         humanizeStatus status =
             case status of
-                Status.ToSize _ ->
+                Status.Cold _ ->
+                    Html.text "Cold JIT"
+
+                Status.Unsized _ ->
                     Html.text "Needs Sizing"
 
                 Status.Pending sampleSize time samples ->

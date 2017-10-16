@@ -53,7 +53,7 @@ type alias Benchmark =
 
 defaultStatus : Status
 defaultStatus =
-    ToSize (5 * Time.second)
+    Cold (5 * Time.second)
 
 
 {-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is how we
@@ -87,10 +87,10 @@ withRuntime : Time -> Benchmark -> Benchmark
 withRuntime time benchmark =
     case benchmark of
         Single inner _ ->
-            Single inner (ToSize time)
+            Single inner (Unsized time)
 
         Series name inners ->
-            Series name <| List.map (\( inner, _ ) -> ( inner, ToSize time )) inners
+            Series name <| List.map (\( inner, _ ) -> ( inner, Unsized time )) inners
 
         Group name benchmarks ->
             Group name <| List.map (withRuntime time) benchmarks
@@ -300,6 +300,13 @@ error or a list of samples and their sample size.
 In terms of a state machine, it looks like this:
 
          ┌─────────────┐
+         │    cold     │
+         │  benchmark  │
+         └─────────────┘
+                │
+                │  warm up JIT
+                ▼
+         ┌─────────────┐
          │   unsized   │
          │  benchmark  │
          └─────────────┘
@@ -352,7 +359,12 @@ step benchmark =
 stepLowLevel : LowLevel.Benchmark -> Status -> Task Never Status
 stepLowLevel benchmark status =
     case status of
-        ToSize eventualTotalRuntime ->
+        Cold eventualTotalRuntime ->
+            LowLevel.warmup benchmark
+                |> Task.map (\_ -> Unsized eventualTotalRuntime)
+                |> Task.onError (Task.succeed << Failure)
+
+        Unsized eventualTotalRuntime ->
             LowLevel.findSampleSize benchmark
                 |> Task.map
                     (\sampleSize ->
