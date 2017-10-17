@@ -102,15 +102,72 @@ correlation values =
                     )
 
 
+type alias Fit =
+    { slope : Float, intercept : Float }
 
--- fitLine : List ( Float, Float ) -> { slope : Float, intercept : Float }
--- fitLine values =
---     let
---         ( xs, ys ) =
---             List.unzip values
---         slope =
---             correlation values * stddev ys / stddev xs
---     in
---     { slope = slope
---     , intercept = mean ys - slope * mean xs
---     }
+
+fitLine : List ( Float, Float ) -> Maybe Fit
+fitLine values =
+    case values of
+        -- can't draw a line through no values
+        [] ->
+            Nothing
+
+        -- also can't draw a line through a single value
+        _ :: [] ->
+            Nothing
+
+        -- we've got two or more, let's go!
+        _ ->
+            let
+                ( xs, ys ) =
+                    List.unzip values
+
+                slope =
+                    Maybe.map3 (\correl stddevY stddevX -> correl * stddevY / stddevX)
+                        (correlation values)
+                        (stddev ys)
+                        (stddev xs)
+
+                intercept =
+                    Maybe.map3 (\meanY slope meanX -> meanY - slope * meanX)
+                        (mean ys)
+                        slope
+                        (mean xs)
+            in
+            Maybe.map2 Fit slope intercept
+
+
+predictY : Fit -> Float -> Float
+predictY fit x =
+    fit.slope * x + fit.intercept
+
+
+goodnessOfFit : Fit -> List ( Float, Float ) -> Maybe Float
+goodnessOfFit fit values =
+    case values of
+        [] ->
+            Nothing
+
+        _ ->
+            let
+                ( xs, ys ) =
+                    List.unzip values
+
+                predictions =
+                    List.map (predictY fit) xs
+
+                meanY =
+                    mean ys
+
+                sumSquareTotal =
+                    meanY
+                        |> Maybe.map (\localMean -> List.map (\y -> (y - localMean) ^ 2) ys)
+                        |> Maybe.map List.sum
+
+                sumSquareResiduals =
+                    List.map2 (\actual prediction -> (actual - prediction) ^ 2) ys predictions
+                        |> List.sum
+            in
+            sumSquareTotal
+                |> Maybe.map (\ssT -> 1 - sumSquareResiduals / ssT)
