@@ -1,10 +1,9 @@
 module Benchmark.LowLevel
     exposing
-        ( Benchmark
-        , Error(..)
-        , benchmark
+        ( Error(..)
+        , Operation
         , findSampleSize
-        , name
+        , operation
         , sample
         , warmup
         )
@@ -21,12 +20,12 @@ yourself using this library often, please [open an issue on
 we'll find a way to make your use case friendlier.
 
 
-# Benchmarks
+# Operations
 
-@docs Benchmark, benchmark, name
+@docs Operation, operation
 
 
-# Measuring
+## Measuring Operations
 
 @docs warmup, findSampleSize, sample, Error
 
@@ -37,25 +36,18 @@ import Task exposing (Task)
 import Time exposing (Time)
 
 
-{-| A low-level representation of a benchmarking operation. Each named benchmark
-contains a single function call.
+{-| An operation to benchmark. Use [`operation`](#operation) to construct these.
 -}
-type Benchmark
-    = Benchmark String Operation
+type Operation
+    = Operation
 
 
-{-| Create a benchmark, given a name and a testing function.
+{-| Make an `Operation`, given a function that runs the code you want to
+benchmark when given a unit (`()`.)
 -}
-benchmark : String -> (() -> a) -> Benchmark
-benchmark name fn =
-    Benchmark name (operation fn)
-
-
-{-| get the name of a benchmark, for display purposes
--}
-name : Benchmark -> String
-name (Benchmark name _) =
-    name
+operation : (() -> a) -> Operation
+operation =
+    Native.Benchmark.operation
 
 
 
@@ -79,8 +71,8 @@ to [Date](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Glob
 accurate to 1ms.
 
 -}
-sample : Int -> Benchmark -> Task Error Time
-sample n (Benchmark _ operation) =
+sample : Int -> Operation -> Task Error Time
+sample n operation =
     Native.Benchmark.sample n operation
 
 
@@ -94,7 +86,7 @@ explanation](https://hacks.mozilla.org/2017/02/a-crash-course-in-just-in-time-ji
 of how this all works.)
 
 -}
-warmup : Benchmark -> Task Error ()
+warmup : Operation -> Task Error ()
 warmup =
     sample 1000
         >> Task.map (always ())
@@ -114,8 +106,8 @@ order of magnitude. So, for example, if the sample size is 1,234 we round to
 1,000. If it's 8,800, we round to 9,000.
 
 -}
-findSampleSize : Benchmark -> Task Error Int
-findSampleSize benchmark =
+findSampleSize : Operation -> Task Error Int
+findSampleSize operation =
     let
         initialSampleSize =
             1
@@ -130,12 +122,12 @@ findSampleSize benchmark =
                     new =
                         ceiling <| toFloat size * 1.618103
                 in
-                sample new benchmark
+                sample new operation
                     |> Task.andThen (resample new)
             else
                 Task.succeed size
     in
-    sample initialSampleSize benchmark
+    sample initialSampleSize operation
         |> Task.andThen (resample initialSampleSize)
         |> Task.map standardizeSampleSize
 
@@ -151,20 +143,3 @@ standardizeSampleSize sampleSize =
                 rough * magnitude
     in
     helper sampleSize 1
-
-
-
--- Internal stuff!
-
-
-{-| Operation is a slim wrapper over (() -> a). We need it though, because
-otherwise `Benchmark` would be `Benchmark a`, and tons of operations would get
-more difficult.
--}
-type Operation
-    = Operation
-
-
-operation : (() -> a) -> Operation
-operation =
-    Native.Benchmark.operation

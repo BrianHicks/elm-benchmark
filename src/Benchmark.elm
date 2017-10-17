@@ -31,7 +31,7 @@ module Benchmark
 
 -}
 
-import Benchmark.Benchmark exposing (Benchmark(..))
+import Benchmark.Benchmark as Benchmark exposing (Benchmark(..))
 import Benchmark.LowLevel as LowLevel exposing (Error(..))
 import Benchmark.Status as Status exposing (Status(..))
 import Task exposing (Task)
@@ -48,7 +48,7 @@ To make these, try [`benchmark`](#benchmark), [`compare`](#compare), or
 
 -}
 type alias Benchmark =
-    Benchmark.Benchmark.Benchmark
+    Benchmark.Benchmark
 
 
 defaultStatus : Status
@@ -86,11 +86,14 @@ made on the benchmark (see "The Life of a Benchmark") in the documentation.
 withRuntime : Time -> Benchmark -> Benchmark
 withRuntime time benchmark =
     case benchmark of
-        Single inner _ ->
-            Single inner (Unsized time)
+        Single name inner _ ->
+            Single name inner (Unsized time)
 
         Series name inners ->
-            Series name <| List.map (\( inner, _ ) -> ( inner, Unsized time )) inners
+            Series name <|
+                List.map
+                    (\( name, inner, _ ) -> ( name, inner, Unsized time ))
+                    inners
 
         Group name benchmarks ->
             Group name <| List.map (withRuntime time) benchmarks
@@ -147,7 +150,7 @@ sizes, we've got your back: that's what [`scale`](#scale) is for.
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
-    Single (LowLevel.benchmark name fn) defaultStatus
+    Single name (LowLevel.operation fn) defaultStatus
 
 
 {-| Specify two benchmarks which are meant to be compared directly. This is most
@@ -174,8 +177,8 @@ arguments, at least try to match functionality.
 compare : String -> String -> (() -> a) -> String -> (() -> b) -> Benchmark
 compare name name1 fn1 name2 fn2 =
     Series name
-        [ ( LowLevel.benchmark name1 fn1, defaultStatus )
-        , ( LowLevel.benchmark name2 fn2, defaultStatus )
+        [ ( name1, LowLevel.operation fn1, defaultStatus )
+        , ( name2, LowLevel.operation fn2, defaultStatus )
         ]
 
 
@@ -224,7 +227,8 @@ scale name series =
     series
         |> List.map
             (\( subName, fn ) ->
-                ( LowLevel.benchmark subName fn
+                ( name
+                , LowLevel.operation fn
                 , defaultStatus
                 )
             )
@@ -244,12 +248,12 @@ Use this function to find out if you should call `step` any more.
 done : Benchmark -> Bool
 done benchmark =
     case benchmark of
-        Single _ status ->
+        Single _ _ status ->
             Status.progress status == 1
 
         Series _ benchmarks ->
             benchmarks
-                |> List.map Tuple.second
+                |> List.map (\( _, _, status ) -> status)
                 |> List.map Status.progress
                 |> List.all ((==) 1)
 
@@ -335,16 +339,16 @@ In terms of a state machine, it looks like this:
 step : Benchmark -> Task Never Benchmark
 step benchmark =
     case benchmark of
-        Single inner status ->
+        Single name inner status ->
             stepLowLevel inner status
-                |> Task.map (Single inner)
+                |> Task.map (Single name inner)
 
         Series name benchmarks ->
             benchmarks
                 |> List.map
-                    (\( inner, status ) ->
+                    (\( name, inner, status ) ->
                         stepLowLevel inner status
-                            |> Task.map ((,) inner)
+                            |> Task.map (\status -> ( name, inner, status ))
                     )
                 |> Task.sequence
                 |> Task.map (Series name)
@@ -356,16 +360,16 @@ step benchmark =
                 |> Task.map (Group name)
 
 
-stepLowLevel : LowLevel.Benchmark -> Status -> Task Never Status
-stepLowLevel benchmark status =
+stepLowLevel : LowLevel.Operation -> Status -> Task Never Status
+stepLowLevel operation status =
     case status of
         Cold eventualTotalRuntime ->
-            LowLevel.warmup benchmark
+            LowLevel.warmup operation
                 |> Task.map (\_ -> Unsized eventualTotalRuntime)
                 |> Task.onError (Task.succeed << Failure)
 
         Unsized eventualTotalRuntime ->
-            LowLevel.findSampleSize benchmark
+            LowLevel.findSampleSize operation
                 |> Task.map
                     (\sampleSize ->
                         Pending
@@ -376,7 +380,7 @@ stepLowLevel benchmark status =
                 |> Task.onError (Task.succeed << Failure)
 
         Pending sampleSize total samples ->
-            LowLevel.sample sampleSize benchmark
+            LowLevel.sample sampleSize operation
                 |> Task.map
                     (\newSample ->
                         let

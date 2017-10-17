@@ -155,12 +155,12 @@ compareOperationsPerSecond a b =
 fromBenchmark : Benchmark -> Report
 fromBenchmark internal =
     case internal of
-        Benchmark.Single benchmark status ->
-            Single (LowLevel.name benchmark) status
+        Benchmark.Single name _ status ->
+            Single name status
 
         Benchmark.Series name benchmarks ->
             benchmarks
-                |> List.map (Tuple.mapFirst LowLevel.name)
+                |> List.map (\( name, _, status ) -> ( name, status ))
                 |> Series name
 
         Benchmark.Group name benchmarks ->
