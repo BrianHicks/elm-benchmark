@@ -31,6 +31,7 @@ we'll find a way to make your use case friendlier.
 
 -}
 
+import Benchmark.Math as Math
 import Native.Benchmark
 import Task exposing (Task)
 import Time exposing (Time)
@@ -87,9 +88,74 @@ of how this all works.)
 
 -}
 warmup : Operation -> Task Error ()
-warmup =
-    sample 1000
-        >> Task.map (always ())
+warmup operation =
+    let
+        successThreshold =
+            5
+
+        failureThreshold =
+            successThreshold * -10
+
+        sampleSeries : Int -> Task Error (List Time)
+        sampleSeries size =
+            List.repeat 10 (sample size operation)
+                |> Task.sequence
+
+        loop : Int -> Int -> List Time -> List Time -> Task Error ()
+        loop retries size previous current =
+            case Math.correlation (List.map2 (,) previous current) of
+                Nothing ->
+                    Task.fail (UnknownError "could not correlate previous and current samples")
+
+                Just thisCorrel ->
+                    if abs thisCorrel < 0.05 then
+                        if retries < successThreshold then
+                            sampleSeries size |> Task.andThen (loop (max retries 0 + 1) size current)
+                        else
+                            Task.succeed ()
+                    else if retries > failureThreshold then
+                        sampleSeries size |> Task.andThen (loop (min retries 0 - 1) size current)
+                    else
+                        Task.fail (UnknownError "TODO: better error message for retry failure")
+    in
+    operation
+        |> findSampleSizeWithMinimum Time.millisecond
+        |> Task.andThen
+            (\size ->
+                Task.map2 (\fst snd -> ( size, fst, snd ))
+                    (sampleSeries size)
+                    (sampleSeries size)
+            )
+        |> Task.andThen
+            (\( size, fst, snd ) -> loop 0 size fst snd)
+
+
+findSampleSizeWithMinimum : Time -> Operation -> Task Error Int
+findSampleSizeWithMinimum minimumRuntime operation =
+    let
+        initialSampleSize =
+            1
+
+        resample : Int -> Time -> Task Error Int
+        resample size total =
+            if total < minimumRuntime then
+                let
+                    new =
+                        ceiling <| toFloat size * 1.618103
+                in
+                sample new operation
+                    |> Task.andThen (resample new)
+            else
+                Task.succeed size
+    in
+    sample initialSampleSize operation
+        |> Task.andThen (resample initialSampleSize)
+        |> Task.map standardizeSampleSize
+
+
+defaultMinimum : Time
+defaultMinimum =
+    50 * Time.millisecond
 
 
 {-| Find an appropriate sample size for benchmarking. This should be much
@@ -107,29 +173,8 @@ order of magnitude. So, for example, if the sample size is 1,234 we round to
 
 -}
 findSampleSize : Operation -> Task Error Int
-findSampleSize operation =
-    let
-        initialSampleSize =
-            1
-
-        minimumRuntime =
-            50 * Time.millisecond
-
-        resample : Int -> Time -> Task Error Int
-        resample size total =
-            if total < minimumRuntime then
-                let
-                    new =
-                        ceiling <| toFloat size * 1.618103
-                in
-                sample new operation
-                    |> Task.andThen (resample new)
-            else
-                Task.succeed size
-    in
-    sample initialSampleSize operation
-        |> Task.andThen (resample initialSampleSize)
-        |> Task.map standardizeSampleSize
+findSampleSize =
+    findSampleSizeWithMinimum defaultMinimum
 
 
 standardizeSampleSize : Int -> Int
