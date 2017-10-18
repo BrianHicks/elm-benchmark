@@ -3,6 +3,7 @@ module Benchmark.Samples
         ( Samples
         , count
         , empty
+        , fitLine
         , record
         , total
         )
@@ -12,10 +13,11 @@ module Benchmark.Samples
 
 # Sampling
 
-@docs Samples, empty, record, count, total
+@docs Samples, empty, record, count, total, fitLine
 
 -}
 
+import Benchmark.Math as Math exposing (Fit)
 import Dict exposing (Dict)
 import Time exposing (Time)
 
@@ -61,3 +63,31 @@ record sampleSize sample =
                 Just samples ->
                     Just (sample :: samples)
         )
+
+
+{-| Fit a line to these samples. The returned tuple is the calculation of best
+fit (see `Benchmark.Math`) and the R-squared value.
+-}
+fitLine : Samples -> Maybe ( Fit, Float )
+fitLine samples =
+    let
+        values =
+            samples
+                |> Dict.toList
+                |> List.map
+                    (\( sampleSize, values ) ->
+                        List.map
+                            (\v -> ( toFloat sampleSize, v ))
+                            values
+                    )
+                |> List.concat
+
+        fit =
+            Math.fitLine values
+
+        goodness =
+            Maybe.andThen
+                (\fit -> Math.goodnessOfFit fit values)
+                fit
+    in
+    Maybe.map2 (,) fit goodness
