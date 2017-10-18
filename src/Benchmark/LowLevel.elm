@@ -90,6 +90,12 @@ of how this all works.)
 -}
 warmup : Operation -> Task Error ()
 warmup operation =
+    -- TODO: this doesn't appear to have made a really significant improvement
+    -- over just running the benchmark a thousand times or so. Could this be
+    -- replace with a call to `findSampleSizeWithMinimum` of a large-ish
+    -- minimum? Measure measure measure measure measure.
+    --
+    -- TODO #2: should `warmup` even live in this module?
     let
         successThreshold =
             5
