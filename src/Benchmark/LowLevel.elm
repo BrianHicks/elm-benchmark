@@ -156,7 +156,7 @@ findSampleSizeWithMinimum minimumRuntime operation =
 
 defaultMinimum : Time
 defaultMinimum =
-    50 * Time.millisecond
+    Time.millisecond
 
 
 {-| Find an appropriate sample size for benchmarking. This should be much
