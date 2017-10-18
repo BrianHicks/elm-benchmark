@@ -381,14 +381,18 @@ stepLowLevel operation status =
                 |> Task.onError (Task.succeed << Failure)
 
         Pending total baseSampleSize samples ->
-            LowLevel.sample baseSampleSize operation
+            let
+                sampleSize =
+                    baseSampleSize * ((Samples.count samples % 50) + 1)
+            in
+            LowLevel.sample sampleSize operation
                 |> Task.map
                     (\newSample ->
                         let
                             newSamples =
-                                Samples.record baseSampleSize newSample samples
+                                Samples.record sampleSize newSample samples
                         in
-                        if Samples.total samples >= total then
+                        if Samples.total newSamples >= total then
                             Success newSamples
                         else
                             Pending total baseSampleSize newSamples
