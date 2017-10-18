@@ -51,35 +51,27 @@ correlation values =
                     Maybe.map (List.map (\n -> n ^ 2))
 
                 -- calculate stuff now!
-                -- ( [ 0.0001 ], [ 0.0001 ] )
                 ( xs, ys ) =
                     List.unzip values
 
-                -- 0.0001
                 meanX =
                     mean xs
 
-                -- [ 0 ]
                 deltaX =
                     deltasFromMean xs meanX
 
-                -- [ 0 ]
                 squaredX =
                     squared deltaX
 
-                -- [ 0.0001 ]
                 meanY =
                     mean ys
 
-                -- [ 0 ]
                 deltaY =
                     deltasFromMean ys meanY
 
-                -- [ 0 ]
                 squaredY =
                     squared deltaY
 
-                -- [ 0 ]
                 xy =
                     Maybe.map2 (List.map2 (*)) deltaX deltaY
 
