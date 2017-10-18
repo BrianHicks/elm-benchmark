@@ -60,6 +60,7 @@ operation =
 type Error
     = StackOverflow
     | UnknownError String
+    | DidNotStabilize
 
 
 {-| Run a benchmark a number of times. The returned value is the total time it
@@ -116,7 +117,7 @@ warmup operation =
                     else if retries > failureThreshold then
                         sampleSeries size |> Task.andThen (loop (min retries 0 - 1) size current)
                     else
-                        Task.fail (UnknownError "TODO: better error message for retry failure")
+                        Task.fail DidNotStabilize
     in
     operation
         |> findSampleSizeWithMinimum Time.millisecond

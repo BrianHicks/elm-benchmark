@@ -206,6 +206,9 @@ encoder report =
                             LowLevel.StackOverflow ->
                                 ( "message", Encode.string "stack overflow" )
 
+                            LowLevel.DidNotStabilize ->
+                                ( "message", Encode.string "did not stabilize" )
+
                             LowLevel.UnknownError msg ->
                                 ( "message", Encode.string msg )
                         ]
@@ -300,6 +303,9 @@ status =
                                 case message of
                                     "stack overflow" ->
                                         Failure LowLevel.StackOverflow |> Decode.succeed
+
+                                    "did not stabilize" ->
+                                        Failure LowLevel.DidNotStabilize |> Decode.succeed
 
                                     _ ->
                                         LowLevel.UnknownError message |> Failure |> Decode.succeed
