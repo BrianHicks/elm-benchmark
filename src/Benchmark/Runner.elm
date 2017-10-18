@@ -275,21 +275,8 @@ benchmarkView benchmark =
                 [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
                 , case status of
                     Status.Success samples ->
-                        samples
-                            |> Dict.toList
-                            |> List.map
-                                (\( k, v ) ->
-                                    Json.Encode.object
-                                        [ ( "size", Json.Encode.int k )
-                                        , ( "samples"
-                                          , v
-                                                |> List.map Json.Encode.float
-                                                |> Json.Encode.list
-                                          )
-                                        ]
-                                )
-                            |> Json.Encode.list
-                            |> Json.Encode.encode 2
+                        Samples.fitLine samples
+                            |> toString
                             |> Html.text
                             |> List.singleton
                             |> Html.pre []
