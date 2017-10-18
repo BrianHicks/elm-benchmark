@@ -33,6 +33,7 @@ module Benchmark
 
 import Benchmark.Benchmark as Benchmark exposing (Benchmark(..))
 import Benchmark.LowLevel as LowLevel exposing (Error(..))
+import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status(..))
 import Task exposing (Task)
 import Time exposing (Time)
@@ -373,24 +374,24 @@ stepLowLevel operation status =
                 |> Task.map
                     (\sampleSize ->
                         Pending
-                            sampleSize
                             eventualTotalRuntime
-                            []
+                            sampleSize
+                            Samples.empty
                     )
                 |> Task.onError (Task.succeed << Failure)
 
-        Pending sampleSize total samples ->
-            LowLevel.sample sampleSize operation
+        Pending total baseSampleSize samples ->
+            LowLevel.sample baseSampleSize operation
                 |> Task.map
                     (\newSample ->
                         let
                             newSamples =
-                                newSample :: samples
+                                Samples.record baseSampleSize newSample samples
                         in
-                        if List.sum newSamples >= total then
-                            Success sampleSize newSamples
+                        if Samples.total samples >= total then
+                            Success newSamples
                         else
-                            Pending sampleSize total newSamples
+                            Pending total baseSampleSize newSamples
                     )
                 |> Task.onError (Task.succeed << Failure)
 

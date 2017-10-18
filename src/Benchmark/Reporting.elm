@@ -4,8 +4,6 @@ module Benchmark.Reporting
         , Stats
         , compareMeanRuntime
         , compareOperationsPerSecond
-        , decoder
-        , encoder
         , fromBenchmark
         , meanRuntime
         , operationsPerSecond
@@ -29,16 +27,12 @@ module Benchmark.Reporting
 
 @docs operationsPerSecond, compareOperationsPerSecond
 
-
-# Serialization
-
-@docs encoder, decoder
-
 -}
 
 import Benchmark.Benchmark as Benchmark exposing (Benchmark)
 import Benchmark.LowLevel as LowLevel
 import Benchmark.Status as Status exposing (Status(..))
+import Dict
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Time exposing (Time)
@@ -165,192 +159,3 @@ fromBenchmark internal =
 
         Benchmark.Group name benchmarks ->
             Group name (List.map fromBenchmark benchmarks)
-
-
-{-| convert a Report to a JSON value
--}
-encoder : Report -> Value
-encoder report =
-    let
-        encodeStatus : Status -> Value
-        encodeStatus status =
-            case status of
-                Cold time ->
-                    Encode.object
-                        [ ( "_stage", Encode.string "cold" )
-                        , ( "time", time |> Time.inMilliseconds |> Encode.float )
-                        ]
-
-                Unsized time ->
-                    Encode.object
-                        [ ( "_stage", Encode.string "unsized" )
-                        , ( "time", time |> Time.inMilliseconds |> Encode.float )
-                        ]
-
-                Pending sampleSize time samples ->
-                    Encode.object
-                        [ ( "_stage", Encode.string "pending" )
-                        , ( "sampleSize", Encode.int sampleSize )
-                        , ( "time", Encode.float time )
-                        , ( "samples"
-                          , samples
-                                |> List.map Encode.float
-                                |> Encode.list
-                          )
-                        ]
-
-                Failure error ->
-                    Encode.object
-                        [ ( "_stage", Encode.string "failure" )
-                        , case error of
-                            LowLevel.StackOverflow ->
-                                ( "message", Encode.string "stack overflow" )
-
-                            LowLevel.DidNotStabilize ->
-                                ( "message", Encode.string "did not stabilize" )
-
-                            LowLevel.UnknownError msg ->
-                                ( "message", Encode.string msg )
-                        ]
-
-                Success sampleSize samples ->
-                    Encode.object
-                        [ ( "_stage", Encode.string "success" )
-                        , ( "sampleSize", Encode.int sampleSize )
-                        , ( "samples", Encode.list <| List.map Encode.float samples )
-                        ]
-
-        encodeReport : Report -> Value
-        encodeReport report =
-            case report of
-                Single name status ->
-                    Encode.object
-                        [ ( "_kind", Encode.string "single" )
-                        , ( "name", Encode.string name )
-                        , ( "status", encodeStatus status )
-                        ]
-
-                Series name benchmarks ->
-                    Encode.object
-                        [ ( "_kind", Encode.string "series" )
-                        , ( "name", Encode.string name )
-                        , ( "benchmarks"
-                          , benchmarks
-                                |> List.map
-                                    (\( name, status ) ->
-                                        Encode.object
-                                            [ ( "name", Encode.string name )
-                                            , ( "status", encodeStatus status )
-                                            ]
-                                    )
-                                |> Encode.list
-                          )
-                        ]
-
-                Group name benchmarks ->
-                    Encode.object
-                        [ ( "_kind", Encode.string "group" )
-                        , ( "name", Encode.string name )
-                        , ( "benchmarks", benchmarks |> List.map encodeReport |> Encode.list )
-                        ]
-    in
-    Encode.object
-        [ ( "version", Encode.int 2 )
-        , ( "report", encodeReport report )
-        ]
-
-
-{-| parse a Report from a JSON value
--}
-decoder : Decoder Report
-decoder =
-    Decode.field "version" Decode.int
-        |> Decode.andThen
-            (\version ->
-                case version of
-                    2 ->
-                        Decode.field "report" version2Decoder
-
-                    _ ->
-                        Decode.fail <| "I don't know how to decode version " ++ toString version
-            )
-
-
-status : Decoder Status
-status =
-    let
-        inner : String -> Decoder Status
-        inner stage =
-            case stage of
-                "cold" ->
-                    Decode.map Cold
-                        (Decode.field "time" Decode.float)
-
-                "unsized" ->
-                    Decode.map Unsized
-                        (Decode.field "time" Decode.float)
-
-                "pending" ->
-                    Decode.map3 Pending
-                        (Decode.field "sampleSize" Decode.int)
-                        (Decode.field "time" Decode.float)
-                        (Decode.field "samples" <| Decode.list Decode.float)
-
-                "failure" ->
-                    Decode.field "message" Decode.string
-                        |> Decode.andThen
-                            (\message ->
-                                case message of
-                                    "stack overflow" ->
-                                        Failure LowLevel.StackOverflow |> Decode.succeed
-
-                                    "did not stabilize" ->
-                                        Failure LowLevel.DidNotStabilize |> Decode.succeed
-
-                                    _ ->
-                                        LowLevel.UnknownError message |> Failure |> Decode.succeed
-                            )
-
-                "success" ->
-                    Decode.map2 Success
-                        (Decode.field "sampleSize" Decode.int)
-                        (Decode.field "samples" <| Decode.list Decode.float)
-
-                _ ->
-                    Decode.fail ("I don't know how to decode the \"" ++ stage ++ "\" stage")
-    in
-    Decode.field "_stage" Decode.string
-        |> Decode.andThen inner
-
-
-version2Decoder : Decoder Report
-version2Decoder =
-    let
-        report : String -> Decoder Report
-        report kind =
-            case kind of
-                "single" ->
-                    Decode.map2 Single
-                        (Decode.field "name" Decode.string)
-                        (Decode.field "status" status)
-
-                "series" ->
-                    Decode.map2 Series
-                        (Decode.field "name" Decode.string)
-                        (Decode.field "benchmarks" <|
-                            Decode.list <|
-                                Decode.map2 (,)
-                                    (Decode.field "name" Decode.string)
-                                    (Decode.field "status" status)
-                        )
-
-                "group" ->
-                    Decode.map2 Group
-                        (Decode.field "name" <| Decode.string)
-                        (Decode.field "benchmarks" <| Decode.lazy (\_ -> Decode.list version2Decoder))
-
-                _ ->
-                    Decode.fail ("I don't know how to decode a \"" ++ kind ++ "\"")
-    in
-    Decode.field "_kind" Decode.string
-        |> Decode.andThen report

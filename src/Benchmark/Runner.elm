@@ -8,9 +8,12 @@ module Benchmark.Runner exposing (BenchmarkProgram, program)
 
 import Benchmark exposing (Benchmark)
 import Benchmark.Reporting as Reporting exposing (Report, Stats)
+import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status)
+import Dict
 import Html exposing (Html)
 import Html.Attributes as A
+import Json.Encode
 import Process
 import Task exposing (Task)
 import Time exposing (Time)
@@ -247,22 +250,22 @@ benchmarkView benchmark =
                 Status.Unsized _ ->
                     Html.text "Needs Sizing"
 
-                Status.Pending sampleSize time samples ->
+                Status.Pending time baseSampleSize samples ->
                     Html.div
                         []
                         [ Html.progress
                             [ A.max <| toString time
-                            , A.value <| toString <| List.sum samples
+                            , A.value <| toString <| Samples.total samples
                             , A.style [ ( "display", "block" ) ]
                             ]
                             []
-                        , Html.text <| "Collected " ++ humanizeTime (List.sum samples) ++ " of " ++ humanizeTime time
+                        , Html.text <| "Collected " ++ humanizeTime (Samples.total samples) ++ " of " ++ humanizeTime time
                         ]
 
                 Status.Failure error ->
                     Html.text <| "Error: " ++ toString error
 
-                Status.Success _ _ ->
+                Status.Success _ ->
                     Html.text "Complete"
     in
     case benchmark of
@@ -271,17 +274,25 @@ benchmarkView benchmark =
                 []
                 [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
                 , case status of
-                    Status.Success sampleSize samples ->
-                        let
-                            stats =
-                                Reporting.stats sampleSize samples
-                        in
-                        attrs
-                            [ ( "mean ops/sec", Html.text <| humanizeOpsPerSec stats )
-                            , ( "mean runtime", Html.text <| humanizeMeanRuntime stats )
-                            , ( "total runtime", Html.text <| humanizeTime <| Reporting.totalRuntime stats )
-                            , ( "sampling", Html.text <| humanizeSamplingMethodology stats )
-                            ]
+                    Status.Success samples ->
+                        samples
+                            |> Dict.toList
+                            |> List.map
+                                (\( k, v ) ->
+                                    Json.Encode.object
+                                        [ ( "size", Json.Encode.int k )
+                                        , ( "samples"
+                                          , v
+                                                |> List.map Json.Encode.float
+                                                |> Json.Encode.list
+                                          )
+                                        ]
+                                )
+                            |> Json.Encode.list
+                            |> Json.Encode.encode 2
+                            |> Html.text
+                            |> List.singleton
+                            |> Html.pre []
 
                     _ ->
                         attrs [ ( "status", humanizeStatus status ) ]

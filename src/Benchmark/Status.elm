@@ -10,6 +10,8 @@ module Benchmark.Status exposing (Status(..), progress)
 -}
 
 import Benchmark.LowLevel exposing (Error)
+import Benchmark.Samples as Samples exposing (Samples)
+import Dict exposing (Dict)
 import Time exposing (Time)
 
 
@@ -40,9 +42,9 @@ how these fit together.
 type Status
     = Cold Time
     | Unsized Time
-    | Pending Int Time (List Time)
+    | Pending Time Int (Dict Int (List Time))
     | Failure Error
-    | Success Int (List Time)
+    | Success (Dict Int (List Time))
 
 
 {-| How far along is this benchmark? This is a percentage, represented as a
@@ -57,11 +59,11 @@ progress status =
         Unsized _ ->
             0
 
-        Pending _ total samples ->
-            List.sum samples / total |> clamp 0 1
+        Pending totalRuntime _ samples ->
+            Samples.total samples / totalRuntime |> clamp 0 1
 
         Failure _ ->
             1
 
-        Success _ _ ->
+        Success _ ->
             1
