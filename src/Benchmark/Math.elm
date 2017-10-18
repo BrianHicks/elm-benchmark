@@ -38,59 +38,31 @@ correlation values =
         -- two or more? That's more like it.
         _ ->
             let
-                -- utilities
-                deltasFromMean : List Float -> Maybe Float -> Maybe (List Float)
-                deltasFromMean series =
-                    Maybe.map
-                        (\localMean ->
-                            List.map (\n -> n - localMean) series
-                        )
-
-                squared : Maybe (List Float) -> Maybe (List Float)
-                squared =
-                    Maybe.map (List.map (\n -> n ^ 2))
-
-                -- calculate stuff now!
                 ( xs, ys ) =
                     List.unzip values
 
-                meanX =
-                    mean xs
+                standardize : Maybe Float -> Maybe Float -> List Float -> Maybe (List Float)
+                standardize maybeMean maybeStddev series =
+                    Maybe.map2
+                        (\mean stddev -> List.map (\point -> (point - mean) / stddev) series)
+                        maybeMean
+                        maybeStddev
 
-                deltaX =
-                    deltasFromMean xs meanX
-
-                squaredX =
-                    squared deltaX
-
-                meanY =
-                    mean ys
-
-                deltaY =
-                    deltasFromMean ys meanY
-
-                squaredY =
-                    squared deltaY
-
-                xy =
-                    Maybe.map2 (List.map2 (*)) deltaX deltaY
-
-                dividend =
-                    Maybe.map List.sum xy
-
-                divisor =
-                    Maybe.map2 (+)
-                        (Maybe.map List.sum squaredX)
-                        (Maybe.map List.sum squaredY)
-                        |> Maybe.map sqrt
+                summedProduct =
+                    Maybe.map2
+                        (\stdX stdY -> List.map2 (*) stdX stdY)
+                        (standardize (mean xs) (stddev xs) xs)
+                        (standardize (mean ys) (stddev ys) ys)
+                        |> Maybe.map List.sum
             in
-            Maybe.map2 (/) dividend divisor
+            summedProduct
+                |> Maybe.map (\sum -> sum / toFloat (List.length values))
                 |> Maybe.andThen
-                    (\res ->
-                        if isNaN res then
+                    (\val ->
+                        if isNaN val then
                             Nothing
                         else
-                            Just res
+                            Just val
                     )
 
 
