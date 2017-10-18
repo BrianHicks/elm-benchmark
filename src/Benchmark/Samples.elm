@@ -1,9 +1,11 @@
 module Benchmark.Samples
     exposing
-        ( Samples
+        ( Line
+        , Lines
+        , Samples
         , count
         , empty
-        , fitLine
+        , fitLines
         , record
         , total
         )
@@ -13,7 +15,12 @@ module Benchmark.Samples
 
 # Sampling
 
-@docs Samples, empty, record, count, total, fitLine
+@docs Samples, empty, record, count, total
+
+
+## Evaluation
+
+@docs Lines, Line, fitLines
 
 -}
 
@@ -65,9 +72,84 @@ record sampleSize sample =
         )
 
 
+minimums : Samples -> List ( Float, Float )
+minimums =
+    Dict.toList
+        >> List.map
+            (\( sampleSize, values ) ->
+                case List.minimum values of
+                    Nothing ->
+                        []
+
+                    Just val ->
+                        [ ( toFloat sampleSize, val ) ]
+            )
+        >> List.concat
+
+
+all : Samples -> List ( Float, Float )
+all =
+    Dict.toList
+        >> List.map
+            (\( sampleSize, values ) ->
+                List.map (\val -> ( toFloat sampleSize, val )) values
+            )
+        >> List.concat
+
+
+maximums : Samples -> List ( Float, Float )
+maximums =
+    Dict.toList
+        >> List.map
+            (\( sampleSize, values ) ->
+                case List.maximum values of
+                    Nothing ->
+                        []
+
+                    Just val ->
+                        [ ( toFloat sampleSize, val ) ]
+            )
+        >> List.concat
+
+
+{-| a single line
+-}
+type alias Line =
+    { line : Fit, confidence : Float }
+
+
+lineFor : List ( Float, Float ) -> Maybe Line
+lineFor series =
+    let
+        fit =
+            Math.fitLine series
+
+        goodness =
+            Maybe.andThen (\fit -> Math.goodnessOfFit fit series) fit
+    in
+    Maybe.map2 Line fit goodness
+
+
+{-| lines for multiple bands in the samples
+-}
+type alias Lines =
+    { minimums : Line
+    , all : Line
+    , maximums : Line
+    }
+
+
 {-| Fit a line to these samples. The returned tuple is the calculation of best
 fit (see `Benchmark.Math`) and the R-squared value.
 -}
+fitLines : Samples -> Maybe Lines
+fitLines series =
+    Maybe.map3 Lines
+        (lineFor <| minimums series)
+        (lineFor <| all series)
+        (lineFor <| maximums series)
+
+
 fitLine : Samples -> Maybe ( Fit, Float )
 fitLine samples =
     let
@@ -76,9 +158,12 @@ fitLine samples =
                 |> Dict.toList
                 |> List.map
                     (\( sampleSize, values ) ->
-                        List.map
-                            (\v -> ( toFloat sampleSize, v ))
-                            values
+                        case List.minimum values of
+                            Nothing ->
+                                []
+
+                            Just val ->
+                                [ ( toFloat sampleSize, val ) ]
                     )
                 |> List.concat
 

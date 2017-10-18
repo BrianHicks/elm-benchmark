@@ -275,11 +275,13 @@ benchmarkView benchmark =
                 [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
                 , case status of
                     Status.Success samples ->
-                        Samples.fitLine samples
-                            |> toString
-                            |> Html.text
-                            |> List.singleton
-                            |> Html.pre []
+                        Html.div []
+                            [ Samples.fitLines samples
+                                |> toString
+                                |> Html.text
+                                |> List.singleton
+                                |> Html.pre []
+                            ]
 
                     _ ->
                         attrs [ ( "status", humanizeStatus status ) ]
