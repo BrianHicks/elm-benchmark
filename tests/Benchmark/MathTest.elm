@@ -19,11 +19,6 @@ reasonablyCloseTo target maybeActual =
                 Expect.fail <| toString actual ++ " was not within 0.0001 of " ++ toString target
 
 
-floatify : List ( Int, Int ) -> List ( Float, Float )
-floatify =
-    List.map (\( x, y ) -> ( toFloat x, toFloat y ))
-
-
 meanTest : Test
 meanTest =
     describe "mean"
