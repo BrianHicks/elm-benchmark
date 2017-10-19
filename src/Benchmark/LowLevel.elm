@@ -33,6 +33,7 @@ we'll find a way to make your use case friendlier.
 
 import Benchmark.Math as Math
 import Native.Benchmark
+import Process
 import Task exposing (Task)
 import Time exposing (Time)
 
@@ -103,38 +104,45 @@ warmup operation =
         failureThreshold =
             successThreshold * -10
 
+        lag : List a -> List ( a, a )
+        lag stuff =
+            List.map2 (,)
+                stuff
+                (List.tail stuff |> Maybe.withDefault [])
+
+        delay : Task x a -> Task x a
+        delay task =
+            task |> Task.andThen (\x -> Process.sleep Time.millisecond |> Task.map (\_ -> x))
+
         sampleSeries : Int -> Task Error (List Time)
         sampleSeries size =
-            List.repeat 10 (sample size operation)
+            List.repeat 11 (sample size operation |> delay)
                 |> Task.sequence
 
-        loop : Int -> Int -> List Time -> List Time -> Task Error ()
-        loop retries size previous current =
-            case Math.correlation (List.map2 (,) previous current) of
+        loop : Int -> Int -> List Time -> Task Error ()
+        loop size retries current =
+            case Math.correlation (lag current) of
                 Nothing ->
                     Task.fail (UnknownError "could not correlate previous and current samples")
 
                 Just thisCorrel ->
-                    if abs thisCorrel < 0.05 then
-                        if retries < successThreshold then
-                            sampleSeries size |> Task.andThen (loop (max retries 0 + 1) size current)
-                        else
+                    if thisCorrel < 0.05 then
+                        if retries >= successThreshold then
                             Task.succeed ()
-                    else if retries > failureThreshold then
-                        sampleSeries size |> Task.andThen (loop (min retries 0 - 1) size current)
-                    else
+                        else
+                            sampleSeries size |> Task.andThen (loop size (max retries 0 + 1))
+                    else if retries <= failureThreshold then
                         Task.fail DidNotStabilize
+                    else
+                        sampleSeries size |> Task.andThen (loop (min retries 0 - 1) size)
     in
     operation
-        |> findSampleSizeWithMinimum Time.millisecond
+        |> findSampleSizeWithMinimum (5 * Time.millisecond)
         |> Task.andThen
             (\size ->
-                Task.map2 (\fst snd -> ( size, fst, snd ))
-                    (sampleSeries size)
-                    (sampleSeries size)
+                sampleSeries size
+                    |> Task.andThen (loop size 0)
             )
-        |> Task.andThen
-            (\( size, fst, snd ) -> loop 0 size fst snd)
 
 
 findSampleSizeWithMinimum : Time -> Operation -> Task Error Int
