@@ -10,10 +10,9 @@ import Benchmark exposing (Benchmark)
 import Benchmark.Reporting as Reporting exposing (Report, Stats)
 import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status)
-import Dict
 import Html exposing (Html)
 import Html.Attributes as A
-import Json.Encode
+import Plot
 import Process
 import Task exposing (Task)
 import Time exposing (Time)
@@ -21,6 +20,10 @@ import Time exposing (Time)
 
 type alias Model =
     Benchmark
+
+
+default =
+    Plot.defaultSeriesPlotCustomizations
 
 
 breakForRender : Task x a -> Task x a
@@ -281,6 +284,14 @@ benchmarkView benchmark =
                                 |> Html.text
                                 |> List.singleton
                                 |> Html.pre []
+                            , Samples.all samples
+                                |> List.map (\( x, y ) -> toString x ++ "\t" ++ toString y)
+                                |> String.join "\n"
+                                |> (\stuff -> Html.textarea [ A.value stuff ] [])
+                            , Plot.viewSeriesCustom
+                                { default | height = 300 }
+                                [ Plot.dots (List.map (uncurry Plot.circle)) ]
+                                (Samples.all samples)
                             ]
 
                     _ ->

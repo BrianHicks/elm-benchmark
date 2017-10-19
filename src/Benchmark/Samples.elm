@@ -3,6 +3,7 @@ module Benchmark.Samples
         ( Line
         , Lines
         , Samples
+        , all
         , count
         , empty
         , fitLines
@@ -20,7 +21,7 @@ module Benchmark.Samples
 
 ## Evaluation
 
-@docs Lines, Line, fitLines
+@docs Lines, Line, all, fitLines
 
 -}
 

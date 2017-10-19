@@ -383,7 +383,7 @@ stepLowLevel operation status =
         Pending total baseSampleSize samples ->
             let
                 sampleSize =
-                    baseSampleSize * ((Samples.count samples % 50) + 1)
+                    baseSampleSize * ((Samples.count samples % 10) + 1)
             in
             LowLevel.sample sampleSize operation
                 |> Task.map
