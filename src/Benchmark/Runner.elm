@@ -241,6 +241,11 @@ name benchmark =
             name
 
 
+cell : String -> Html msg
+cell caption =
+    Html.td [] [ Html.text caption ]
+
+
 benchmarkView : Report -> Html Msg
 benchmarkView benchmark =
     let
@@ -279,11 +284,17 @@ benchmarkView benchmark =
                 , case status of
                     Status.Success samples ->
                         Html.div []
-                            [ Samples.fitLines samples
-                                |> toString
-                                |> Html.text
-                                |> List.singleton
-                                |> Html.pre []
+                            [ case Samples.fitLines samples of
+                                Nothing ->
+                                    Html.text "why is this blank? A MYSTERY!"
+
+                                Just { minimums, all, maximums } ->
+                                    Html.table []
+                                        [ Html.tr [] [ cell "Kind", cell "Slope", cell "Intercept", cell "Confidence" ]
+                                        , Html.tr [] [ cell "Min", cell <| toString minimums.line.slope, cell <| toString minimums.line.intercept, cell <| percent minimums.confidence ]
+                                        , Html.tr [] [ cell "All", cell <| toString all.line.slope, cell <| toString all.line.intercept, cell <| percent all.confidence ]
+                                        , Html.tr [] [ cell "Max", cell <| toString maximums.line.slope, cell <| toString maximums.line.intercept, cell <| percent maximums.confidence ]
+                                        ]
                             , Samples.all samples
                                 |> List.map (\( x, y ) -> toString x ++ "\t" ++ toString y)
                                 |> String.join "\n"
