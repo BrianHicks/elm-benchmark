@@ -16,6 +16,7 @@ import Plot
 import Process
 import Task exposing (Task)
 import Time exposing (Time)
+import Trend.Linear as Linear
 
 
 type alias Model =
@@ -284,20 +285,33 @@ benchmarkView benchmark =
                 , case status of
                     Status.Success samples ->
                         Html.div []
-                            [ -- case Samples.fitLines samples of
-                              -- Nothing ->
-                              --     Html.text "why is this blank? A MYSTERY!"
-                              -- Just { minimums, all, maximums } ->
-                              --     Html.table []
-                              --         [ Html.tr [] [ cell "Kind", cell "Slope", cell "Intercept", cell "Confidence" ]
-                              --         , Html.tr [] [ cell "Min", cell <| toString minimums.line.slope, cell <| toString minimums.line.intercept, cell <| percent minimums.confidence ]
-                              --         , Html.tr [] [ cell "All", cell <| toString all.line.slope, cell <| toString all.line.intercept, cell <| percent all.confidence ]
-                              --         , Html.tr [] [ cell "Max", cell <| toString maximums.line.slope, cell <| toString maximums.line.intercept, cell <| percent maximums.confidence ]
-                              --         ]
-                              Samples.points samples
-                                |> List.map (\( x, y ) -> toString x ++ "\t" ++ toString y)
-                                |> String.join "\n"
-                                |> (\stuff -> Html.textarea [ A.value stuff ] [])
+                            [ case Samples.trend samples of
+                                Err err ->
+                                    Html.text <| "something went wrong! Namely: " ++ toString err
+
+                                Ok trend ->
+                                    let
+                                        primary =
+                                            Linear.line trend
+
+                                        ( upper, lower ) =
+                                            Linear.confidenceInterval trend
+                                    in
+                                    Html.table []
+                                        [ Html.tr [] [ cell "Kind", cell "runs per second" ]
+                                        , Html.tr []
+                                            [ cell "Slowest 95%"
+                                            , cell <| humanizeNumber <| floor <| Linear.predictX upper Time.second
+                                            ]
+                                        , Html.tr []
+                                            [ cell "Median"
+                                            , cell <| humanizeNumber <| floor <| Linear.predictX primary Time.second
+                                            ]
+                                        , Html.tr []
+                                            [ cell "Fastest 95%"
+                                            , cell <| humanizeNumber <| floor <| Linear.predictX lower Time.second
+                                            ]
+                                        ]
                             , Plot.viewSeriesCustom
                                 { default | height = 300 }
                                 [ Plot.dots (List.map (uncurry Plot.circle)) ]

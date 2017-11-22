@@ -6,6 +6,7 @@ module Benchmark.Samples
         , points
         , record
         , total
+        , trend
         )
 
 {-| Collect information about samples.
@@ -25,6 +26,7 @@ module Benchmark.Samples
 import Dict exposing (Dict)
 import Time exposing (Time)
 import Trend.Linear exposing (Robust, Trend, robust)
+import Trend.Math exposing (Error)
 
 
 {-| Samples keeps track of the sample size at which samples have been gathered.
@@ -90,3 +92,10 @@ points (Samples samples) =
                     runtimes
             )
         |> List.concat
+
+
+{-| Get a trend for these samples.
+-}
+trend : Samples -> Result Error (Trend Robust)
+trend =
+    points >> robust
