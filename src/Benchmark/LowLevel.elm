@@ -91,58 +91,7 @@ of how this all works.)
 -}
 warmup : Operation -> Task Error ()
 warmup operation =
-    -- TODO: this doesn't appear to have made a really significant improvement
-    -- over just running the benchmark a thousand times or so. Could this be
-    -- replace with a call to `findSampleSizeWithMinimum` of a large-ish
-    -- minimum? Measure measure measure measure measure.
-    --
-    -- TODO #2: should `warmup` even live in this module?
-    let
-        successThreshold =
-            5
-
-        failureThreshold =
-            successThreshold * -10
-
-        lag : List a -> List ( a, a )
-        lag stuff =
-            List.map2 (,)
-                stuff
-                (List.tail stuff |> Maybe.withDefault [])
-
-        delay : Task x a -> Task x a
-        delay task =
-            task |> Task.andThen (\x -> Process.sleep Time.millisecond |> Task.map (\_ -> x))
-
-        sampleSeries : Int -> Task Error (List Time)
-        sampleSeries size =
-            List.repeat 11 (sample size operation |> delay)
-                |> Task.sequence
-
-        loop : Int -> Int -> List Time -> Task Error ()
-        loop size retries current =
-            case Math.correlation (lag current) of
-                Nothing ->
-                    Task.fail (UnknownError "could not correlate previous and current samples")
-
-                Just thisCorrel ->
-                    if thisCorrel < 0.05 then
-                        if retries >= successThreshold then
-                            Task.succeed ()
-                        else
-                            sampleSeries size |> Task.andThen (loop size (max retries 0 + 1))
-                    else if retries <= failureThreshold then
-                        Task.fail DidNotStabilize
-                    else
-                        sampleSeries size |> Task.andThen (loop (min retries 0 - 1) size)
-    in
-    operation
-        |> findSampleSizeWithMinimum (5 * Time.millisecond)
-        |> Task.andThen
-            (\size ->
-                sampleSeries size
-                    |> Task.andThen (loop size 0)
-            )
+    findSampleSizeWithMinimum (100 * Time.millisecond) operation |> Task.map (always ())
 
 
 findSampleSizeWithMinimum : Time -> Operation -> Task Error Int
