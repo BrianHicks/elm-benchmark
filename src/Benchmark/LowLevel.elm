@@ -91,7 +91,23 @@ of how this all works.)
 -}
 warmup : Operation -> Task Error ()
 warmup operation =
-    findSampleSizeWithMinimum (100 * Time.millisecond) operation |> Task.map (always ())
+    let
+        toCollect =
+            Time.second
+
+        sampleSize =
+            10000
+
+        helper : Float -> Task Error ()
+        helper soFar =
+            if soFar >= toCollect then
+                Task.succeed ()
+            else
+                sample sampleSize operation
+                    |> Task.map ((+) soFar)
+                    |> Task.andThen helper
+    in
+    helper 0
 
 
 findSampleSizeWithMinimum : Time -> Operation -> Task Error Int
