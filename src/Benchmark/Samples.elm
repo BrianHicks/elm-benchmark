@@ -30,52 +30,46 @@ import Trend.Linear exposing (Robust, Trend, robust)
 {-| Samples keeps track of the sample size at which samples have been gathered.
 -}
 type Samples
-    = Samples
-        { samples : Dict Int (List Time)
-        , trend : Maybe (Trend Robust)
-        }
+    = Samples (Dict Int (List Time))
 
 
 {-| an empty samples for initializing things
 -}
 empty : Samples
 empty =
-    Samples { samples = Dict.empty, trend = Nothing }
+    Samples Dict.empty
 
 
 {-| How many samples have we collected in total?
 -}
 count : Samples -> Int
-count (Samples { samples }) =
+count (Samples samples) =
     Dict.foldl (\_ times acc -> List.length times + acc) 0 samples
 
 
 {-| What is the sum of our samples?
 -}
 total : Samples -> Time
-total (Samples { samples }) =
+total (Samples samples) =
     Dict.foldl (\_ times acc -> List.sum times + acc) 0 samples
 
 
 {-| Record a new sample
 -}
 record : Int -> Time -> Samples -> Samples
-record sampleSize sample (Samples { samples }) =
-    Samples
-        { samples =
-            Dict.update
-                sampleSize
-                (\value ->
-                    case value of
-                        Nothing ->
-                            Just [ sample ]
+record sampleSize sample (Samples samples) =
+    Samples <|
+        Dict.update
+            sampleSize
+            (\value ->
+                case value of
+                    Nothing ->
+                        Just [ sample ]
 
-                        Just samples ->
-                            Just (sample :: samples)
-                )
-                samples
-        , trend = Nothing
-        }
+                    Just samples ->
+                        Just (sample :: samples)
+            )
+            samples
 
 
 {-| The `(sampleSize, runtime)` coordinates for plotting or calculation.
@@ -86,7 +80,7 @@ item will always be integral.
 
 -}
 points : Samples -> List ( Float, Float )
-points (Samples { samples }) =
+points (Samples samples) =
     samples
         |> Dict.toList
         |> List.map
