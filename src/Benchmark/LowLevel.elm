@@ -99,10 +99,7 @@ findSampleSizeWithMinimum minimumRuntime operation =
     let
         sampleSize : Int -> Int
         sampleSize i =
-            logBase 15 (toFloat i)
-                * 10000
-                |> floor
-                |> max 1
+            i * 1000
 
         resample : Int -> Time -> Task Error Int
         resample iteration total =
