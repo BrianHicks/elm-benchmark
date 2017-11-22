@@ -127,7 +127,7 @@ findSampleSizeWithMinimum minimumRuntime operation =
                     |> Task.map (List.minimum >> Maybe.withDefault 0)
                     |> Task.andThen (resample (iteration + 1))
             else
-                Task.succeed (sampleSize (Debug.log "successful after" iteration))
+                Task.succeed (sampleSize iteration)
     in
     resample 1 0
         |> Task.map standardizeSampleSize
