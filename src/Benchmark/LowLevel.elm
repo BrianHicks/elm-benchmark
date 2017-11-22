@@ -97,23 +97,26 @@ warmup operation =
 findSampleSizeWithMinimum : Time -> Operation -> Task Error Int
 findSampleSizeWithMinimum minimumRuntime operation =
     let
-        initialSampleSize =
-            1
+        sampleSize : Int -> Int
+        sampleSize i =
+            logBase 15 (toFloat i)
+                * 10000
+                |> floor
+                |> max 1
 
         resample : Int -> Time -> Task Error Int
-        resample size total =
+        resample iteration total =
             if total < minimumRuntime then
-                let
-                    new =
-                        ceiling <| toFloat size * 1.618103
-                in
-                sample new operation
-                    |> Task.andThen (resample new)
+                sample (sampleSize iteration) operation
+                    -- avoid large outliers by taking the lowest of several samples
+                    |> List.repeat 3
+                    |> Task.sequence
+                    |> Task.map (List.minimum >> Maybe.withDefault 0)
+                    |> Task.andThen (resample (iteration + 1))
             else
-                Task.succeed size
+                Task.succeed (sampleSize (Debug.log "successful after" iteration))
     in
-    sample initialSampleSize operation
-        |> Task.andThen (resample initialSampleSize)
+    resample 1 0
         |> Task.map standardizeSampleSize
 
 
