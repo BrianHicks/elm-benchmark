@@ -284,25 +284,24 @@ benchmarkView benchmark =
                 , case status of
                     Status.Success samples ->
                         Html.div []
-                            [ case Samples.fitLines samples of
-                                Nothing ->
-                                    Html.text "why is this blank? A MYSTERY!"
-
-                                Just { minimums, all, maximums } ->
-                                    Html.table []
-                                        [ Html.tr [] [ cell "Kind", cell "Slope", cell "Intercept", cell "Confidence" ]
-                                        , Html.tr [] [ cell "Min", cell <| toString minimums.line.slope, cell <| toString minimums.line.intercept, cell <| percent minimums.confidence ]
-                                        , Html.tr [] [ cell "All", cell <| toString all.line.slope, cell <| toString all.line.intercept, cell <| percent all.confidence ]
-                                        , Html.tr [] [ cell "Max", cell <| toString maximums.line.slope, cell <| toString maximums.line.intercept, cell <| percent maximums.confidence ]
-                                        ]
-                            , Samples.all samples
+                            [ -- case Samples.fitLines samples of
+                              -- Nothing ->
+                              --     Html.text "why is this blank? A MYSTERY!"
+                              -- Just { minimums, all, maximums } ->
+                              --     Html.table []
+                              --         [ Html.tr [] [ cell "Kind", cell "Slope", cell "Intercept", cell "Confidence" ]
+                              --         , Html.tr [] [ cell "Min", cell <| toString minimums.line.slope, cell <| toString minimums.line.intercept, cell <| percent minimums.confidence ]
+                              --         , Html.tr [] [ cell "All", cell <| toString all.line.slope, cell <| toString all.line.intercept, cell <| percent all.confidence ]
+                              --         , Html.tr [] [ cell "Max", cell <| toString maximums.line.slope, cell <| toString maximums.line.intercept, cell <| percent maximums.confidence ]
+                              --         ]
+                              Samples.points samples
                                 |> List.map (\( x, y ) -> toString x ++ "\t" ++ toString y)
                                 |> String.join "\n"
                                 |> (\stuff -> Html.textarea [ A.value stuff ] [])
                             , Plot.viewSeriesCustom
                                 { default | height = 300 }
                                 [ Plot.dots (List.map (uncurry Plot.circle)) ]
-                                (Samples.all samples)
+                                (Samples.points samples)
                             ]
 
                     _ ->

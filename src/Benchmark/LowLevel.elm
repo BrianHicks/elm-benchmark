@@ -31,7 +31,6 @@ we'll find a way to make your use case friendlier.
 
 -}
 
-import Benchmark.Math as Math
 import Native.Benchmark
 import Process
 import Task exposing (Task)

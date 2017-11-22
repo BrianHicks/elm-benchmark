@@ -42,9 +42,9 @@ how these fit together.
 type Status
     = Cold Time
     | Unsized Time
-    | Pending Time Int (Dict Int (List Time))
+    | Pending Time Int Samples
     | Failure Error
-    | Success (Dict Int (List Time))
+    | Success Samples
 
 
 {-| How far along is this benchmark? This is a percentage, represented as a
