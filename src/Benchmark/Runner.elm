@@ -349,7 +349,7 @@ view model =
     main : BenchmarkProgram
     main =
         Runner.program <|
-            Benchmark.group "your benchmarks"
+            Benchmark.describe "your benchmarks"
                 [-- your benchmarks here
                 ]
 
