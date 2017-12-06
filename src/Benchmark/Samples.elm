@@ -3,6 +3,7 @@ module Benchmark.Samples
         ( Samples
         , count
         , empty
+        , groups
         , points
         , record
         , total
@@ -92,6 +93,13 @@ points (Samples samples) =
                     runtimes
             )
         |> List.concat
+
+
+{-| A dictionary of samples grouped by sample size.
+-}
+groups : Samples -> Dict Int (List Time)
+groups (Samples samples) =
+    samples
 
 
 {-| Get a trend for these samples.

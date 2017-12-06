@@ -10,6 +10,7 @@ import Benchmark exposing (Benchmark)
 import Benchmark.Reporting as Reporting exposing (Report, Stats)
 import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status)
+import Dict
 import Html exposing (Html)
 import Html.Attributes as A
 import Plot
@@ -17,6 +18,7 @@ import Process
 import Task exposing (Task)
 import Time exposing (Time)
 import Trend.Linear as Linear
+import Trend.Math as Math
 
 
 type alias Model =
@@ -291,27 +293,47 @@ benchmarkView benchmark =
 
                                 Ok trend ->
                                     let
-                                        primary =
+                                        line =
                                             Linear.line trend
-
-                                        ( upper, lower ) =
-                                            Linear.confidenceInterval trend
                                     in
                                     Html.table []
-                                        [ Html.tr [] [ cell "Kind", cell "runs per second" ]
-                                        , Html.tr []
-                                            [ cell "Slowest 95%"
-                                            , cell <| humanizeNumber <| floor <| Linear.predictX upper Time.second
+                                        [ Html.tr []
+                                            [ cell "Kind"
+                                            , cell "runs per second"
+                                            , cell "off by"
                                             ]
                                         , Html.tr []
-                                            [ cell "Median"
-                                            , cell <| humanizeNumber <| floor <| Linear.predictX primary Time.second
-                                            ]
-                                        , Html.tr []
-                                            [ cell "Fastest 95%"
-                                            , cell <| humanizeNumber <| floor <| Linear.predictX lower Time.second
+                                            [ cell "Predicted"
+                                            , Linear.predictX line Time.second
+                                                |> floor
+                                                |> humanizeNumber
+                                                |> cell
+                                            , samples
+                                                |> Samples.groups
+                                                |> Dict.map
+                                                    (\x ys ->
+                                                        case Math.mean ys of
+                                                            Err err ->
+                                                                []
+
+                                                            Ok mean ->
+                                                                List.map (\y -> (y / Linear.predictY line (toFloat x)) - 1) ys
+                                                    )
+                                                |> Dict.values
+                                                |> List.concat
+                                                |> Math.mean
+                                                |> Result.map percent
+                                                |> Result.withDefault "something went wrong"
+                                                |> cell
                                             ]
                                         ]
+                            , samples
+                                |> Samples.points
+                                |> List.map (\( m, n ) -> toString m ++ "\t" ++ toString n)
+                                |> String.join "\n"
+                                |> Html.text
+                                |> List.singleton
+                                |> Html.textarea []
                             , Plot.viewSeriesCustom
                                 { default | height = 300 }
                                 [ Plot.dots (List.map (uncurry Plot.circle)) ]
