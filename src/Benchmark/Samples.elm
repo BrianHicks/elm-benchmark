@@ -26,7 +26,7 @@ module Benchmark.Samples
 
 import Dict exposing (Dict)
 import Time exposing (Time)
-import Trend.Linear exposing (Robust, Trend, robust)
+import Trend.Linear exposing (Quick, Trend, quick)
 import Trend.Math exposing (Error)
 
 
@@ -104,6 +104,6 @@ groups (Samples samples) =
 
 {-| Get a trend for these samples.
 -}
-trend : Samples -> Result Error (Trend Robust)
+trend : Samples -> Result Error (Trend Quick)
 trend =
-    points >> robust
+    points >> quick

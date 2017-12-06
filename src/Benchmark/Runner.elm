@@ -300,7 +300,7 @@ benchmarkView benchmark =
                                         [ Html.tr []
                                             [ cell "Kind"
                                             , cell "runs per second"
-                                            , cell "off by"
+                                            , cell "goodness of fit"
                                             ]
                                         , Html.tr []
                                             [ cell "Predicted"
@@ -308,22 +308,8 @@ benchmarkView benchmark =
                                                 |> floor
                                                 |> humanizeNumber
                                                 |> cell
-                                            , samples
-                                                |> Samples.groups
-                                                |> Dict.map
-                                                    (\x ys ->
-                                                        case Math.mean ys of
-                                                            Err err ->
-                                                                []
-
-                                                            Ok mean ->
-                                                                List.map (\y -> (y / Linear.predictY line (toFloat x)) - 1) ys
-                                                    )
-                                                |> Dict.values
-                                                |> List.concat
-                                                |> Math.mean
-                                                |> Result.map percent
-                                                |> Result.withDefault "something went wrong"
+                                            , Linear.goodnessOfFit trend
+                                                |> percent
                                                 |> cell
                                             ]
                                         ]
