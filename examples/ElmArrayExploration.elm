@@ -12,7 +12,7 @@ type alias Input =
 
 largeArraySize : Int
 largeArraySize =
-    10000
+    100
 
 
 suite : Int -> Benchmark
