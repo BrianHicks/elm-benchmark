@@ -21,348 +21,13 @@ import Trend.Linear as Linear
 import Trend.Math as Math
 
 
-type alias Model =
-    Benchmark
+-- USER-VISIBLE API
 
 
-default =
-    Plot.defaultSeriesPlotCustomizations
-
-
-breakForRender : Task x a -> Task x a
-breakForRender task =
-    Task.andThen (\_ -> task) (Process.sleep 0)
-
-
-next : Benchmark -> Cmd Msg
-next benchmark =
-    if Benchmark.done benchmark then
-        Cmd.none
-    else
-        Benchmark.step benchmark
-            |> breakForRender
-            |> Task.perform Update
-
-
-init : Benchmark -> ( Model, Cmd Msg )
-init benchmark =
-    ( benchmark
-    , if Benchmark.done benchmark then
-        Cmd.none
-      else
-        next benchmark
-    )
-
-
-type Msg
-    = Update Benchmark
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    case msg of
-        Update benchmark ->
-            if Benchmark.done benchmark then
-                ( benchmark, Cmd.none )
-            else
-                ( benchmark, next benchmark )
-
-
-percent : Float -> String
-percent pct =
-    pct
-        |> (*) 10000
-        |> round
-        |> toFloat
-        |> flip (/) 100
-        |> toString
-
-
-percentChange : Float -> String
-percentChange pct =
-    pct
-        |> (*) 10000
-        |> round
-        |> toFloat
-        |> flip (/) 100
-        |> (\i ->
-                case compare i 0 of
-                    GT ->
-                        "+" ++ toString i ++ "%"
-
-                    _ ->
-                        toString i ++ "%"
-           )
-
-
-humanizeTime : Time -> String
-humanizeTime =
-    let
-        chopToThousandth : Float -> Float
-        chopToThousandth =
-            (*) 1000 >> round >> toFloat >> flip (/) 1000
-
-        helper : List String -> Float -> String
-        helper units time =
-            case units of
-                unit :: [] ->
-                    toString (chopToThousandth time) ++ unit
-
-                unit :: rest ->
-                    if time > 1 then
-                        toString (chopToThousandth time) ++ unit
-                    else
-                        helper rest (time * 1000)
-
-                _ ->
-                    toString time ++ " of unknown unit"
-    in
-    Time.inSeconds >> helper [ "s", "ms", "µs", "ns" ]
-
-
-chopDecimal : Int -> Float -> Float
-chopDecimal places number =
-    let
-        magnitude =
-            10 ^ places |> toFloat
-    in
-    number
-        * magnitude
-        |> round
-        |> toFloat
-        |> flip (/) magnitude
-
-
-groupsOfThree : List a -> List (List a)
-groupsOfThree items =
-    case List.take 3 items of
-        [] ->
-            []
-
-        xs ->
-            xs :: groupsOfThree (List.drop 3 items)
-
-
-humanizeNumber : number -> String
-humanizeNumber number =
-    let
-        humanizeIntegralPart =
-            String.reverse
-                >> String.toList
-                >> groupsOfThree
-                >> List.map String.fromList
-                >> String.join ","
-                >> String.reverse
-
-        humanizeDecimalPart part =
-            if part == "" then
-                ""
-            else if String.endsWith "0" part then
-                humanizeDecimalPart (String.dropRight 1 part)
-            else
-                "." ++ part
-    in
-    case number |> toString |> String.split "." of
-        [ l ] ->
-            humanizeIntegralPart l
-
-        [ l, r ] ->
-            humanizeIntegralPart l ++ humanizeDecimalPart r
-
-        _ ->
-            toString number
-
-
-humanizeSamplingMethodology : Stats -> String
-humanizeSamplingMethodology stats =
-    (humanizeNumber <| List.length stats.samples)
-        ++ " runs of "
-        ++ humanizeNumber stats.sampleSize
-        ++ " calls"
-
-
-humanizeMeanRuntime : Stats -> String
-humanizeMeanRuntime stats =
-    let
-        ( mean, stddev ) =
-            Reporting.meanRuntime stats
-
-        pctDiff =
-            (stddev + mean) / mean - 1
-    in
-    humanizeTime mean
-        ++ " (stddev: "
-        ++ humanizeTime stddev
-        ++ ", "
-        ++ percent pctDiff
-        ++ "%)"
-
-
-humanizeOpsPerSec : Stats -> String
-humanizeOpsPerSec stats =
-    let
-        ( ops, stddev ) =
-            Reporting.operationsPerSecond stats
-
-        pctDiff =
-            (stddev + ops) / ops - 1
-    in
-    (humanizeNumber <| chopDecimal 2 <| ops)
-        ++ " (stddev: "
-        ++ (humanizeNumber <| chopDecimal 2 <| stddev)
-        ++ ", "
-        ++ percent pctDiff
-        ++ "%)"
-
-
-attrs : List ( String, Html msg ) -> Html msg
-attrs list =
-    let
-        row : ( String, Html msg ) -> Html msg
-        row ( caption, value ) =
-            Html.tr
-                []
-                [ Html.th [ A.style [ ( "text-align", "right" ) ] ] [ Html.text caption ]
-                , Html.td [] [ value ]
-                ]
-    in
-    Html.table
-        []
-        (List.map row list)
-
-
-name : Report -> String
-name benchmark =
-    case benchmark of
-        Reporting.Single name _ ->
-            name
-
-        Reporting.Series name _ ->
-            name
-
-        Reporting.Group name _ ->
-            name
-
-
-cell : String -> Html msg
-cell caption =
-    Html.td [] [ Html.text caption ]
-
-
-benchmarkView : Report -> Html Msg
-benchmarkView benchmark =
-    let
-        humanizeStatus : Status -> Html a
-        humanizeStatus status =
-            case status of
-                Status.Cold _ ->
-                    Html.text "Cold JIT"
-
-                Status.Unsized _ ->
-                    Html.text "Needs Sizing"
-
-                Status.Pending time baseSampleSize samples ->
-                    Html.div
-                        []
-                        [ Html.progress
-                            [ A.max <| toString time
-                            , A.value <| toString <| Samples.total samples
-                            , A.style [ ( "display", "block" ) ]
-                            ]
-                            []
-                        , Html.text <| "Collected " ++ humanizeTime (Samples.total samples) ++ " of " ++ humanizeTime time
-                        ]
-
-                Status.Failure error ->
-                    Html.text <| "Error: " ++ toString error
-
-                Status.Success _ ->
-                    Html.text "Complete"
-    in
-    case benchmark of
-        Reporting.Single name status ->
-            Html.section
-                []
-                [ Html.h1 [] [ Html.text <| "Benchmark: " ++ name ]
-                , case status of
-                    Status.Success samples ->
-                        Html.div []
-                            [ case Samples.trend samples of
-                                Err err ->
-                                    Html.text <| "something went wrong! Namely: " ++ toString err
-
-                                Ok trend ->
-                                    let
-                                        line =
-                                            Linear.line trend
-                                    in
-                                    Html.table []
-                                        [ Html.tr []
-                                            [ cell "Kind"
-                                            , cell "runs per second"
-                                            , cell "goodness of fit"
-                                            ]
-                                        , Html.tr []
-                                            [ cell "Predicted"
-                                            , Linear.predictX line Time.second
-                                                |> floor
-                                                |> humanizeNumber
-                                                |> cell
-                                            , Linear.goodnessOfFit trend
-                                                |> percent
-                                                |> cell
-                                            ]
-                                        ]
-                            , samples
-                                |> Samples.points
-                                |> List.map (\( m, n ) -> toString m ++ "\t" ++ toString n)
-                                |> String.join "\n"
-                                |> Html.text
-                                |> List.singleton
-                                |> Html.textarea []
-                            , Plot.viewSeriesCustom
-                                { default | height = 300 }
-                                [ Plot.dots (List.map (uncurry Plot.circle)) ]
-                                (Samples.points samples)
-                            ]
-
-                    _ ->
-                        attrs [ ( "status", humanizeStatus status ) ]
-                ]
-
-        Reporting.Series _ benchmarks ->
-            Html.section
-                []
-                [ Html.h1 [] [ Html.text <| "Comparing " ++ name benchmark ]
-                , benchmarks
-                    |> List.map (uncurry Reporting.Single)
-                    |> List.map benchmarkView
-                    |> Html.ol []
-                ]
-
-        Reporting.Group name benchmarks ->
-            Html.section
-                []
-                [ Html.h1 [] [ Html.text <| "Group: " ++ name ]
-                , Html.ol [] (List.map benchmarkView benchmarks)
-                ]
-
-
-view : Model -> Html Msg
-view model =
-    Html.div
-        []
-        [ Html.p
-            []
-            [ if Benchmark.done model then
-                Html.text "Benchmark Finished"
-              else
-                Html.text "Benchmark Running"
-            ]
-        , model
-            |> Reporting.fromBenchmark
-            |> benchmarkView
-        ]
+{-| A handy type alias for values produced by [`program`](#program)
+-}
+type alias BenchmarkProgram =
+    Program Never Model Msg
 
 
 {-| Create a runner program from a benchmark. For example:
@@ -387,7 +52,53 @@ program benchmark =
         }
 
 
-{-| A handy type alias for values produced by [`program`](#program)
--}
-type alias BenchmarkProgram =
-    Program Never Model Msg
+
+-- MODEL
+
+
+type alias Model =
+    Benchmark
+
+
+init : Benchmark -> ( Model, Cmd Msg )
+init benchmark =
+    ( benchmark, next benchmark )
+
+
+
+-- UPDATE
+
+
+type Msg
+    = Update Benchmark
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        Update benchmark ->
+            ( benchmark, next benchmark )
+
+
+breakForRender : Task x a -> Task x a
+breakForRender task =
+    Task.andThen (\_ -> task) (Process.sleep 0)
+
+
+next : Benchmark -> Cmd Msg
+next benchmark =
+    if Benchmark.done benchmark then
+        Cmd.none
+    else
+        Benchmark.step benchmark
+            |> breakForRender
+            |> Task.perform Update
+
+
+
+-- VIEW
+
+
+view : Model -> Html Msg
+view model =
+    Html.text <| toString model
