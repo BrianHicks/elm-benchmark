@@ -2,7 +2,7 @@ module Benchmark.ReportingTest exposing (..)
 
 import Benchmark.LowLevel as LowLevel
 import Benchmark.Reporting as Reporting
-import Benchmark.Samples exposing (Samples)
+import Benchmark.Samples as Samples exposing (Samples)
 import Benchmark.Status as Status exposing (Status)
 import Dict
 import Expect
@@ -29,13 +29,12 @@ error =
 
 samples : Fuzzer Samples
 samples =
-    Fuzz.map
-        (uncurry Dict.singleton)
-        (Fuzz.tuple
-            ( Fuzz.int
-            , Fuzz.list Fuzz.float
-            )
+    Fuzz.map2
+        (\size samples ->
+            List.foldl (Samples.record size) Samples.empty samples
         )
+        Fuzz.int
+        (Fuzz.list Fuzz.float)
 
 
 status : Fuzzer Status
