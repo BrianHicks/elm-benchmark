@@ -3,6 +3,7 @@ module Benchmark.Runner.App exposing (Model, Msg, init, update, view)
 import Benchmark exposing (Benchmark)
 import Benchmark.Reporting as Reporting
 import Benchmark.Runner.InProgress as InProgress
+import Benchmark.Runner.Text as Text
 import Color
 import Element exposing (..)
 import Element.Attributes exposing (..)
@@ -77,8 +78,18 @@ view model =
                     |> Element.mapAll identity InProgressClass identity
     in
     Element.viewport (Style.styleSheet styles) <|
-        Element.el Page [ width fill, height fill ] <|
-            Element.el Wrapper [ center, verticalCenter, maxWidth (px 800) ] <|
+        Element.el Page
+            [ width fill
+            , height fill
+            ]
+        <|
+            Element.el Wrapper
+                [ center
+                , verticalCenter
+                , maxWidth (px 800)
+                , padding 60
+                ]
+            <|
                 body
 
 
@@ -94,7 +105,7 @@ type Class
 
 styles : List (Style Class variation)
 styles =
-    [ style Page [ Color.background <| Color.rgb 242 242 242 ]
+    [ style Page (Text.body ++ [ Color.background <| Color.rgb 242 242 242 ])
     , style Wrapper []
     , InProgress.styles
         |> Sheet.map InProgressClass identity
