@@ -1,6 +1,8 @@
 module Benchmark.Runner.App exposing (Model, Msg, init, update, view)
 
 import Benchmark exposing (Benchmark)
+import Benchmark.Reporting as Reporting
+import Benchmark.Runner.Reporting exposing (paths)
 import Html exposing (Html)
 import Process
 import Task exposing (Task)
@@ -54,4 +56,8 @@ next benchmark =
 
 view : Model -> Html Msg
 view model =
-    Html.text <| toString model
+    model
+        |> Reporting.fromBenchmark
+        |> paths
+        |> toString
+        |> Html.text
