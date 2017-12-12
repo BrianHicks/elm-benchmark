@@ -1,4 +1,4 @@
-ELM_FILES = $(wildcard src/*.elm) $(wildcard src/**/*.elm) $(wildcard src/**/*.js)
+ELM_FILES = $(shell find src -name '*.elm' -or -name '*.js')
 
 documentation.json: ${ELM_FILES} elm-package.json
 	elm make --yes --warn --docs=$@
