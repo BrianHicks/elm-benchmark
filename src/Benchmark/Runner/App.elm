@@ -2,9 +2,15 @@ module Benchmark.Runner.App exposing (Model, Msg, init, update, view)
 
 import Benchmark exposing (Benchmark)
 import Benchmark.Reporting as Reporting
-import Benchmark.Runner.Reporting exposing (paths)
+import Benchmark.Runner.InProgress as InProgress
+import Color
+import Element exposing (..)
+import Element.Attributes exposing (..)
 import Html exposing (Html)
 import Process
+import Style exposing (..)
+import Style.Color as Color
+import Style.Sheet as Sheet
 import Task exposing (Task)
 
 
@@ -56,8 +62,41 @@ next benchmark =
 
 view : Model -> Html Msg
 view model =
-    model
-        |> Reporting.fromBenchmark
-        |> paths
-        |> toString
-        |> Html.text
+    let
+        body : Element Class variation Msg
+        body =
+            if Benchmark.done model then
+                model
+                    |> Reporting.fromBenchmark
+                    |> toString
+                    |> Element.text
+            else
+                model
+                    |> Reporting.fromBenchmark
+                    |> InProgress.view
+                    |> Element.mapAll identity InProgressClass identity
+    in
+    Element.viewport (Style.styleSheet styles) <|
+        Element.el Page [ width fill, height fill ] <|
+            Element.el Wrapper [ center, verticalCenter, maxWidth (px 800) ] <|
+                body
+
+
+
+-- STYLE
+
+
+type Class
+    = Page
+    | Wrapper
+    | InProgressClass InProgress.Class
+
+
+styles : List (Style Class variation)
+styles =
+    [ style Page [ Color.background <| Color.rgb 242 242 242 ]
+    , style Wrapper []
+    , InProgress.styles
+        |> Sheet.map InProgressClass identity
+        |> Sheet.merge
+    ]
