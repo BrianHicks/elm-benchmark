@@ -32,8 +32,17 @@ hero class caption =
             (text caption)
 
 
+path : (Class -> class) -> List String -> Element class variation msg
+path class parts =
+    parts
+        |> String.join " / "
+        |> text
+        |> el (class Path) []
+
+
 type Class
     = Hero
+    | Path
 
 
 styles : List (Style Class variation)
@@ -41,5 +50,9 @@ styles =
     [ style Hero
         [ Font.center
         , Font.size 48
+        ]
+    , style Path
+        [ Font.alignLeft
+        , Font.size 18
         ]
     ]
