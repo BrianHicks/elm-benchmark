@@ -30,11 +30,7 @@ module Benchmark.Reporting
 -}
 
 import Benchmark.Benchmark as Benchmark exposing (Benchmark)
-import Benchmark.LowLevel as LowLevel
 import Benchmark.Status as Status exposing (Status(..))
-import Dict
-import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode exposing (Value)
 import Time exposing (Time)
 
 

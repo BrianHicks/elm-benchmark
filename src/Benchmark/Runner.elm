@@ -13,12 +13,6 @@ import Benchmark.Status as Status exposing (Status)
 import Dict
 import Html exposing (Html)
 import Html.Attributes as A
-import Plot
-import Process
-import Task exposing (Task)
-import Time exposing (Time)
-import Trend.Linear as Linear
-import Trend.Math as Math
 
 
 -- USER-VISIBLE API

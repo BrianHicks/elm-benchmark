@@ -11,7 +11,6 @@ module Benchmark.Status exposing (Status(..), progress)
 
 import Benchmark.LowLevel exposing (Error)
 import Benchmark.Samples as Samples exposing (Samples)
-import Dict exposing (Dict)
 import Time exposing (Time)
 
 

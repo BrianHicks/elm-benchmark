@@ -32,7 +32,6 @@ we'll find a way to make your use case friendlier.
 -}
 
 import Native.Benchmark
-import Process
 import Task exposing (Task)
 import Time exposing (Time)
 
