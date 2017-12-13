@@ -42,7 +42,7 @@ progressBars reversedParents report =
 
 barsWithPath : List String -> List ( String, Status ) -> Element Class variation msg
 barsWithPath parents children =
-    column Unstyled [ paddingTop 5 ] <|
+    column Unstyled [ paddingTop 10 ] <|
         Text.path TextClass parents
             :: List.map (uncurry progressBar) children
 

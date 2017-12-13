@@ -27,7 +27,7 @@ hero class caption =
     node "h1" <|
         el (class Hero)
             [ width (percent 100)
-            , paddingBottom 40
+            , paddingBottom 20
             ]
             (text caption)
 
