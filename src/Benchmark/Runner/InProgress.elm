@@ -6,7 +6,6 @@ import Benchmark.Status as Status exposing (Status(..))
 import Color
 import Element exposing (..)
 import Element.Attributes exposing (..)
-import Json.Encode as Encode
 import Style exposing (..)
 import Style.Color as Color
 import Style.Font as Font
