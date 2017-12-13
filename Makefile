@@ -17,7 +17,7 @@ test: tests/elm-stuff
 	elm-test
 
 examples/%.html: examples/% examples/elm-stuff ${ELM_FILES}
-	cd examples; elm make --yes --output $(shell basename $@) $(shell basename $<)
+	cd examples; elm make --warn --yes --output $(shell basename $@) $(shell basename $<)
 
 .PHONY: clean
 clean:
