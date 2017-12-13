@@ -22,6 +22,13 @@ view report =
         |> column Unstyled []
 
 
+spacing =
+    { betweenSections = 10
+    , barY = 7
+    , barX = 15
+    }
+
+
 progressBars : List String -> Report -> List (Element Class variation msg)
 progressBars reversedParents report =
     case report of
@@ -40,7 +47,7 @@ progressBars reversedParents report =
 barsWithPath : List String -> List ( String, Status ) -> Element Class variation msg
 barsWithPath parents children =
     column Unstyled
-        [ paddingTop 10 ]
+        [ paddingTop spacing.betweenSections ]
         (Text.path TextClass parents
             :: List.map (uncurry progressBar) children
         )
@@ -49,7 +56,9 @@ barsWithPath parents children =
 progressBar : String -> Status -> Element Class variation msg
 progressBar name status =
     row Box
-        [ paddingXY 10 5, width (percent 100) ]
+        [ paddingXY spacing.barX spacing.barY
+        , width (percent 100)
+        ]
         [ caption name status ]
         |> within [ filledPortion name status ]
 
@@ -85,9 +94,9 @@ filledPortion : String -> Status -> Element Class variation msg
 filledPortion name status =
     if Status.progress status > 0 then
         el Progress
-            [ paddingTop 5
-            , paddingBottom 5
-            , paddingLeft 10
+            [ paddingTop spacing.barY
+            , paddingBottom spacing.barY
+            , paddingLeft spacing.barX
             , clip
             , width
                 (status
