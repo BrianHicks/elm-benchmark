@@ -3,6 +3,7 @@ module Benchmark.Runner.App exposing (Model, Msg, init, update, view)
 import Benchmark exposing (Benchmark)
 import Benchmark.Reporting as Reporting
 import Benchmark.Runner.InProgress as InProgress
+import Benchmark.Runner.Report as Report
 import Benchmark.Runner.Text as Text
 import Color
 import Element exposing (..)
@@ -69,8 +70,8 @@ view model =
             if Benchmark.done model then
                 model
                     |> Reporting.fromBenchmark
-                    |> toString
-                    |> Element.text
+                    |> Report.view
+                    |> Element.mapAll identity ReportClass identity
             else
                 model
                     |> Reporting.fromBenchmark
@@ -101,6 +102,7 @@ type Class
     = Page
     | Wrapper
     | InProgressClass InProgress.Class
+    | ReportClass Report.Class
 
 
 styles : List (Style Class variation)
@@ -109,5 +111,8 @@ styles =
     , style Wrapper []
     , InProgress.styles
         |> Sheet.map InProgressClass identity
+        |> Sheet.merge
+    , Report.styles
+        |> Sheet.map ReportClass identity
         |> Sheet.merge
     ]
