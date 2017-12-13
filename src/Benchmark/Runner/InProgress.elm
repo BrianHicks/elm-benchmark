@@ -43,24 +43,35 @@ progressBar parents name status =
         [ paddingTop 5 ]
         [ Text.path TextClass parents
         , row Box
-            [ paddingXY 10 5
-            , width (px 500)
+            [ paddingXY 10 5, width (px 500) ]
+            [ text name ]
+            |> within
+                [ row Progress
+                    [ paddingTop 5
+                    , paddingBottom 5
+                    , paddingLeft 10
+                    , clip
+                    , width
+                        (status
+                            |> Status.progress
+                            |> (*) 100
+                            |> percent
+                        )
 
-            -- display as a progressbar for a11y
-            , attribute "role" "progressbar"
-            , attribute "aria-valuenow"
-                (status
-                    |> Status.progress
-                    |> (*) 100
-                    |> floor
-                    |> toString
-                )
-            , attribute "aria-valuemin" "0"
-            , attribute "aria-valuemax" "100"
-            ]
-            [ text name
-            , text <| toString status
-            ]
+                    -- display as a progressbar for a11y
+                    , attribute "role" "progressbar"
+                    , attribute "aria-valuenow"
+                        (status
+                            |> Status.progress
+                            |> (*) 100
+                            |> floor
+                            |> toString
+                        )
+                    , attribute "aria-valuemin" "0"
+                    , attribute "aria-valuemax" "100"
+                    ]
+                    [ el Unstyled [ width (percent 200) ] (text name) ]
+                ]
         ]
 
 
@@ -72,6 +83,7 @@ type Class
     = Unstyled
     | Path
     | Box
+    | Progress
     | TextClass Text.Class
 
 
@@ -87,6 +99,10 @@ styles =
             , color = Color.rgba 15 30 45 0.1
             }
         , Font.size 24
+        ]
+    , style Progress
+        [ Color.text (Color.rgb 248 248 248)
+        , Color.background (Color.rgb 87 171 226)
         ]
     , Text.styles
         |> Sheet.map TextClass identity
