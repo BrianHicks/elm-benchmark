@@ -26,7 +26,10 @@ progressBars : List String -> Report -> List (Element Class variation msg)
 progressBars reversedParents report =
     case report of
         Single name status ->
-            [ progressBar (List.reverse reversedParents) name status ]
+            [ barsWithPath
+                (List.reverse reversedParents)
+                [ ( name, status ) ]
+            ]
 
         Series name statuses ->
             [ text "TODO" ]
@@ -37,16 +40,19 @@ progressBars reversedParents report =
                 |> List.concat
 
 
-progressBar : List String -> String -> Status -> Element Class variation msg
-progressBar parents name status =
-    column Unstyled
-        [ paddingTop 5 ]
-        [ Text.path TextClass parents
-        , row Box
-            [ paddingXY 10 5, width (percent 100) ]
-            [ caption name status ]
-            |> within [ filledPortion name status ]
-        ]
+barsWithPath : List String -> List ( String, Status ) -> Element Class variation msg
+barsWithPath parents children =
+    column Unstyled [ paddingTop 5 ] <|
+        Text.path TextClass parents
+            :: List.map (uncurry progressBar) children
+
+
+progressBar : String -> Status -> Element Class variation msg
+progressBar name status =
+    row Box
+        [ paddingXY 10 5, width (percent 100) ]
+        [ caption name status ]
+        |> within [ filledPortion name status ]
 
 
 caption : String -> Status -> Element Class variation msg
