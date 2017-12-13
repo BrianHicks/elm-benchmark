@@ -37,7 +37,7 @@ path class parts =
     parts
         |> String.join " / "
         |> text
-        |> el (class Path) []
+        |> el (class Path) [ paddingBottom 3 ]
 
 
 type Class

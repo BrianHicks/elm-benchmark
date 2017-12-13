@@ -46,31 +46,34 @@ progressBar parents name status =
             [ paddingXY 10 5, width (px 500) ]
             [ text name ]
             |> within
-                [ row Progress
-                    [ paddingTop 5
-                    , paddingBottom 5
-                    , paddingLeft 10
-                    , clip
-                    , width
-                        (status
-                            |> Status.progress
-                            |> (*) 100
-                            |> percent
-                        )
+                [ if Status.progress status > 0 then
+                    row Progress
+                        [ paddingTop 5
+                        , paddingBottom 5
+                        , paddingLeft 10
+                        , clip
+                        , width
+                            (status
+                                |> Status.progress
+                                |> (*) 100
+                                |> percent
+                            )
 
-                    -- display as a progressbar for a11y
-                    , attribute "role" "progressbar"
-                    , attribute "aria-valuenow"
-                        (status
-                            |> Status.progress
-                            |> (*) 100
-                            |> floor
-                            |> toString
-                        )
-                    , attribute "aria-valuemin" "0"
-                    , attribute "aria-valuemax" "100"
-                    ]
-                    [ el Unstyled [ width (percent 200) ] (text name) ]
+                        -- display as a progressbar for a11y
+                        , attribute "role" "progressbar"
+                        , attribute "aria-valuenow"
+                            (status
+                                |> Status.progress
+                                |> (*) 100
+                                |> floor
+                                |> toString
+                            )
+                        , attribute "aria-valuemin" "0"
+                        , attribute "aria-valuemax" "100"
+                        ]
+                        [ el Unstyled [ width (px 500) ] (text name) ]
+                  else
+                    empty
                 ]
         ]
 
