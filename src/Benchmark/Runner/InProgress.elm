@@ -36,7 +36,7 @@ progressBars reversedParents report =
             [ barsWithPath (List.reverse reversedParents) [ ( name, status ) ] ]
 
         Series name statuses ->
-            [ barsWithPath (List.reverse reversedParents) statuses ]
+            [ barsWithPath (List.reverse <| name :: reversedParents) statuses ]
 
         Group name reports ->
             reports
