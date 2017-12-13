@@ -26,13 +26,10 @@ progressBars : List String -> Report -> List (Element Class variation msg)
 progressBars reversedParents report =
     case report of
         Single name status ->
-            [ barsWithPath
-                (List.reverse reversedParents)
-                [ ( name, status ) ]
-            ]
+            [ barsWithPath (List.reverse reversedParents) [ ( name, status ) ] ]
 
         Series name statuses ->
-            [ text "TODO" ]
+            [ barsWithPath (List.reverse reversedParents) statuses ]
 
         Group name reports ->
             reports
