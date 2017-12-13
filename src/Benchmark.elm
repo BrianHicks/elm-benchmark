@@ -179,7 +179,7 @@ scale name series =
     series
         |> List.map
             (\( subName, fn ) ->
-                ( name
+                ( subName
                 , LowLevel.operation fn
                 , defaultStatus
                 )
