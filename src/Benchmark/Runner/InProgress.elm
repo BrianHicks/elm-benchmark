@@ -2,7 +2,7 @@ module Benchmark.Runner.InProgress exposing (Class, styles, view)
 
 import Benchmark.Reporting as Reporting exposing (Report(..))
 import Benchmark.Runner.Text as Text
-import Benchmark.Status as Status exposing (Status)
+import Benchmark.Status as Status exposing (Status(..))
 import Color
 import Element exposing (..)
 import Element.Attributes exposing (..)
@@ -43,7 +43,7 @@ progressBar parents name status =
         [ paddingTop 5 ]
         [ Text.path TextClass parents
         , row Box
-            [ paddingXY 10 5, width (px 500) ]
+            [ paddingXY 10 5, width (percent 100) ]
             [ caption name status ]
             |> within [ filledPortion name status ]
         ]
@@ -51,9 +51,29 @@ progressBar parents name status =
 
 caption : String -> Status -> Element Class variation msg
 caption name status =
-    el Unstyled
-        [ width (px 500) ]
-        (text name)
+    let
+        informativeStatus =
+            case status of
+                Cold _ ->
+                    "Warming JIT"
+
+                Unsized _ ->
+                    "Finding sample size"
+
+                Pending _ _ _ ->
+                    "Collecting samples"
+
+                Failure _ ->
+                    "Failed!"
+
+                Success _ ->
+                    "Finished"
+    in
+    row Unstyled
+        [ width (px 500), spread, verticalCenter ]
+        [ text name
+        , el Status [] (text informativeStatus)
+        ]
 
 
 filledPortion : String -> Status -> Element Class variation msg
@@ -97,6 +117,7 @@ type Class
     | Path
     | Box
     | Progress
+    | Status
     | TextClass Text.Class
 
 
@@ -117,6 +138,8 @@ styles =
         [ Color.text (Color.rgb 248 248 248)
         , Color.background (Color.rgb 87 171 226)
         ]
+    , style Status
+        [ Font.size 14 ]
     , Text.styles
         |> Sheet.map TextClass identity
         |> Sheet.merge
