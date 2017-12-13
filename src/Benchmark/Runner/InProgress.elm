@@ -1,6 +1,7 @@
 module Benchmark.Runner.InProgress exposing (Class, styles, view)
 
 import Benchmark.Reporting as Reporting exposing (Report(..))
+import Benchmark.Runner.Box as Box
 import Benchmark.Runner.Text as Text
 import Benchmark.Status as Status exposing (Status(..))
 import Color
@@ -9,7 +10,6 @@ import Element.Attributes exposing (..)
 import Style exposing (..)
 import Style.Color as Color
 import Style.Font as Font
-import Style.Shadow as Shadow
 import Style.Sheet as Sheet
 
 
@@ -19,13 +19,6 @@ view report =
         |> progressBars []
         |> (::) (Text.hero TextClass "Benchmarks Running")
         |> column Unstyled []
-
-
-spacing =
-    { betweenSections = 10
-    , barY = 7
-    , barX = 15
-    }
 
 
 progressBars : List String -> Report -> List (Element Class variation msg)
@@ -46,7 +39,7 @@ progressBars reversedParents report =
 barsWithPath : List String -> List ( String, Status ) -> Element Class variation msg
 barsWithPath parents children =
     column Unstyled
-        [ paddingTop spacing.betweenSections ]
+        [ paddingTop Box.spaceBetweenSections ]
         (Text.path TextClass parents
             :: List.map (uncurry progressBar) children
         )
@@ -55,7 +48,7 @@ barsWithPath parents children =
 progressBar : String -> Status -> Element Class variation msg
 progressBar name status =
     row Box
-        [ paddingXY spacing.barX spacing.barY
+        [ paddingXY Box.barPaddingX Box.barPaddingY
         , width (percent 100)
         ]
         [ caption name status ]
@@ -93,9 +86,9 @@ filledPortion : String -> Status -> Element Class variation msg
 filledPortion name status =
     if Status.progress status > 0 then
         el Progress
-            [ paddingTop spacing.barY
-            , paddingBottom spacing.barY
-            , paddingLeft spacing.barX
+            [ paddingTop Box.barPaddingY
+            , paddingBottom Box.barPaddingY
+            , paddingLeft Box.barPaddingX
             , clip
             , width
                 (status
@@ -137,16 +130,7 @@ type Class
 styles : List (Style Class variation)
 styles =
     [ style Unstyled []
-    , style Box
-        [ Color.background (Color.rgb 248 248 248)
-        , Shadow.box
-            { offset = ( 0, 1 )
-            , size = 0
-            , blur = 2
-            , color = Color.rgba 15 30 45 0.1
-            }
-        , Font.size 24
-        ]
+    , style Box Box.style
     , style Progress
         [ Color.text (Color.rgb 248 248 248)
         , Color.background (Color.rgb 87 171 226)
