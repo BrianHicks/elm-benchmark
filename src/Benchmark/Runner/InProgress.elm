@@ -44,38 +44,48 @@ progressBar parents name status =
         [ Text.path TextClass parents
         , row Box
             [ paddingXY 10 5, width (px 500) ]
-            [ text name ]
-            |> within
-                [ if Status.progress status > 0 then
-                    row Progress
-                        [ paddingTop 5
-                        , paddingBottom 5
-                        , paddingLeft 10
-                        , clip
-                        , width
-                            (status
-                                |> Status.progress
-                                |> (*) 100
-                                |> percent
-                            )
-
-                        -- display as a progressbar for a11y
-                        , attribute "role" "progressbar"
-                        , attribute "aria-valuenow"
-                            (status
-                                |> Status.progress
-                                |> (*) 100
-                                |> floor
-                                |> toString
-                            )
-                        , attribute "aria-valuemin" "0"
-                        , attribute "aria-valuemax" "100"
-                        ]
-                        [ el Unstyled [ width (px 500) ] (text name) ]
-                  else
-                    empty
-                ]
+            [ caption name status ]
+            |> within [ filledPortion name status ]
         ]
+
+
+caption : String -> Status -> Element Class variation msg
+caption name status =
+    el Unstyled
+        [ width (px 500) ]
+        (text name)
+
+
+filledPortion : String -> Status -> Element Class variation msg
+filledPortion name status =
+    if Status.progress status > 0 then
+        el Progress
+            [ paddingTop 5
+            , paddingBottom 5
+            , paddingLeft 10
+            , clip
+            , width
+                (status
+                    |> Status.progress
+                    |> (*) 100
+                    |> percent
+                )
+
+            -- display as a progressbar for a11y
+            , attribute "role" "progressbar"
+            , attribute "aria-valuenow"
+                (status
+                    |> Status.progress
+                    |> (*) 100
+                    |> floor
+                    |> toString
+                )
+            , attribute "aria-valuemin" "0"
+            , attribute "aria-valuemax" "100"
+            ]
+            (caption name status)
+    else
+        empty
 
 
 
