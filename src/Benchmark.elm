@@ -7,7 +7,6 @@ module Benchmark
         , done
         , scale
         , step
-        , withRuntime
         )
 
 {-| Benchmark Elm Programs
@@ -18,11 +17,6 @@ module Benchmark
 # Creating and Organizing Benchmarks
 
 @docs benchmark, compare, scale, describe
-
-
-## Modifying Benchmarks
-
-@docs withRuntime
 
 
 # Writing Runners
@@ -55,49 +49,6 @@ type alias Benchmark =
 defaultStatus : Status
 defaultStatus =
     Cold (5 * Time.second)
-
-
-{-| Set the expected runtime for a [`Benchmark`](#Benchmark). This is how we
-determine when the benchmark is "done". Note that this sets the _expected_
-runtime, not _actual_ runtime. In other words, your function will be run for _at
-least_ this long. In practice, it will usually be slightly more.
-
-The default runtime is 5 seconds, which is good enough for most applications. If
-you are benchmarking a very expensive function, this may not be high enough. You
-will know that this is the case when you see a low number of total samples
-(rough guide: under 10,000.)
-
-On the other hand, 5 seconds is almost never _too much_ time, and usually hits
-the sweet spot between getting enough data to be useful while not keeping you
-waiting. While there's nothing preventing you from lowering this value, think
-about it for a long time before you do. It's easy way to get bad data.
-
-All that said, to set the expected runtime to 10 seconds, pass your constructed
-benchmark into this function:
-
-    benchmark "list head" (\_ -> List.head [1])
-        |> withRuntime (10 * Time.second)
-
-This works with all the kinds of benchmarks you can create. If you provide a
-composite benchmark (a series or group) the same expected runtime will be set
-for all members recursively. Be aware that this will also reset any progress
-made on the benchmark (see "The Life of a Benchmark") in the documentation.
-
--}
-withRuntime : Time -> Benchmark -> Benchmark
-withRuntime time benchmark =
-    case benchmark of
-        Single name inner _ ->
-            Single name inner (Unsized time)
-
-        Series name inners ->
-            Series name <|
-                List.map
-                    (\( name, inner, _ ) -> ( name, inner, Unsized time ))
-                    inners
-
-        Group name benchmarks ->
-            Group name <| List.map (withRuntime time) benchmarks
 
 
 
@@ -285,12 +236,12 @@ making a really great user experience, so read on.
 
 ## The Life of a Benchmark
 
-When you get a [`Benchmark`](#Benchmark) from the user it will contain an
-expected total runtime (see [`withRuntime`](#withRuntime)), but it _won't_ have
-any idea how big the sample size should be. In fact, we can't know this in
-advance because different functions will have different performance
-characteristics on different machines and browsers and phases of the moon and so
-on and so forth.
+When you get a [`Benchmark`](#Benchmark) from the user it will contain
+an expected total runtime, but it _won't_ have any idea how big the
+sample size should be. In fact, we can't know this in advance because
+different functions will have different performance characteristics on
+different machines and browsers and phases of the moon and so on and
+so forth.
 
 This is difficult, but not hopeless! We can determine sample size automatically
 by running the benchmark a few times to get a feel for how it behaves in this

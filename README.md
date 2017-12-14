@@ -71,7 +71,7 @@ When we measure the speed of your code, we take the following steps:
     (So if we could fit 23456 runs into a tenth of a second, we would round to 20000.)
     We do this to get a consistent sample size between runs.
 3.  At this stage, we start collecting samples until we have the total time specified.
-    (The total defaults to 5 seconds, but you can change it with `Benchmark.withRuntime`)
+    (The total defaults to 5 seconds.)
 
 If the run contains multiple benchmarks, we interleave sampling between them.
 This means that given three benchmarks we would take one sample of each and continue in that pattern until they were complete.
