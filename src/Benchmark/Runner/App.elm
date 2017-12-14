@@ -65,13 +65,13 @@ next benchmark =
 view : Model -> Html Msg
 view model =
     let
-        body : Element Class variation Msg
+        body : Element Class Variation Msg
         body =
             if Benchmark.done model then
                 model
                     |> Reporting.fromBenchmark
                     |> Report.view
-                    |> Element.mapAll identity ReportClass identity
+                    |> Element.mapAll identity ReportClass ReportVariation
             else
                 model
                     |> Reporting.fromBenchmark
@@ -105,7 +105,11 @@ type Class
     | ReportClass Report.Class
 
 
-styles : List (Style Class variation)
+type Variation
+    = ReportVariation Report.Variation
+
+
+styles : List (Style Class Variation)
 styles =
     [ style Page (Text.body ++ [ Color.background <| Color.rgb 242 242 242 ])
     , style Wrapper []
@@ -113,6 +117,6 @@ styles =
         |> Sheet.map InProgressClass identity
         |> Sheet.merge
     , Report.styles
-        |> Sheet.map ReportClass identity
+        |> Sheet.map ReportClass ReportVariation
         |> Sheet.merge
     ]

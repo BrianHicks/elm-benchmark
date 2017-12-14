@@ -3,14 +3,18 @@ module Benchmark.Runner.Report exposing (..)
 import Benchmark.Reporting as Reporting exposing (Report(..))
 import Benchmark.Runner.Box as Box
 import Benchmark.Runner.Text as Text
+import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status(..))
 import Element exposing (..)
 import Element.Attributes exposing (..)
 import Style exposing (..)
+import Style.Font as Font
 import Style.Sheet as Sheet
+import Time
+import Trend.Linear as Trend exposing (Quick, Trend)
 
 
-view : Report -> Element Class variation msg
+view : Report -> Element Class Variation msg
 view report =
     report
         |> reports []
@@ -18,11 +22,15 @@ view report =
         |> column Unstyled []
 
 
-reports : List String -> Report -> List (Element Class variation msg)
+reports : List String -> Report -> List (Element Class Variation msg)
 reports reversedParents report =
     case report of
         Single name status ->
-            [ text "single" ]
+            [ singleReport
+                (List.reverse reversedParents)
+                name
+                status
+            ]
 
         Series name statuses ->
             [ text "TODO" ]
@@ -33,35 +41,98 @@ reports reversedParents report =
                 |> List.concat
 
 
-reportWithPath : List String -> List ( String, Status ) -> Element Class variation msg
-reportWithPath parents children =
+singleReport : List String -> String -> Status -> Element Class Variation msg
+singleReport parents name status =
     column Unstyled
         [ paddingTop Box.spaceBetweenSections ]
-        (Text.path TextClass parents
-            :: List.map (uncurry report) children
-        )
+        [ Text.path TextClass parents
+        , column Box
+            [ paddingXY Box.barPaddingX Box.barPaddingY
+            , width (px 500)
+            ]
+            [ text name
+            , whenJust (trendFromStatus status)
+                (\trend ->
+                    table
+                        Table
+                        [ width (percent 100)
+                        , paddingTop 10
+                        ]
+                        [ [ header Text "runs / second"
+                          , trend
+                                |> Trend.line
+                                |> flip Trend.predictX Time.second
+                                |> floor
+                                |> toString
+                                |> cell Text
+                          ]
+                        , [ header Numeric "goodness of fit"
+                          , trend
+                                |> Trend.goodnessOfFit
+                                |> (*) 100
+                                |> toString
+                                |> cell Numeric
+                          ]
+                        ]
+                )
+            ]
+        ]
 
 
-report : String -> Status -> Element Class variation msg
-report name status =
-    column Box
-        [ paddingXY Box.barPaddingX Box.barPaddingY
-        , width (percent 100)
-        ]
-        [ text name
-        , text <| toString status
-        ]
+trendFromStatus : Status -> Maybe (Trend Quick)
+trendFromStatus status =
+    case status of
+        Success samples ->
+            samples
+                |> Samples.points
+                |> Trend.quick
+                -- TODO: care about Result?
+                |> Result.toMaybe
+
+        _ ->
+            Nothing
+
+
+header : Variation -> String -> Element Class Variation msg
+header variation caption =
+    el Header [ vary variation True ] (text caption)
+
+
+cell : Variation -> String -> Element Class Variation msg
+cell variation contents =
+    el Cell [ vary variation True ] (text contents)
 
 
 type Class
     = Unstyled
     | Box
+    | Table
+    | Header
+    | Cell
     | TextClass Text.Class
 
 
-styles : List (Style Class variation)
+type Variation
+    = Numeric
+    | Text
+
+
+styles : List (Style Class Variation)
 styles =
     [ style Unstyled []
+    , style Box Box.style
+    , style Table [ prop "font-feature-settings" "'tnum'" ]
+    , style Header
+        [ Font.bold
+        , Font.size 12
+        , variation Numeric [ Font.alignRight ]
+        , variation Text [ Font.alignLeft ]
+        ]
+    , style Cell
+        [ Font.size 18
+        , variation Numeric [ Font.alignRight ]
+        , variation Text [ Font.alignLeft ]
+        ]
     , Text.styles
         |> Sheet.map TextClass identity
         |> Sheet.merge
