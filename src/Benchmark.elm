@@ -97,7 +97,7 @@ sizes, we've got your back: that's what [`scale`](#scale) is for.
 -}
 benchmark : String -> (() -> a) -> Benchmark
 benchmark name fn =
-    Single name (LowLevel.operation fn) Status.init
+    Single name (LowLevel.operation fn) Cold
 
 
 {-| Specify two benchmarks which are meant to be compared directly. This is most
@@ -124,8 +124,8 @@ arguments, at least try to match functionality.
 compare : String -> String -> (() -> a) -> String -> (() -> b) -> Benchmark
 compare name name1 fn1 name2 fn2 =
     Series name
-        [ ( name1, LowLevel.operation fn1, Status.init )
-        , ( name2, LowLevel.operation fn2, Status.init )
+        [ ( name1, LowLevel.operation fn1, Cold )
+        , ( name2, LowLevel.operation fn2, Cold )
         ]
 
 
@@ -176,7 +176,7 @@ scale name series =
             (\( subName, fn ) ->
                 ( subName
                 , LowLevel.operation fn
-                , Status.init
+                , Cold
                 )
             )
         |> Series name
@@ -310,26 +310,25 @@ step benchmark =
 stepLowLevel : LowLevel.Operation -> Status -> Task Never Status
 stepLowLevel operation status =
     case status of
-        Cold eventualTotalRuntime ->
+        Cold ->
             LowLevel.warmup operation
-                |> Task.map (\_ -> Unsized eventualTotalRuntime)
+                |> Task.map (\_ -> Unsized)
                 |> Task.onError (Task.succeed << Failure << Status.MeasurementError)
 
-        Unsized eventualTotalRuntime ->
+        Unsized ->
             LowLevel.findSampleSize operation
                 |> Task.map
                     (\sampleSize ->
                         Pending
-                            eventualTotalRuntime
                             sampleSize
                             Samples.empty
                     )
                 |> Task.onError (Task.succeed << Failure << Status.MeasurementError)
 
-        Pending config baseSampleSize samples ->
+        Pending baseSampleSize samples ->
             let
                 sampleSize =
-                    baseSampleSize * (config.spacingRatio * (Samples.count samples % config.buckets) + 1)
+                    baseSampleSize * (Status.bucketSpacingRatio * (Samples.count samples % Status.numBuckets) + 1)
             in
             LowLevel.sample sampleSize operation
                 |> Task.map
@@ -338,10 +337,10 @@ stepLowLevel operation status =
                             newSamples =
                                 Samples.record sampleSize newSample samples
                         in
-                        if Samples.count newSamples >= (config.buckets * config.samplesPerBucket) then
+                        if Samples.count newSamples >= (Status.numBuckets * Status.samplesPerBucket) then
                             finalize newSamples
                         else
-                            Pending config baseSampleSize newSamples
+                            Pending baseSampleSize newSamples
                     )
                 |> Task.onError (Task.succeed << Failure << Status.MeasurementError)
 

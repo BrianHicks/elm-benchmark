@@ -1,18 +1,18 @@
-module Benchmark.Status exposing (Config, Error(..), Status(..), init, progress)
+module Benchmark.Status exposing (Error(..), Status(..), bucketSpacingRatio, numBuckets, progress, samplesPerBucket)
 
 {-| Report the status of a Benchmark.
 
 
 # Reporting
 
-@docs Status, init, progress
+@docs Status, progress
 
 @docs Error
 
 
-## Configuration
+## Runtime Configuration
 
-@docs Config
+@docs numBuckets, samplesPerBucket, bucketSpacingRatio
 
 -}
 
@@ -20,16 +20,6 @@ import Benchmark.LowLevel as LowLevel
 import Benchmark.Samples as Samples exposing (Samples)
 import Trend.Linear exposing (Quick, Trend)
 import Trend.Math as Math
-
-
-{-| Runtime configuration. Manipulate this with the functions in
-`Benchmark`.
--}
-type alias Config =
-    { buckets : Int
-    , samplesPerBucket : Int
-    , spacingRatio : Int
-    }
 
 
 {-| Ways a benchmark can fail, expressed as either at runtime (in
@@ -66,23 +56,11 @@ how these fit together.
 
 -}
 type Status
-    = Cold Config
-    | Unsized Config
-    | Pending Config Int Samples
+    = Cold
+    | Unsized
+    | Pending Int Samples
     | Failure Error
     | Success Samples (Trend Quick)
-
-
-{-| Default status. Manipulate this configuration with the functions
-in `Benchmark`.
--}
-init : Status
-init =
-    Cold
-        { buckets = 25
-        , samplesPerBucket = 5
-        , spacingRatio = 2
-        }
 
 
 {-| How far along is this benchmark? This is a percentage, represented as a
@@ -91,17 +69,42 @@ init =
 progress : Status -> Float
 progress status =
     case status of
-        Cold _ ->
+        Cold ->
             0
 
-        Unsized _ ->
+        Unsized ->
             0
 
-        Pending { buckets, samplesPerBucket } _ samples ->
-            toFloat (Samples.count samples) / toFloat (buckets * samplesPerBucket) |> clamp 0 1
+        Pending _ samples ->
+            toFloat (Samples.count samples) / toFloat (numBuckets * samplesPerBucket) |> clamp 0 1
 
         Failure _ ->
             1
 
         Success _ _ ->
             1
+
+
+
+-- Configuration
+
+
+{-| How many buckets are samples spread out into?
+-}
+numBuckets : Int
+numBuckets =
+    25
+
+
+{-| How many samples will we take per bucket?
+-}
+samplesPerBucket : Int
+samplesPerBucket =
+    5
+
+
+{-| How far apart should the sample size for each bucket be?
+-}
+bucketSpacingRatio : Int
+bucketSpacingRatio =
+    2

@@ -60,13 +60,13 @@ caption name status =
     let
         informativeStatus =
             case status of
-                Cold _ ->
+                Cold ->
                     "Warming JIT"
 
-                Unsized _ ->
+                Unsized ->
                     "Finding sample size"
 
-                Pending _ _ _ ->
+                Pending _ _ ->
                     "Collecting samples"
 
                 Failure _ ->
