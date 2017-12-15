@@ -1,17 +1,31 @@
-module Benchmark.Status exposing (Status(..), progress)
+module Benchmark.Status exposing (Config, Status(..), init, progress)
 
 {-| Report the status of a Benchmark.
 
 
 # Reporting
 
-@docs Status, progress
+@docs Status, init, progress
+
+
+## Configuration
+
+@docs Config
 
 -}
 
 import Benchmark.LowLevel exposing (Error)
 import Benchmark.Samples as Samples exposing (Samples)
-import Time exposing (Time)
+
+
+{-| Runtime configuration. Manipulate this with the functions in
+`Benchmark`.
+-}
+type alias Config =
+    { numBuckets : Int
+    , samplesPerBucket : Int
+    , bucketSpacingRatio : Int
+    }
 
 
 {-| Indicate the status of a benchmark.
@@ -23,7 +37,7 @@ import Time exposing (Time)
     benchmark. It will eventually fit into the `Time` value (the only argument.)
 
   - `Pending`: We are in the process of collecting sample data. We should keep
-    collecting sample data at the sample size (first argument, `Int`) until we
+    collecting sample data using the config (first argument, `Config`) until we
     meet or exceed the total size (second argument, `Time`.) We also store
     samples while in progress (third argument, `List Time`.)
 
@@ -39,11 +53,23 @@ how these fit together.
 
 -}
 type Status
-    = Cold Time
-    | Unsized Time
-    | Pending Time Int Samples
+    = Cold Config
+    | Unsized Config
+    | Pending Config Int Samples
     | Failure Error
     | Success Samples
+
+
+{-| Default status. Manipulate this configuration with the functions
+in `Benchmark`.
+-}
+init : Status
+init =
+    Cold
+        { numBuckets = 25
+        , samplesPerBucket = 5
+        , bucketSpacingRatio = 2
+        }
 
 
 {-| How far along is this benchmark? This is a percentage, represented as a
@@ -58,8 +84,8 @@ progress status =
         Unsized _ ->
             0
 
-        Pending totalRuntime _ samples ->
-            Samples.total samples / totalRuntime |> clamp 0 1
+        Pending { numBuckets, samplesPerBucket } _ samples ->
+            toFloat (Samples.count samples) / toFloat (numBuckets * samplesPerBucket) |> clamp 0 1
 
         Failure _ ->
             1

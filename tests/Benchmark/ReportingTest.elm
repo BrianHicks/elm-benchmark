@@ -3,7 +3,7 @@ module Benchmark.ReportingTest exposing (..)
 import Benchmark.LowLevel as LowLevel
 import Benchmark.Reporting as Reporting
 import Benchmark.Samples as Samples exposing (Samples)
-import Benchmark.Status as Status exposing (Status)
+import Benchmark.Status as Status exposing (Config, Status)
 import Dict
 import Expect
 import Fuzz exposing (Fuzzer)
@@ -37,12 +37,20 @@ samples =
         (Fuzz.list Fuzz.float)
 
 
+config : Fuzzer Config
+config =
+    Fuzz.map3 Config
+        Fuzz.int
+        Fuzz.int
+        Fuzz.int
+
+
 status : Fuzzer Status
 status =
     Fuzz.oneOf
-        [ Fuzz.map Status.Cold Fuzz.float
-        , Fuzz.map Status.Unsized Fuzz.float
-        , Fuzz.map3 Status.Pending Fuzz.float Fuzz.int samples
+        [ Fuzz.map Status.Cold config
+        , Fuzz.map Status.Unsized config
+        , Fuzz.map3 Status.Pending config Fuzz.int samples
         , Fuzz.map Status.Failure error
         , Fuzz.map Status.Success samples
         ]

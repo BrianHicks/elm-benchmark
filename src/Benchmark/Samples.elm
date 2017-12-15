@@ -6,7 +6,6 @@ module Benchmark.Samples
         , groups
         , points
         , record
-        , total
         , trend
         )
 
@@ -15,7 +14,7 @@ module Benchmark.Samples
 
 # Sampling
 
-@docs Samples, empty, record, count, total
+@docs Samples, empty, record, count
 
 
 ## Evaluation
@@ -48,13 +47,6 @@ empty =
 count : Samples -> Int
 count (Samples samples) =
     Dict.foldl (\_ times acc -> List.length times + acc) 0 samples
-
-
-{-| What is the sum of our samples?
--}
-total : Samples -> Time
-total (Samples samples) =
-    Dict.foldl (\_ times acc -> List.sum times + acc) 0 samples
 
 
 {-| Record a new sample
