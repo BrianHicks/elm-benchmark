@@ -72,7 +72,7 @@ caption name status =
                 Failure _ ->
                     "Failed!"
 
-                Success _ ->
+                Success _ _ ->
                     "Finished"
     in
     row Unstyled

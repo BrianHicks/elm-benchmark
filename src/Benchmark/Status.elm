@@ -1,4 +1,4 @@
-module Benchmark.Status exposing (Config, Status(..), init, progress)
+module Benchmark.Status exposing (Config, Error(..), Status(..), init, progress)
 
 {-| Report the status of a Benchmark.
 
@@ -7,6 +7,8 @@ module Benchmark.Status exposing (Config, Status(..), init, progress)
 
 @docs Status, init, progress
 
+@docs Error
+
 
 ## Configuration
 
@@ -14,8 +16,10 @@ module Benchmark.Status exposing (Config, Status(..), init, progress)
 
 -}
 
-import Benchmark.LowLevel exposing (Error)
+import Benchmark.LowLevel as LowLevel
 import Benchmark.Samples as Samples exposing (Samples)
+import Trend.Linear exposing (Quick, Trend)
+import Trend.Math as Math
 
 
 {-| Runtime configuration. Manipulate this with the functions in
@@ -26,6 +30,15 @@ type alias Config =
     , samplesPerBucket : Int
     , spacingRatio : Int
     }
+
+
+{-| Ways a benchmark can fail, expressed as either at runtime (in
+which case we have a `LowLevel.Error`) or while analyzing data (in
+which case we have a `Trend.Math.Error`.)
+-}
+type Error
+    = MeasurementError LowLevel.Error
+    | AnalysisError Math.Error
 
 
 {-| Indicate the status of a benchmark.
@@ -57,7 +70,7 @@ type Status
     | Unsized Config
     | Pending Config Int Samples
     | Failure Error
-    | Success Samples
+    | Success Samples (Trend Quick)
 
 
 {-| Default status. Manipulate this configuration with the functions
@@ -90,5 +103,5 @@ progress status =
         Failure _ ->
             1
 
-        Success _ ->
+        Success _ _ ->
             1

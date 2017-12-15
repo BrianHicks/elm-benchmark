@@ -27,9 +27,10 @@ module Benchmark
 
 import Benchmark.Benchmark as Benchmark exposing (Benchmark(..))
 import Benchmark.LowLevel as LowLevel exposing (Error(..))
-import Benchmark.Samples as Samples
+import Benchmark.Samples as Samples exposing (Samples)
 import Benchmark.Status as Status exposing (Status(..))
 import Task exposing (Task)
+import Trend.Linear as Trend exposing (Quick)
 
 
 -- Benchmarks and Suites
@@ -312,7 +313,7 @@ stepLowLevel operation status =
         Cold eventualTotalRuntime ->
             LowLevel.warmup operation
                 |> Task.map (\_ -> Unsized eventualTotalRuntime)
-                |> Task.onError (Task.succeed << Failure)
+                |> Task.onError (Task.succeed << Failure << Status.MeasurementError)
 
         Unsized eventualTotalRuntime ->
             LowLevel.findSampleSize operation
@@ -323,7 +324,7 @@ stepLowLevel operation status =
                             sampleSize
                             Samples.empty
                     )
-                |> Task.onError (Task.succeed << Failure)
+                |> Task.onError (Task.succeed << Failure << Status.MeasurementError)
 
         Pending config baseSampleSize samples ->
             let
@@ -338,11 +339,21 @@ stepLowLevel operation status =
                                 Samples.record sampleSize newSample samples
                         in
                         if Samples.count newSamples >= (config.buckets * config.samplesPerBucket) then
-                            Success newSamples
+                            finalize newSamples
                         else
                             Pending config baseSampleSize newSamples
                     )
-                |> Task.onError (Task.succeed << Failure)
+                |> Task.onError (Task.succeed << Failure << Status.MeasurementError)
 
         _ ->
             Task.succeed status
+
+
+finalize : Samples -> Status
+finalize samples =
+    case Trend.quick <| Samples.points samples of
+        Ok trend ->
+            Success samples trend
+
+        Err err ->
+            Failure (Status.AnalysisError err)

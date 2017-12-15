@@ -4,7 +4,6 @@ import Benchmark.Reporting as Reporting exposing (Report(..))
 import Benchmark.Runner.Box as Box
 import Benchmark.Runner.Humanize as Humanize
 import Benchmark.Runner.Text as Text
-import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status(..))
 import Element exposing (..)
 import Element.Attributes exposing (..)
@@ -144,12 +143,8 @@ goodnessOfFit =
 trendFromStatus : Status -> Maybe (Trend Quick)
 trendFromStatus status =
     case status of
-        Success samples ->
-            samples
-                |> Samples.points
-                |> Trend.quick
-                -- TODO: care about Result?
-                |> Result.toMaybe
+        Success _ trend ->
+            Just trend
 
         _ ->
             Nothing
