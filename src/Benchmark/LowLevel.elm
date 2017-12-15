@@ -59,7 +59,6 @@ operation =
 type Error
     = StackOverflow
     | UnknownError String
-    | DidNotStabilize
 
 
 {-| Run a benchmark a number of times. The returned value is the total time it

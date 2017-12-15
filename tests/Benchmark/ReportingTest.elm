@@ -22,7 +22,6 @@ error : Fuzzer LowLevel.Error
 error =
     Fuzz.oneOf
         [ Fuzz.constant LowLevel.StackOverflow
-        , Fuzz.constant LowLevel.DidNotStabilize
         , Fuzz.map LowLevel.UnknownError Fuzz.string
         ]
 
