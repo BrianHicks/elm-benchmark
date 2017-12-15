@@ -11,9 +11,6 @@ import Benchmark.Runner.App as App exposing (Model, Msg)
 import Html
 
 
--- USER-VISIBLE API
-
-
 {-| A handy type alias for values produced by [`program`](#program)
 -}
 type alias BenchmarkProgram =
@@ -26,10 +23,10 @@ type alias BenchmarkProgram =
     main =
         Runner.program <|
             Benchmark.describe "your benchmarks"
-                [-- your benchmarks here
-                ]
+                [{- your benchmarks here -}]
 
-Compile this and visit the result in your browser to run the benchmarks.
+Compile this and visit the result in your browser to run the
+benchmarks.
 
 -}
 program : Benchmark -> BenchmarkProgram
