@@ -33,26 +33,26 @@ type Error
 
 {-| Indicate the status of a benchmark.
 
-  - `Cold`: We have not warmed up the JIT yet. Benchmark run will eventually fit
-    into the `Time` value (the only argument.)
+  - `Cold`: We have not warmed up the JIT yet.
 
-  - `Unsized`: We have not yet determined the best sample size for this
-    benchmark. It will eventually fit into the `Time` value (the only argument.)
+  - `Unsized`: We have not yet determined the best sample size for
+    this benchmark.
 
-  - `Pending`: We are in the process of collecting sample data. We should keep
-    collecting sample data using the config (first argument, `Config`) until we
-    meet or exceed the total size (second argument, `Time`.) We also store
-    samples while in progress (third argument, `List Time`.)
+  - `Pending`: We are in the process of collecting sample data. We
+    will keep collecting sample data using the base sample size (first
+    argument) until we have enough samples (`numBuckets *
+    samplesPerBucket`.) We also store samples while in progress
+    (second argument.)
 
-  - `Failure`: We ran into an exception while collecting sample data. The
-    attached `Error` tells us what went wrong.
+  - `Failure`: We ran into an exception while collecting sample
+    data. The attached `Error` tells us what went wrong.
 
-  - `Success`: We finished collecting all our sample data at the given sample
-    size (first argument, `Int`.) The samples at that size are contained in the
-    second argument.
+  - `Success`: We finished collecting all our sample data (first
+    argument.) We've calculated a trend using this data (second
+    argument.)
 
-See "The Life of a Benchmark" in the docs for `Benchmark` for an explanation of
-how these fit together.
+See "The Life of a Benchmark" in the docs for `Benchmark` for an
+explanation of how these fit together.
 
 -}
 type Status
@@ -63,8 +63,8 @@ type Status
     | Success Samples (Trend Quick)
 
 
-{-| How far along is this benchmark? This is a percentage, represented as a
-`Float` between `0` and `1`.
+{-| How far along is this benchmark? This is a percentage, represented
+as a `Float` between `0` and `1`.
 -}
 progress : Status -> Float
 progress status =
