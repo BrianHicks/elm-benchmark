@@ -34,7 +34,11 @@ reports reversedParents report =
             ]
 
         Series name statuses ->
-            [ text "TODO" ]
+            [ multiReport
+                (List.reverse reversedParents)
+                name
+                statuses
+            ]
 
         Group name children ->
             children
@@ -47,20 +51,31 @@ singleReport parents name status =
     trendFromStatus status
         |> Maybe.map
             (\trend ->
-                [ [ header Text "runs / second"
-                  , trend
-                        |> Trend.line
-                        |> flip Trend.predictX Time.second
-                        |> floor
-                        |> Humanize.int
-                        |> cell Text
-                  ]
-                , [ header Numeric "goodness of fit"
-                  , trend
-                        |> Trend.goodnessOfFit
-                        |> Humanize.percent
-                        |> cell Numeric
-                  ]
+                [ [ header Text "runs / second", runsPerSecond Text trend ]
+                , [ header Numeric "goodness of fit", goodnessOfFit trend ]
+                ]
+            )
+        |> Maybe.map (report parents name)
+        |> Maybe.withDefault empty
+
+
+multiReport : List String -> String -> List ( String, Status ) -> Element Class Variation msg
+multiReport parents name children =
+    let
+        ( names, statuses ) =
+            List.unzip children
+    in
+    trendsFromStatuses statuses
+        |> Maybe.map
+            (\trends ->
+                [ header Text "name" :: List.map (cell Text) names
+                , header Numeric "runs / second" :: List.map (runsPerSecond Numeric) trends
+                , List.map2 percentChange
+                    trends
+                    (List.drop 1 trends)
+                    |> (::) (cell Numeric "-")
+                    |> (::) (header Numeric "% change")
+                , header Numeric "goodness of fit" :: List.map goodnessOfFit trends
                 ]
             )
         |> Maybe.map (report parents name)
@@ -87,6 +102,45 @@ report parents name tableContents =
         ]
 
 
+runsPerSecond : Variation -> Trend Quick -> Element Class Variation msg
+runsPerSecond variation =
+    Trend.line
+        >> flip Trend.predictX Time.second
+        >> floor
+        >> Humanize.int
+        >> cell variation
+
+
+percentChange : Trend Quick -> Trend Quick -> Element Class Variation msg
+percentChange old new =
+    let
+        rps =
+            Trend.line >> flip Trend.predictX Time.second
+
+        change =
+            (rps new - rps old) / rps new
+
+        sign =
+            if change > 0 then
+                "+"
+            else
+                ""
+    in
+    if old == new then
+        cell Numeric "-"
+    else
+        Humanize.percent change
+            |> (++) sign
+            |> cell Numeric
+
+
+goodnessOfFit : Trend Quick -> Element Class Variation msg
+goodnessOfFit =
+    Trend.goodnessOfFit
+        >> Humanize.percent
+        >> cell Numeric
+
+
 trendFromStatus : Status -> Maybe (Trend Quick)
 trendFromStatus status =
     case status of
@@ -101,6 +155,18 @@ trendFromStatus status =
             Nothing
 
 
+trendsFromStatuses : List Status -> Maybe (List (Trend Quick))
+trendsFromStatuses =
+    List.foldr
+        (\this acc ->
+            Maybe.map2
+                (::)
+                (trendFromStatus this)
+                acc
+        )
+        (Just [])
+
+
 header : Variation -> String -> Element Class Variation msg
 header variation caption =
     el Header [ vary variation True ] (text caption)
@@ -108,7 +174,11 @@ header variation caption =
 
 cell : Variation -> String -> Element Class Variation msg
 cell variation contents =
-    el Cell [ vary variation True ] (text contents)
+    el Cell
+        [ vary variation True
+        , paddingTop 5
+        ]
+        (text contents)
 
 
 type Class
