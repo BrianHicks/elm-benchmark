@@ -328,7 +328,7 @@ stepLowLevel operation status =
         Pending config baseSampleSize samples ->
             let
                 sampleSize =
-                    baseSampleSize * (config.bucketSpacingRatio * (Samples.count samples % config.numBuckets) + 1)
+                    baseSampleSize * (config.spacingRatio * (Samples.count samples % config.buckets) + 1)
             in
             LowLevel.sample sampleSize operation
                 |> Task.map
@@ -337,7 +337,7 @@ stepLowLevel operation status =
                             newSamples =
                                 Samples.record sampleSize newSample samples
                         in
-                        if Samples.count newSamples >= (config.numBuckets * config.samplesPerBucket) then
+                        if Samples.count newSamples >= (config.buckets * config.samplesPerBucket) then
                             Success newSamples
                         else
                             Pending config baseSampleSize newSamples

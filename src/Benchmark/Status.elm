@@ -22,9 +22,9 @@ import Benchmark.Samples as Samples exposing (Samples)
 `Benchmark`.
 -}
 type alias Config =
-    { numBuckets : Int
+    { buckets : Int
     , samplesPerBucket : Int
-    , bucketSpacingRatio : Int
+    , spacingRatio : Int
     }
 
 
@@ -66,9 +66,9 @@ in `Benchmark`.
 init : Status
 init =
     Cold
-        { numBuckets = 25
+        { buckets = 25
         , samplesPerBucket = 5
-        , bucketSpacingRatio = 2
+        , spacingRatio = 2
         }
 
 
@@ -84,8 +84,8 @@ progress status =
         Unsized _ ->
             0
 
-        Pending { numBuckets, samplesPerBucket } _ samples ->
-            toFloat (Samples.count samples) / toFloat (numBuckets * samplesPerBucket) |> clamp 0 1
+        Pending { buckets, samplesPerBucket } _ samples ->
+            toFloat (Samples.count samples) / toFloat (buckets * samplesPerBucket) |> clamp 0 1
 
         Failure _ ->
             1
