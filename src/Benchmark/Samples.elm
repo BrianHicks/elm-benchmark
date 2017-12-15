@@ -9,7 +9,7 @@ module Benchmark.Samples
         , trend
         )
 
-{-| Collect information about samples.
+{-| Collect benchmarking runs with their sample size.
 
 
 # Sampling
@@ -29,7 +29,8 @@ import Trend.Linear exposing (Quick, Trend, quick)
 import Trend.Math exposing (Error)
 
 
-{-| Samples keeps track of the sample size at which samples have been gathered.
+{-| Samples keeps track of the sample size at which samples have been
+gathered.
 -}
 type Samples
     = Samples (Dict Int (List Time))
@@ -67,7 +68,8 @@ record sampleSize sample (Samples samples) =
             samples
 
 
-{-| The `(sampleSize, runtime)` coordinates for plotting or calculation.
+{-| The `(sampleSize, runtime)` coordinates for plotting or
+calculation.
 
 Most places you use this expect it to be `( Float, Float )`. We
 convert it here for your convenience, but you can trust that the first
