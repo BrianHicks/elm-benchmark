@@ -44,6 +44,31 @@ reports reversedParents report =
 
 singleReport : List String -> String -> Status -> Element Class Variation msg
 singleReport parents name status =
+    trendFromStatus status
+        |> Maybe.map
+            (\trend ->
+                [ [ header Text "runs / second"
+                  , trend
+                        |> Trend.line
+                        |> flip Trend.predictX Time.second
+                        |> floor
+                        |> Humanize.int
+                        |> cell Text
+                  ]
+                , [ header Numeric "goodness of fit"
+                  , trend
+                        |> Trend.goodnessOfFit
+                        |> Humanize.percent
+                        |> cell Numeric
+                  ]
+                ]
+            )
+        |> Maybe.map (report parents name)
+        |> Maybe.withDefault empty
+
+
+report : List String -> String -> List (List (Element Class Variation msg)) -> Element Class Variation msg
+report parents name tableContents =
     column Unstyled
         [ paddingTop Box.spaceBetweenSections ]
         [ Text.path TextClass parents
@@ -52,29 +77,12 @@ singleReport parents name status =
             , width (px 500)
             ]
             [ text name
-            , whenJust (trendFromStatus status)
-                (\trend ->
-                    table
-                        Table
-                        [ width (percent 100)
-                        , paddingTop 10
-                        ]
-                        [ [ header Text "runs / second"
-                          , trend
-                                |> Trend.line
-                                |> flip Trend.predictX Time.second
-                                |> floor
-                                |> Humanize.int
-                                |> cell Text
-                          ]
-                        , [ header Numeric "goodness of fit"
-                          , trend
-                                |> Trend.goodnessOfFit
-                                |> Humanize.percent
-                                |> cell Numeric
-                          ]
-                        ]
-                )
+            , table
+                Table
+                [ width (percent 100)
+                , paddingTop 10
+                ]
+                tableContents
             ]
         ]
 
