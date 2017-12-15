@@ -2,6 +2,7 @@ module Benchmark.Runner.Report exposing (..)
 
 import Benchmark.Reporting as Reporting exposing (Report(..))
 import Benchmark.Runner.Box as Box
+import Benchmark.Runner.Humanize as Humanize
 import Benchmark.Runner.Text as Text
 import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status(..))
@@ -63,14 +64,13 @@ singleReport parents name status =
                                 |> Trend.line
                                 |> flip Trend.predictX Time.second
                                 |> floor
-                                |> toString
+                                |> Humanize.int
                                 |> cell Text
                           ]
                         , [ header Numeric "goodness of fit"
                           , trend
                                 |> Trend.goodnessOfFit
-                                |> (*) 100
-                                |> toString
+                                |> Humanize.percent
                                 |> cell Numeric
                           ]
                         ]
