@@ -3,7 +3,7 @@ module Benchmark.ReportingTest exposing (..)
 import Benchmark.LowLevel as LowLevel
 import Benchmark.Reporting as Reporting
 import Benchmark.Samples as Samples exposing (Samples)
-import Benchmark.Status as Status exposing (Config, Status)
+import Benchmark.Status as Status exposing (Status)
 import Dict
 import Expect
 import Fuzz exposing (Fuzzer)
@@ -18,11 +18,15 @@ lazy fuzzer =
     Fuzz.andThen fuzzer Fuzz.unit
 
 
-error : Fuzzer LowLevel.Error
+error : Fuzzer Status.Error
 error =
     Fuzz.oneOf
-        [ Fuzz.constant LowLevel.StackOverflow
-        , Fuzz.map LowLevel.UnknownError Fuzz.string
+        [ Fuzz.constant <| Status.MeasurementError LowLevel.StackOverflow
+        , Fuzz.map (Status.MeasurementError << LowLevel.UnknownError) Fuzz.string
+
+        -- TODO: this doesn't matter for the 2.0.0 release, but come
+        -- back and add all the other cases. For serialization /
+        -- deserialization tests.
         ]
 
 
@@ -36,22 +40,18 @@ samples =
         (Fuzz.list Fuzz.float)
 
 
-config : Fuzzer Config
-config =
-    Fuzz.map3 Config
-        Fuzz.int
-        Fuzz.int
-        Fuzz.int
-
-
 status : Fuzzer Status
 status =
     Fuzz.oneOf
-        [ Fuzz.map Status.Cold config
-        , Fuzz.map Status.Unsized config
-        , Fuzz.map3 Status.Pending config Fuzz.int samples
+        [ Fuzz.constant Status.Cold
+        , Fuzz.constant Status.Unsized
+        , Fuzz.map2 Status.Pending Fuzz.int samples
         , Fuzz.map Status.Failure error
-        , Fuzz.map Status.Success samples
+
+        -- there's not a nice way to construct a trend, so we won't
+        -- for now. But I really should when I get back around to
+        -- serializing / deserializing reports.
+        -- , Fuzz.map Status.Success samples
         ]
 
 
