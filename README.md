@@ -35,20 +35,25 @@ import Benchmark exposing (..)
 suite : Benchmark
 suite =
     let
-        sampleArray = Hamt.initialize 100 identity
+        sampleArray =
+            Hamt.initialize 100 identity
     in
-        describe "Array.Hamt"
-            [ describe "slice" -- nest as many descriptions as you like
-                [ benchmark3 "from the beginning" <|
-                    \_ -> Hamt.slice 50 100 sampleArray
-                , benchmark3 "from the end" <|
-                    \_ -> Hamt.slice 0 50 sampleArray ]
-            , Benchmark.compare "initialize" -- compare the results of two benchmarks
-                "HAMT"
-                (\_ -> Hamt.initialize 100 identity)
-                "core"
-                (\_ -> Array.initialize 100 identity)
+    describe "Array.Hamt"
+        [ -- nest as many descriptions as you like
+          describe "slice"
+            [ benchmark "from the beginning" <|
+                \_ -> Hamt.slice 50 100 sampleArray
+            , benchmark "from the end" <|
+                \_ -> Hamt.slice 0 50 sampleArray
             ]
+
+        -- compare the results of two benchmarks
+        , Benchmark.compare "initialize"
+            "HAMT"
+            (\_ -> Hamt.initialize 100 identity)
+            "core"
+            (\_ -> Array.initialize 100 identity)
+        ]
 ```
 
 This code uses a few common functions:
