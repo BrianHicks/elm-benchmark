@@ -59,7 +59,7 @@ suite =
 This code uses a few common functions:
 
 - `describe` to organize benchmarks
-- `benchmark*` to run benchmarks
+- `benchmark` to run benchmarks
 - `compare` to compare the results of two benchmarks
 
 For a more thorough overview, I've written an [introduction to elm-benchmark](https://www.brianthicks.com/post/2017/02/27/introducing-elm-benchmark/).
