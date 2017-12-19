@@ -117,7 +117,7 @@ percentChange old new =
             Trend.line >> flip Trend.predictX Time.second
 
         change =
-            (rps new - rps old) / rps new
+            (rps new - rps old) / rps old
 
         sign =
             if change > 0 then
