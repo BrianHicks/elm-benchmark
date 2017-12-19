@@ -40,14 +40,14 @@ suite =
         describe "Array.Hamt"
             [ describe "slice" -- nest as many descriptions as you like
                 [ benchmark3 "from the beginning" <|
-				    \_ -> Hamt.slice 50 100 sampleArray
+                    \_ -> Hamt.slice 50 100 sampleArray
                 , benchmark3 "from the end" <|
-				    \_ -> Hamt.slice 0 50 sampleArray ]
+                    \_ -> Hamt.slice 0 50 sampleArray ]
             , Benchmark.compare "initialize" -- compare the results of two benchmarks
                 "HAMT"
-				(\_ -> Hamt.initialize 100 identity)
+                (\_ -> Hamt.initialize 100 identity)
                 "core"
-				(\_ -> Array.initialize 100 identity)
+                (\_ -> Array.initialize 100 identity)
             ]
 ```
 
