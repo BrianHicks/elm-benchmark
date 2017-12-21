@@ -1,0 +1,29 @@
+{
+  "name": "elm-benchmark",
+  "version": "2.0.1",
+  "description": "Bootstrap BrianHicks/elm-benchmark in your project",
+  "engines": {
+    "node": ">=6"
+  },
+  "main": "elm-benchmark.js",
+  "bin": {
+    "elm-benchmark": "bin/elm-benchmark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BrianHicks/elm-benchmark.git"
+  },
+  "keywords": [
+    "elm",
+    "benchmark"
+  ],
+  "author": "BrianHicks",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/BrianHicks/elm-benchmark/issues"
+  },
+  "homepage": "https://github.com/BrianHicks/elm-benchmark#readme",
+  "dependencies": {
+    "which": "^1.3.0"
+  }
+}
