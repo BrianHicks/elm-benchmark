@@ -28,3 +28,7 @@ examples/%.html: examples/% examples/elm-stuff ${ELM_FILES}
 clean:
 	find . -name 'elm-stuff' -type d | xargs rm -rf
 	find . -name '*.html' -type f -delete
+
+.PHONY: publish_cli
+publish_cli:
+	npm publish $(shell npm pack --cwd cli)
