@@ -79,19 +79,18 @@ view model =
                     |> Element.mapAll identity InProgressClass identity
     in
     Element.viewport (Style.styleSheet styles) <|
-        Element.el Page
+        Element.row Page
             [ width fill
-            , height fill
+            , minHeight fill
+            , center
+            , verticalCenter
             ]
-        <|
-            Element.el Wrapper
-                [ center
-                , verticalCenter
-                , maxWidth (px 800)
+            [ Element.el Wrapper
+                [ maxWidth (px 800)
                 , padding 60
                 ]
-            <|
                 body
+            ]
 
 
 
