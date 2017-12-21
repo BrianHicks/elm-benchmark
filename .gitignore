@@ -10,3 +10,7 @@ documentation.json
 
 # tooling
 elm-ops-tooling
+
+# cli related files
+node_modules
+elm-benchmark-*.tgz
