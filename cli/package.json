@@ -1,7 +1,7 @@
 {
   "name": "elm-benchmark",
   "version": "2.0.1",
-  "description": "Bootstrap BrianHicks/elm-benchmark in your project",
+  "description": "A CLI tool to manage BrianHicks/elm-benchmark in your Elm project",
   "engines": {
     "node": ">=6"
   },
