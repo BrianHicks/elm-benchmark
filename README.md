@@ -28,7 +28,7 @@ Here's a sample, benchmarking [`Array.Hamt`](http://package.elm-lang.org/package
 
 ```elm
 import Array
-import Arry.Hamt
+import Arry.Hamt as Hamt
 import Benchmark exposing (..)
 
 
