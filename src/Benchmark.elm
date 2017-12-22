@@ -108,7 +108,7 @@ the comparison. The other string arguments are the names of the
 functions that follow them directly.
 
     compare "initialize"
-        "HAMT"
+        "Hamt"
         (\_ -> Array.HAMT.initialize 100 identity)
         "Core"
         (\_ -> Array.initialize 100 identity)
@@ -212,7 +212,7 @@ of the `elm-benchmark` library, you'll probably never need it!
 
 ...
 
-Still with me? Ok, let's go.
+Still with me? OK, let's go.
 
 This function "advances" a benchmark through a series of states
 (described below.) If the benchmark has no more work to do, this is a

@@ -16,6 +16,10 @@ examples/elm-stuff: elm-ops-tooling
 test: tests/elm-stuff
 	elm-test
 
+.PHONY: spellcheck
+spellcheck: $(shell find src -name '*.elm')
+	./docs/spellcheck.sh $(shell find src -name '*.elm')
+
 examples/%.html: examples/% examples/elm-stuff ${ELM_FILES}
 	cd examples; elm make --warn --yes --output $(shell basename $@) $(shell basename $<)
 
