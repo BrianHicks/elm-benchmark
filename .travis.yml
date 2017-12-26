@@ -11,6 +11,12 @@ cache:
   directories:
     - sysconfcpus
 
+addons:
+  apt:
+    packages:
+      - aspell
+      - aspell-en
+
 install:
   # Travis exposes a few more CPUs (like... 14 more) than the code can actually
   # use. This program allows us to lie to the compiler about how many CPUs it
