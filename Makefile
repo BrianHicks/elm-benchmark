@@ -1,6 +1,7 @@
 ELM_FILES = $(shell find src -name '*.elm' -or -name '*.js')
 
 documentation.json: ${ELM_FILES} elm-package.json
+	./docs/spellcheck-ci.sh $(shell find src -name '*.elm')
 	elm make --yes --warn --docs=$@
 
 elm-ops-tooling:
