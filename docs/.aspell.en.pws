@@ -1,10 +1,11 @@
-personal_ws-1.1 en 27 
+personal_ws-1.1 en 30 
 Neue
 valuemax
-fromBenchmark
 bucketSpacingRatio
+fromBenchmark
 JIT
 dictSize
+API
 sampleSize
 BenchmarkProgram
 fitLines
@@ -17,6 +18,8 @@ runtime
 tnum
 progressbar
 numBuckets
+optimizations
+outliers
 valuemin
 Helvetica
 LowLevel
