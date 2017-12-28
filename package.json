@@ -1,13 +1,13 @@
 {
   "name": "elm-benchmark",
-  "version": "2.0.1",
-  "description": "A CLI tool to manage BrianHicks/elm-benchmark in your Elm project",
+  "version": "1.0.0",
+  "description": "Benchmark Elm code",
   "engines": {
     "node": ">=6"
   },
-  "main": "elm-benchmark.js",
+  "main": "cli/elm-benchmark.js",
   "bin": {
-    "elm-benchmark": "bin/elm-benchmark"
+    "elm-benchmark": "cli/bin/elm-benchmark"
   },
   "repository": {
     "type": "git",
@@ -25,5 +25,11 @@
   "homepage": "https://github.com/BrianHicks/elm-benchmark#readme",
   "dependencies": {
     "which": "^1.3.0"
+  },
+  "devDependencies": {
+    "elm": "^0.18.0",
+    "elm-format": "^0.7.0-exp",
+    "elm-test": "^0.18.12",
+    "prettier": "^1.9.2"
   }
 }
