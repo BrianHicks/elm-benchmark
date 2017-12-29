@@ -1,3 +1,5 @@
+// @flow
+
 const fs = require("fs");
 const path = require("path");
 const proc = require("child_process");
@@ -20,7 +22,9 @@ const ensureBenchDir = () => {
 const prepareElmPackageJson = () => {
   var rootJson = {};
   try {
-    rootJson = JSON.parse(fs.readFileSync(path.resolve(elmPackageJson)));
+    rootJson = JSON.parse(
+      fs.readFileSync(path.resolve(elmPackageJson)).toString("utf-8")
+    );
   } catch (e) {
     if (e.message.startsWith("ENOENT")) {
       console.error(`Missing ${elmPackageJson} file.`);
@@ -81,7 +85,7 @@ const installElmPackage = () => {
 };
 
 const execElmBinInBenchDir = (bin, args) => {
-  cmd = [elmBinPath(bin), ...args].join(" ");
+  var cmd = [elmBinPath(bin), ...args].join(" ");
   if (!fs.existsSync(benchDir)) {
     console.error(
       "Missing benchmarks/ directory. Run `elm-benchmark init` first."
