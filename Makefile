@@ -48,5 +48,5 @@ clean:
 	find . -name '*.html' -type f -delete
 
 .PHONY: flow
-flow:
+flow: node_modules
 	${NPM_BIN}/flow
