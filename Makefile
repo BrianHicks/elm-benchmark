@@ -6,18 +6,15 @@ documentation.json: ${ELM_FILES} elm-package.json node_modules
 	./docs/spellcheck-ci.sh $(shell find src -name '*.elm')
 	${ELM} make --yes --warn --docs=$@
 
-elm-ops-tooling:
-	git clone https://github.com/NoRedInk/elm-ops-tooling
-
 elm-stuff: elm-package.json node_modules
 	${ELM} package install --yes
 	touch -m $@
 
-tests/elm-stuff: tests/elm-package.json elm-ops-tooling node_modules
+tests/elm-stuff: tests/elm-package.json node_modules
 	cd tests; ${ELM} package install --yes
 	touch -m $@
 
-examples/elm-stuff: examples/elm-package.json elm-ops-tooling node_modules
+examples/elm-stuff: examples/elm-package.json node_modules
 	cd examples; ${ELM} package install --yes
 	touch -m $@
 
