@@ -4,9 +4,11 @@ import Benchmark.Reporting as Reporting exposing (Report(..))
 import Benchmark.Runner.Box as Box
 import Benchmark.Runner.Humanize as Humanize
 import Benchmark.Runner.Text as Text
+import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status(..))
 import Element exposing (..)
 import Element.Attributes exposing (..)
+import Plot
 import Style exposing (..)
 import Style.Font as Font
 import Style.Sheet as Sheet
@@ -47,14 +49,19 @@ reports reversedParents report =
 
 singleReport : List String -> String -> Status -> Element Class Variation msg
 singleReport parents name status =
-    trendFromStatus status
-        |> Maybe.map
-            (\trend ->
-                [ [ header Text "runs / second", runsPerSecond Text trend ]
-                , [ header Numeric "goodness of fit", goodnessOfFit trend ]
-                ]
-            )
-        |> Maybe.map (report parents name)
+    let
+        contents =
+            trendFromStatus status
+                |> Maybe.map
+                    (\trend ->
+                        [ [ header Text "runs / second", runsPerSecond Text trend ]
+                        , [ header Numeric "goodness of fit", goodnessOfFit trend ]
+                        ]
+                    )
+    in
+    Maybe.map2 (report parents name)
+        (pointsFromStatus status)
+        contents
         |> Maybe.withDefault empty
 
 
@@ -63,26 +70,33 @@ multiReport parents name children =
     let
         ( names, statuses ) =
             List.unzip children
+
+        contents =
+            trendsFromStatuses statuses
+                |> Maybe.map
+                    (\trends ->
+                        [ header Text "name" :: List.map (cell Text) names
+                        , header Numeric "runs / second" :: List.map (runsPerSecond Numeric) trends
+                        , List.map2 percentChange
+                            trends
+                            (List.drop 1 trends)
+                            |> (::) (cell Numeric "-")
+                            |> (::) (header Numeric "% change")
+                        , header Numeric "goodness of fit" :: List.map goodnessOfFit trends
+                        ]
+                    )
     in
-    trendsFromStatuses statuses
-        |> Maybe.map
-            (\trends ->
-                [ header Text "name" :: List.map (cell Text) names
-                , header Numeric "runs / second" :: List.map (runsPerSecond Numeric) trends
-                , List.map2 percentChange
-                    trends
-                    (List.drop 1 trends)
-                    |> (::) (cell Numeric "-")
-                    |> (::) (header Numeric "% change")
-                , header Numeric "goodness of fit" :: List.map goodnessOfFit trends
-                ]
-            )
-        |> Maybe.map (report parents name)
+    Maybe.map2 (report parents name) (Just []) contents
         |> Maybe.withDefault empty
 
 
-report : List String -> String -> List (List (Element Class Variation msg)) -> Element Class Variation msg
-report parents name tableContents =
+report :
+    List String
+    -> String
+    -> List ( Float, Float )
+    -> List (List (Element Class Variation msg))
+    -> Element Class Variation msg
+report parents name points tableContents =
     column Unstyled
         [ paddingTop Box.spaceBetweenSections ]
         [ Text.path TextClass parents
@@ -97,6 +111,7 @@ report parents name tableContents =
                 , paddingTop 10
                 ]
                 tableContents
+            , plot points
             ]
         ]
 
@@ -150,6 +165,16 @@ trendFromStatus status =
             Nothing
 
 
+pointsFromStatus : Status -> Maybe (List ( Float, Float ))
+pointsFromStatus status =
+    case status of
+        Success samples _ ->
+            Just <| Samples.points samples
+
+        _ ->
+            Nothing
+
+
 trendsFromStatuses : List Status -> Maybe (List (Trend Quick))
 trendsFromStatuses =
     List.foldr
@@ -174,6 +199,13 @@ cell variation contents =
         , paddingTop 5
         ]
         (text contents)
+
+
+plot : List ( Float, Float ) -> Element Class Variation msg
+plot points =
+    points
+        |> Plot.viewSeries [ Plot.dots (List.map <| uncurry Plot.circle) ]
+        |> html
 
 
 type Class
