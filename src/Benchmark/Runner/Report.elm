@@ -3,12 +3,12 @@ module Benchmark.Runner.Report exposing (..)
 import Benchmark.Reporting as Reporting exposing (Report(..))
 import Benchmark.Runner.Box as Box
 import Benchmark.Runner.Humanize as Humanize
+import Benchmark.Runner.Plot as Plot
 import Benchmark.Runner.Text as Text
 import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status(..))
 import Element exposing (..)
 import Element.Attributes exposing (..)
-import Plot
 import Style exposing (..)
 import Style.Font as Font
 import Style.Sheet as Sheet
@@ -60,7 +60,7 @@ singleReport parents name status =
                     )
     in
     Maybe.map2 (report parents name)
-        (pointsFromStatus status)
+        (pointsFromStatus status |> Maybe.map List.singleton)
         contents
         |> Maybe.withDefault empty
 
@@ -85,15 +85,20 @@ multiReport parents name children =
                         , header Numeric "goodness of fit" :: List.map goodnessOfFit trends
                         ]
                     )
+
+        allPoints =
+            statuses
+                |> List.map pointsFromStatus
+                |> List.foldl (Maybe.map2 (::)) (Just [])
     in
-    Maybe.map2 (report parents name) (Just []) contents
+    Maybe.map2 (report parents name) allPoints contents
         |> Maybe.withDefault empty
 
 
 report :
     List String
     -> String
-    -> List ( Float, Float )
+    -> List (List ( Float, Float ))
     -> List (List (Element Class Variation msg))
     -> Element Class Variation msg
 report parents name points tableContents =
@@ -111,7 +116,7 @@ report parents name points tableContents =
                 , paddingTop 10
                 ]
                 tableContents
-            , plot points
+            , html <| Plot.plot points
             ]
         ]
 
@@ -199,13 +204,6 @@ cell variation contents =
         , paddingTop 5
         ]
         (text contents)
-
-
-plot : List ( Float, Float ) -> Element Class Variation msg
-plot points =
-    points
-        |> Plot.viewSeries [ Plot.dots (List.map <| uncurry Plot.circle) ]
-        |> html
 
 
 type Class
