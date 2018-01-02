@@ -75,7 +75,7 @@ multiReport parents name children =
             trendsFromStatuses statuses
                 |> Maybe.map
                     (\trends ->
-                        [ header Text "name" :: List.map (cell Text) (List.map text names)
+                        [ header Text "name" :: List.map (cell Text) (withDots names)
                         , header Numeric "runs / second" :: List.map (runsPerSecond Numeric) trends
                         , List.map2 percentChange
                             trends
@@ -93,6 +93,26 @@ multiReport parents name children =
     in
     Maybe.map2 (report parents name) allPoints contents
         |> Maybe.withDefault empty
+
+
+withDots : List String -> List (Element Class Variation msg)
+withDots =
+    List.indexedMap
+        (\n name ->
+            row Unstyled
+                []
+                [ el Unstyled
+                    [ paddingRight 5
+                    , verticalCenter
+                    ]
+                  <|
+                    circle 5
+                        Unstyled
+                        [ inlineStyle [ ( "backgroundColor", Plot.color n ) ] ]
+                        empty
+                , text name
+                ]
+        )
 
 
 report :
@@ -215,6 +235,7 @@ type Class
     | Table
     | Header
     | Cell
+    | Dot
     | TextClass Text.Class
 
 
@@ -239,6 +260,7 @@ styles =
         , variation Numeric [ Font.alignRight ]
         , variation Text [ Font.alignLeft ]
         ]
+    , style Dot [{- TODO -}]
     , Text.styles
         |> Sheet.map TextClass identity
         |> Sheet.merge
