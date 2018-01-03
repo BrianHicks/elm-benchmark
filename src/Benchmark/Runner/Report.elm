@@ -89,7 +89,7 @@ multiReport parents name children =
         allPoints =
             statuses
                 |> List.map pointsFromStatus
-                |> List.foldl (Maybe.map2 (::)) (Just [])
+                |> List.foldr (Maybe.map2 (::)) (Just [])
     in
     Maybe.map2 (report parents name) allPoints contents
         |> Maybe.withDefault empty
