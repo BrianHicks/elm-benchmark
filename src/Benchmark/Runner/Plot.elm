@@ -1,7 +1,12 @@
 module Benchmark.Runner.Plot exposing (color, plot)
 
+import Benchmark.Samples as Samples
 import Html exposing (Html)
 import Plot exposing (..)
+
+
+type alias Class =
+    ( List Samples.Point, List Samples.Point )
 
 
 colors : List String
@@ -21,7 +26,14 @@ color n =
         |> Maybe.withDefault "black"
 
 
-circleForNthClass : Int -> ( Float, Float ) -> DataPoint msg
+dimCircleForNthClass : Int -> Samples.Point -> DataPoint msg
+dimCircleForNthClass n =
+    viewCircle 5 "gray"
+        |> dot
+        |> uncurry
+
+
+circleForNthClass : Int -> Samples.Point -> DataPoint msg
 circleForNthClass n =
     color n
         |> viewCircle 5
@@ -29,7 +41,7 @@ circleForNthClass n =
         |> uncurry
 
 
-series : Series (List (List ( Float, Float ))) msg
+series : Series (List Class) msg
 series =
     { axis = Plot.normalAxis
     , interpolation = None
@@ -37,14 +49,16 @@ series =
         \points ->
             points
                 |> List.indexedMap
-                    (\n points ->
-                        List.map (circleForNthClass n) points
+                    (\n ( points, outliers ) ->
+                        (++)
+                            (List.map (circleForNthClass n) points)
+                            (List.map (dimCircleForNthClass n) outliers)
                     )
                 |> List.concat
     }
 
 
-plot : List (List ( Float, Float )) -> Html msg
+plot : List Class -> Html msg
 plot points =
     viewSeriesCustom
         { defaultSeriesPlotCustomizations

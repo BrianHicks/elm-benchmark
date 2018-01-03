@@ -1,6 +1,7 @@
 module Benchmark.Samples
     exposing
-        ( Samples
+        ( Point
+        , Samples
         , count
         , empty
         , groups
@@ -26,7 +27,7 @@ module Benchmark.Samples
 import Dict exposing (Dict)
 import Time exposing (Time)
 import Trend.Linear exposing (Quick, Trend, quick)
-import Trend.Math exposing (Error)
+import Trend.Math as Math exposing (Error)
 
 
 {-| Samples keeps track of the sample size at which samples have been
@@ -68,36 +69,64 @@ record sampleSize sample (Samples samples) =
             samples
 
 
-{-| The `(sampleSize, runtime)` coordinates for plotting or
-calculation.
+{-| A point representing `(sampleSize, runtime)`.
+-}
+type alias Point =
+    ( Float, Float )
 
-Most places you use this expect it to be `( Float, Float )`. We
-convert it here for your convenience, but you can trust that the first
-item will always be integral.
+
+{-| The `(sampleSize, runtime)` coordinates for plotting or
+calculation. The first item in the tuple is the points to be used for
+consideration in a trend. The second item contains the outliers.
+
+For our purposes, an outlier is a value that is one standard deviation
+from the mean of its bucket.
 
 -}
-points : Samples -> List ( Float, Float )
+points : Samples -> ( List Point, List Point )
 points (Samples samples) =
     samples
-        |> Dict.toList
-        |> List.map
-            (\( sampleSize, runtimes ) ->
-                List.map
-                    ((,) (toFloat sampleSize))
-                    runtimes
+        |> Dict.map (\_ values -> partitionOutliers values)
+        |> Dict.foldr
+            (\sampleSize ( good, outliers ) ( accGood, accOutliers ) ->
+                ( List.map ((,) (toFloat sampleSize)) good ++ accGood
+                , List.map ((,) (toFloat sampleSize)) outliers ++ accOutliers
+                )
             )
-        |> List.concat
+            ( [], [] )
+
+
+partitionOutliers : List Time -> ( List Time, List Time )
+partitionOutliers samples =
+    Result.map2
+        (\mean stddev ->
+            let
+                upper =
+                    mean + stddev
+
+                lower =
+                    mean - stddev
+            in
+            List.partition (\item -> lower < item && item < upper) samples
+        )
+        (Math.mean samples)
+        (Math.stddev samples)
+        |> Result.withDefault ( samples, [] )
 
 
 {-| A dictionary of samples grouped by sample size.
 -}
 groups : Samples -> Dict Int (List Time)
 groups (Samples samples) =
+    -- TODO: this should separate into outliers, then `points` should use it instead.
     samples
 
 
-{-| Get a trend for these samples.
+{-| Get a trend for these samples, ignoring outliers.
 -}
 trend : Samples -> Result Error (Trend Quick)
-trend =
-    points >> quick
+trend samples =
+    samples
+        |> points
+        |> Tuple.first
+        |> quick
