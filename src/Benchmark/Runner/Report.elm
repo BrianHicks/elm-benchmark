@@ -108,7 +108,7 @@ withDots =
                   <|
                     circle 5
                         Unstyled
-                        [ inlineStyle [ ( "backgroundColor", Plot.color n ) ] ]
+                        [ inlineStyle [ ( "backgroundColor", Plot.toCss <| Plot.color n ) ] ]
                         empty
                 , text name
                 ]

@@ -1,6 +1,7 @@
-module Benchmark.Runner.Plot exposing (color, plot)
+module Benchmark.Runner.Plot exposing (color, plot, toCss)
 
 import Benchmark.Samples as Samples
+import Color exposing (Color)
 import Html exposing (Html)
 import Plot exposing (..)
 
@@ -9,26 +10,55 @@ type alias Class =
     ( List Samples.Point, List Samples.Point )
 
 
-colors : List String
+colors : List Color
 colors =
     List.range 0 8
         |> List.map ((*) (360 // 10))
         |> List.map ((+) 204)
         |> List.map (flip (%) 360)
-        |> List.map (\deg -> "hsl(" ++ toString deg ++ ", 71%, 61%)")
+        |> List.map (\deg -> Color.hsl (degrees <| toFloat deg) 0.71 0.61)
 
 
-color : Int -> String
+dim : Color -> Color
+dim color =
+    let
+        { hue, saturation, lightness } =
+            Color.toHsl color
+    in
+    Color.hsla hue saturation lightness 0.5
+
+
+toCss : Color -> String
+toCss color =
+    let
+        { hue, saturation, lightness, alpha } =
+            Color.toHsl color
+    in
+    "hsla("
+        ++ toString (hue * (180 / pi))
+        ++ ","
+        ++ toString (saturation * 100)
+        ++ "%,"
+        ++ toString (lightness * 100)
+        ++ "%,"
+        ++ toString alpha
+        ++ ")"
+
+
+color : Int -> Color
 color n =
     (n % List.length colors)
         |> flip List.drop colors
         |> List.head
-        |> Maybe.withDefault "black"
+        |> Maybe.withDefault Color.black
 
 
 dimCircleForNthClass : Int -> Samples.Point -> DataPoint msg
 dimCircleForNthClass n =
-    viewCircle 5 "gray"
+    color n
+        |> dim
+        |> toCss
+        |> viewCircle 4.5
         |> dot
         |> uncurry
 
@@ -36,6 +66,7 @@ dimCircleForNthClass n =
 circleForNthClass : Int -> Samples.Point -> DataPoint msg
 circleForNthClass n =
     color n
+        |> toCss
         |> viewCircle 5
         |> dot
         |> uncurry
