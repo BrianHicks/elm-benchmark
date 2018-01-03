@@ -22,7 +22,6 @@ node_modules: package.json
 # Elm
 
 documentation.json: ${ELM_FILES} elm-package.json node_modules
-	./docs/spellcheck-ci.sh $(shell find src -name '*.elm')
 	${ELM} make --yes --warn --docs=$@
 
 .PHONY: test
