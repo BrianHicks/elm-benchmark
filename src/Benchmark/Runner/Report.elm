@@ -235,7 +235,6 @@ type Class
     | Table
     | Header
     | Cell
-    | Dot
     | TextClass Text.Class
 
 
@@ -260,7 +259,6 @@ styles =
         , variation Numeric [ Font.alignRight ]
         , variation Text [ Font.alignLeft ]
         ]
-    , style Dot [{- TODO -}]
     , Text.styles
         |> Sheet.map TextClass identity
         |> Sheet.merge
