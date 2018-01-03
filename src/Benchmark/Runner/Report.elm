@@ -136,7 +136,7 @@ report parents name points tableContents =
                 , paddingTop 10
                 ]
                 tableContents
-            , el Unstyled [ padding 10 ] (html <| Plot.plot points)
+            , el Unstyled [ padding 5 ] (html <| Plot.plot points)
             ]
         ]
 
