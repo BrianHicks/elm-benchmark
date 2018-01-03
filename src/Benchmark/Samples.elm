@@ -74,8 +74,6 @@ type alias Point =
     ( Float, Float )
 
 
-{-| TODO
--}
 groups : Samples -> ( Dict Int (List Time), Dict Int (List Time) )
 groups (Samples samples) =
     samples
@@ -115,10 +113,6 @@ groups (Samples samples) =
 {-| The `(sampleSize, runtime)` coordinates for plotting or
 calculation. The first item in the tuple is the points to be used for
 consideration in a trend. The second item contains the outliers.
-
-For our purposes, an outlier is a value that is one standard deviation
-from the mean of its bucket.
-
 -}
 points : Samples -> ( List Point, List Point )
 points samples =
