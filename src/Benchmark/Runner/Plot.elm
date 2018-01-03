@@ -44,9 +44,45 @@ series =
     }
 
 
+removeLast : List a -> List a
+removeLast items =
+    case items of
+        [] ->
+            []
+
+        a :: b :: [] ->
+            [ a ]
+
+        a :: bs ->
+            a :: removeLast bs
+
+
 plot : List (List ( Float, Float )) -> Html msg
 plot points =
     viewSeriesCustom
-        defaultSeriesPlotCustomizations
+        { defaultSeriesPlotCustomizations
+            | horizontalAxis =
+                customAxis <|
+                    \summary ->
+                        { position = closestToZero
+                        , axisLine = Just (simpleLine summary)
+                        , ticks =
+                            summary
+                                |> decentPositions
+                                |> remove 0
+                                |> removeLast
+                                |> List.map simpleTick
+                        , labels =
+                            summary
+                                |> decentPositions
+                                |> remove 0
+                                |> List.indexedMap (\n label -> ( n % 2 == 0, label ))
+                                |> List.filter Tuple.first
+                                |> List.map Tuple.second
+                                |> removeLast
+                                |> List.map simpleLabel
+                        , flipAnchor = False
+                        }
+        }
         [ series ]
         points
