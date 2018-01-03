@@ -25,7 +25,7 @@ dim color =
         { hue, saturation, lightness } =
             Color.toHsl color
     in
-    Color.hsla hue saturation lightness 0.5
+    Color.hsl hue saturation 0.81
 
 
 toCss : Color -> String
