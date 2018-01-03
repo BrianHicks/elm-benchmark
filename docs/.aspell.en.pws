@@ -1,4 +1,4 @@
-personal_ws-1.1 en 32 
+personal_ws-1.1 en 33 
 Neue
 valuemax
 bucketSpacingRatio
@@ -16,6 +16,7 @@ benchmarking
 Hamt
 unsized
 runtime
+hsla
 tnum
 progressbar
 numBuckets
