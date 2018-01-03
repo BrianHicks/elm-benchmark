@@ -9,7 +9,7 @@ import Style.Shadow as Shadow
 
 spaceBetweenSections : Float
 spaceBetweenSections =
-    10
+    25
 
 
 barPaddingX : Float
