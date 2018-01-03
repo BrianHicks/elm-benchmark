@@ -30,7 +30,6 @@ import Benchmark.LowLevel as LowLevel exposing (Error(..))
 import Benchmark.Samples as Samples exposing (Samples)
 import Benchmark.Status as Status exposing (Status(..))
 import Task exposing (Task)
-import Trend.Linear as Trend exposing (Quick)
 
 
 -- Benchmarks and Suites
@@ -355,7 +354,7 @@ stepLowLevel operation status =
 
 finalize : Samples -> Status
 finalize samples =
-    case Trend.quick <| Samples.points samples of
+    case Samples.trend samples of
         Ok trend ->
             Success samples trend
 
