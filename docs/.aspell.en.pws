@@ -1,11 +1,10 @@
-personal_ws-1.1 en 32 
+personal_ws-1.1 en 30 
 Neue
 valuemax
-bucketSpacingRatio
 fromBenchmark
+bucketSpacingRatio
 JIT
 dictSize
-API
 backgroundColor
 sampleSize
 BenchmarkProgram
@@ -13,14 +12,14 @@ fitLines
 Arial
 samplesPerBucket
 benchmarking
-Hamt
 unsized
+Unsized
+Hamt
+hsla
 runtime
 tnum
 progressbar
 numBuckets
-optimizations
-outliers
 valuemin
 Helvetica
 LowLevel
@@ -30,4 +29,3 @@ findSampleSize
 warmup
 valuenow
 toString
-hsl

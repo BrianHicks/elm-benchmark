@@ -5,7 +5,7 @@ import Benchmark.Runner.Box as Box
 import Benchmark.Runner.Humanize as Humanize
 import Benchmark.Runner.Plot as Plot
 import Benchmark.Runner.Text as Text
-import Benchmark.Samples as Samples
+import Benchmark.Samples as Samples exposing (Point)
 import Benchmark.Status as Status exposing (Status(..))
 import Element exposing (..)
 import Element.Attributes exposing (..)
@@ -108,7 +108,7 @@ withDots =
                   <|
                     circle 5
                         Unstyled
-                        [ inlineStyle [ ( "backgroundColor", Plot.color n ) ] ]
+                        [ inlineStyle [ ( "backgroundColor", Plot.toCss <| Plot.color n ) ] ]
                         empty
                 , text name
                 ]
@@ -118,7 +118,7 @@ withDots =
 report :
     List String
     -> String
-    -> List (List ( Float, Float ))
+    -> List ( List Point, List Point )
     -> List (List (Element Class Variation msg))
     -> Element Class Variation msg
 report parents name points tableContents =
@@ -193,7 +193,7 @@ trendFromStatus status =
             Nothing
 
 
-pointsFromStatus : Status -> Maybe (List ( Float, Float ))
+pointsFromStatus : Status -> Maybe ( List Point, List Point )
 pointsFromStatus status =
     case status of
         Success samples _ ->

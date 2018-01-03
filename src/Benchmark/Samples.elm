@@ -1,9 +1,9 @@
 module Benchmark.Samples
     exposing
-        ( Samples
+        ( Point
+        , Samples
         , count
         , empty
-        , groups
         , points
         , record
         , trend
@@ -25,8 +25,8 @@ module Benchmark.Samples
 
 import Dict exposing (Dict)
 import Time exposing (Time)
-import Trend.Linear exposing (Quick, Trend, quick)
-import Trend.Math exposing (Error)
+import Trend.Linear exposing (Quick, Trend, line, predictY, quick, robust)
+import Trend.Math as Math exposing (Error)
 
 
 {-| Samples keeps track of the sample size at which samples have been
@@ -68,36 +68,74 @@ record sampleSize sample (Samples samples) =
             samples
 
 
-{-| The `(sampleSize, runtime)` coordinates for plotting or
-calculation.
-
-Most places you use this expect it to be `( Float, Float )`. We
-convert it here for your convenience, but you can trust that the first
-item will always be integral.
-
+{-| A point representing `(sampleSize, runtime)`.
 -}
-points : Samples -> List ( Float, Float )
-points (Samples samples) =
-    samples
-        |> Dict.toList
-        |> List.map
-            (\( sampleSize, runtimes ) ->
-                List.map
-                    ((,) (toFloat sampleSize))
-                    runtimes
-            )
-        |> List.concat
+type alias Point =
+    ( Float, Float )
 
 
-{-| A dictionary of samples grouped by sample size.
--}
-groups : Samples -> Dict Int (List Time)
+groups : Samples -> ( Dict Int (List Time), Dict Int (List Time) )
 groups (Samples samples) =
     samples
+        |> pointify
+        |> robust
+        |> Result.map line
+        |> Result.map
+            (\line ->
+                Dict.map
+                    (\sampleSize values ->
+                        let
+                            predicted =
+                                predictY line (toFloat sampleSize)
+
+                            upperBound =
+                                predicted * 1.1
+
+                            lowerBound =
+                                predicted / 1.1
+                        in
+                        List.partition (\v -> lowerBound < v && v < upperBound) values
+                    )
+                    samples
+            )
+        |> Result.map
+            (Dict.foldl
+                (\key ( good, outliers ) ( accGood, accOutliers ) ->
+                    ( Dict.insert key good accGood
+                    , Dict.insert key outliers accOutliers
+                    )
+                )
+                ( Dict.empty, Dict.empty )
+            )
+        |> Result.withDefault ( samples, Dict.empty )
 
 
-{-| Get a trend for these samples.
+{-| The `(sampleSize, runtime)` coordinates for plotting or
+calculation. The first item in the tuple is the points to be used for
+consideration in a trend. The second item contains the outliers.
+-}
+points : Samples -> ( List Point, List Point )
+points samples =
+    groups samples
+        |> Tuple.mapFirst pointify
+        |> Tuple.mapSecond pointify
+
+
+pointify : Dict Int (List Time) -> List Point
+pointify samples =
+    Dict.foldr
+        (\sampleSize values acc ->
+            List.map ((,) (toFloat sampleSize)) values ++ acc
+        )
+        []
+        samples
+
+
+{-| Get a trend for these samples, ignoring outliers.
 -}
 trend : Samples -> Result Error (Trend Quick)
-trend =
-    points >> quick
+trend samples =
+    samples
+        |> points
+        |> Tuple.first
+        |> quick
