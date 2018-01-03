@@ -52,3 +52,7 @@ clean:
 	rm -rf node_modules
 	find . -name 'elm-stuff' -type d | xargs rm -rf
 	find . -name '*.html' -type f -delete
+
+.PHONY: spellcheck
+spellcheck:
+	./docs/spellcheck.sh $(shell find src -name '*.elm')
