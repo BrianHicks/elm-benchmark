@@ -25,7 +25,7 @@ module Benchmark.Samples
 
 import Dict exposing (Dict)
 import Time exposing (Time)
-import Trend.Linear exposing (Quick, Trend, quick)
+import Trend.Linear exposing (Quick, Trend, line, predictY, quick, robust)
 import Trend.Math as Math exposing (Error)
 
 
@@ -74,19 +74,42 @@ type alias Point =
     ( Float, Float )
 
 
-{-| A dictionary of samples grouped by sample size.
+{-| TODO
 -}
 groups : Samples -> ( Dict Int (List Time), Dict Int (List Time) )
 groups (Samples samples) =
     samples
-        |> Dict.map (\_ values -> partitionOutliers values)
-        |> Dict.foldl
-            (\key ( good, outliers ) ( accGood, accOutliers ) ->
-                ( Dict.insert key good accGood
-                , Dict.insert key outliers accOutliers
-                )
+        |> pointify
+        |> robust
+        |> Result.map line
+        |> Result.map
+            (\line ->
+                Dict.map
+                    (\sampleSize values ->
+                        let
+                            predicted =
+                                predictY line (toFloat sampleSize)
+
+                            upperBound =
+                                predicted * 1.1
+
+                            lowerBound =
+                                predicted / 1.1
+                        in
+                        List.partition (\v -> lowerBound < v && v < upperBound) values
+                    )
+                    samples
             )
-            ( Dict.empty, Dict.empty )
+        |> Result.map
+            (Dict.foldl
+                (\key ( good, outliers ) ( accGood, accOutliers ) ->
+                    ( Dict.insert key good accGood
+                    , Dict.insert key outliers accOutliers
+                    )
+                )
+                ( Dict.empty, Dict.empty )
+            )
+        |> Result.withDefault ( samples, Dict.empty )
 
 
 {-| The `(sampleSize, runtime)` coordinates for plotting or
@@ -112,24 +135,6 @@ pointify samples =
         )
         []
         samples
-
-
-partitionOutliers : List Time -> ( List Time, List Time )
-partitionOutliers samples =
-    Result.map2
-        (\mean stddev ->
-            let
-                upper =
-                    mean + stddev
-
-                lower =
-                    mean - stddev
-            in
-            List.partition (\item -> lower < item && item < upper) samples
-        )
-        (Math.mean samples)
-        (Math.stddev samples)
-        |> Result.withDefault ( samples, [] )
 
 
 {-| Get a trend for these samples, ignoring outliers.
