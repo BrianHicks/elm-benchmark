@@ -3,7 +3,9 @@ module Benchmark.Runner.Report exposing (..)
 import Benchmark.Reporting as Reporting exposing (Report(..))
 import Benchmark.Runner.Box as Box
 import Benchmark.Runner.Humanize as Humanize
+import Benchmark.Runner.Plot as Plot
 import Benchmark.Runner.Text as Text
+import Benchmark.Samples as Samples
 import Benchmark.Status as Status exposing (Status(..))
 import Element exposing (..)
 import Element.Attributes exposing (..)
@@ -47,14 +49,19 @@ reports reversedParents report =
 
 singleReport : List String -> String -> Status -> Element Class Variation msg
 singleReport parents name status =
-    trendFromStatus status
-        |> Maybe.map
-            (\trend ->
-                [ [ header Text "runs / second", runsPerSecond Text trend ]
-                , [ header Numeric "goodness of fit", goodnessOfFit trend ]
-                ]
-            )
-        |> Maybe.map (report parents name)
+    let
+        contents =
+            trendFromStatus status
+                |> Maybe.map
+                    (\trend ->
+                        [ [ header Text "runs / second", runsPerSecond Text trend ]
+                        , [ header Numeric "goodness of fit", goodnessOfFit trend ]
+                        ]
+                    )
+    in
+    Maybe.map2 (report parents name)
+        (pointsFromStatus status |> Maybe.map List.singleton)
+        contents
         |> Maybe.withDefault empty
 
 
@@ -63,26 +70,58 @@ multiReport parents name children =
     let
         ( names, statuses ) =
             List.unzip children
+
+        contents =
+            trendsFromStatuses statuses
+                |> Maybe.map
+                    (\trends ->
+                        [ header Text "name" :: List.map (cell Text) (withDots names)
+                        , header Numeric "runs / second" :: List.map (runsPerSecond Numeric) trends
+                        , List.map2 percentChange
+                            trends
+                            (List.drop 1 trends)
+                            |> (::) (cell Numeric (text "-"))
+                            |> (::) (header Numeric "% change")
+                        , header Numeric "goodness of fit" :: List.map goodnessOfFit trends
+                        ]
+                    )
+
+        allPoints =
+            statuses
+                |> List.map pointsFromStatus
+                |> List.foldl (Maybe.map2 (::)) (Just [])
     in
-    trendsFromStatuses statuses
-        |> Maybe.map
-            (\trends ->
-                [ header Text "name" :: List.map (cell Text) names
-                , header Numeric "runs / second" :: List.map (runsPerSecond Numeric) trends
-                , List.map2 percentChange
-                    trends
-                    (List.drop 1 trends)
-                    |> (::) (cell Numeric "-")
-                    |> (::) (header Numeric "% change")
-                , header Numeric "goodness of fit" :: List.map goodnessOfFit trends
-                ]
-            )
-        |> Maybe.map (report parents name)
+    Maybe.map2 (report parents name) allPoints contents
         |> Maybe.withDefault empty
 
 
-report : List String -> String -> List (List (Element Class Variation msg)) -> Element Class Variation msg
-report parents name tableContents =
+withDots : List String -> List (Element Class Variation msg)
+withDots =
+    List.indexedMap
+        (\n name ->
+            row Unstyled
+                []
+                [ el Unstyled
+                    [ paddingRight 5
+                    , verticalCenter
+                    ]
+                  <|
+                    circle 5
+                        Unstyled
+                        [ inlineStyle [ ( "backgroundColor", Plot.color n ) ] ]
+                        empty
+                , text name
+                ]
+        )
+
+
+report :
+    List String
+    -> String
+    -> List (List ( Float, Float ))
+    -> List (List (Element Class Variation msg))
+    -> Element Class Variation msg
+report parents name points tableContents =
     column Unstyled
         [ paddingTop Box.spaceBetweenSections ]
         [ Text.path TextClass parents
@@ -97,6 +136,7 @@ report parents name tableContents =
                 , paddingTop 10
                 ]
                 tableContents
+            , el Unstyled [ padding 5 ] (html <| Plot.plot points)
             ]
         ]
 
@@ -107,6 +147,7 @@ runsPerSecond variation =
         >> flip Trend.predictX Time.second
         >> floor
         >> Humanize.int
+        >> text
         >> cell variation
 
 
@@ -126,10 +167,11 @@ percentChange old new =
                 ""
     in
     if old == new then
-        cell Numeric "-"
+        cell Numeric (text "-")
     else
         Humanize.percent change
             |> (++) sign
+            |> text
             |> cell Numeric
 
 
@@ -137,6 +179,7 @@ goodnessOfFit : Trend Quick -> Element Class Variation msg
 goodnessOfFit =
     Trend.goodnessOfFit
         >> Humanize.percent
+        >> text
         >> cell Numeric
 
 
@@ -145,6 +188,16 @@ trendFromStatus status =
     case status of
         Success _ trend ->
             Just trend
+
+        _ ->
+            Nothing
+
+
+pointsFromStatus : Status -> Maybe (List ( Float, Float ))
+pointsFromStatus status =
+    case status of
+        Success samples _ ->
+            Just <| Samples.points samples
 
         _ ->
             Nothing
@@ -167,13 +220,13 @@ header variation caption =
     el Header [ vary variation True ] (text caption)
 
 
-cell : Variation -> String -> Element Class Variation msg
+cell : Variation -> Element Class Variation msg -> Element Class Variation msg
 cell variation contents =
     el Cell
         [ vary variation True
         , paddingTop 5
         ]
-        (text contents)
+        contents
 
 
 type Class
