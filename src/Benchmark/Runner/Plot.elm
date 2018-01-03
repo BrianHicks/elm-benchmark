@@ -6,7 +6,7 @@ import Plot exposing (..)
 
 colors : List String
 colors =
-    List.range 0 9
+    List.range 0 8
         |> List.map ((*) (360 // 10))
         |> List.map ((+) 204)
         |> List.map (flip (%) 360)
