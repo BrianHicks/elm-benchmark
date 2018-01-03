@@ -89,11 +89,16 @@ points (Samples samples) =
         |> Dict.map (\_ values -> partitionOutliers values)
         |> Dict.foldr
             (\sampleSize ( good, outliers ) ( accGood, accOutliers ) ->
-                ( List.map ((,) (toFloat sampleSize)) good ++ accGood
-                , List.map ((,) (toFloat sampleSize)) outliers ++ accOutliers
+                ( pointify sampleSize good ++ accGood
+                , pointify sampleSize outliers ++ accOutliers
                 )
             )
             ( [], [] )
+
+
+pointify : Int -> List Float -> List Point
+pointify sampleSize samples =
+    List.map ((,) (toFloat sampleSize)) samples
 
 
 partitionOutliers : List Time -> ( List Time, List Time )
