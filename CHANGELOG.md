@@ -3,7 +3,8 @@
 ## 2.0.3 (January 3, 2018)
 
 - Add plots to results
-- Exclude outliers from trend calculation
+- Trim outliers from trend calculation
+- Add Code of Conduct
 
 ## 2.0.2 (December 21, 2017)
 
