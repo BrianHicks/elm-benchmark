@@ -1,4 +1,4 @@
-personal_ws-1.1 en 30 
+personal_ws-1.1 en 32 
 Neue
 valuemax
 bucketSpacingRatio
@@ -6,6 +6,7 @@ fromBenchmark
 JIT
 dictSize
 API
+backgroundColor
 sampleSize
 BenchmarkProgram
 fitLines
@@ -29,3 +30,4 @@ findSampleSize
 warmup
 valuenow
 toString
+hsl
