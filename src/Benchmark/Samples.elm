@@ -4,7 +4,6 @@ module Benchmark.Samples
         , Samples
         , count
         , empty
-        , groups
         , points
         , record
         , trend
@@ -75,6 +74,21 @@ type alias Point =
     ( Float, Float )
 
 
+{-| A dictionary of samples grouped by sample size.
+-}
+groups : Samples -> ( Dict Int (List Time), Dict Int (List Time) )
+groups (Samples samples) =
+    samples
+        |> Dict.map (\_ values -> partitionOutliers values)
+        |> Dict.foldl
+            (\key ( good, outliers ) ( accGood, accOutliers ) ->
+                ( Dict.insert key good accGood
+                , Dict.insert key outliers accOutliers
+                )
+            )
+            ( Dict.empty, Dict.empty )
+
+
 {-| The `(sampleSize, runtime)` coordinates for plotting or
 calculation. The first item in the tuple is the points to be used for
 consideration in a trend. The second item contains the outliers.
@@ -84,21 +98,20 @@ from the mean of its bucket.
 
 -}
 points : Samples -> ( List Point, List Point )
-points (Samples samples) =
-    samples
-        |> Dict.map (\_ values -> partitionOutliers values)
-        |> Dict.foldr
-            (\sampleSize ( good, outliers ) ( accGood, accOutliers ) ->
-                ( pointify sampleSize good ++ accGood
-                , pointify sampleSize outliers ++ accOutliers
-                )
-            )
-            ( [], [] )
+points samples =
+    groups samples
+        |> Tuple.mapFirst pointify
+        |> Tuple.mapSecond pointify
 
 
-pointify : Int -> List Float -> List Point
-pointify sampleSize samples =
-    List.map ((,) (toFloat sampleSize)) samples
+pointify : Dict Int (List Time) -> List Point
+pointify samples =
+    Dict.foldr
+        (\sampleSize values acc ->
+            List.map ((,) (toFloat sampleSize)) values ++ acc
+        )
+        []
+        samples
 
 
 partitionOutliers : List Time -> ( List Time, List Time )
@@ -117,14 +130,6 @@ partitionOutliers samples =
         (Math.mean samples)
         (Math.stddev samples)
         |> Result.withDefault ( samples, [] )
-
-
-{-| A dictionary of samples grouped by sample size.
--}
-groups : Samples -> Dict Int (List Time)
-groups (Samples samples) =
-    -- TODO: this should separate into outliers, then `points` should use it instead.
-    samples
 
 
 {-| Get a trend for these samples, ignoring outliers.
