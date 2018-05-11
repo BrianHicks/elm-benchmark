@@ -1,5 +1,7 @@
 # Elm Benchmark
 
+## ⚠ This repo is moving to [elm-explorations/benchmark](https://github.com/elm-explorations/benchmark). Open new issues and send PRs there, please!
+
 [![Build Status](https://travis-ci.org/BrianHicks/elm-benchmark.svg?branch=master)](https://travis-ci.org/BrianHicks/elm-benchmark)
 
 Run microbenchmarks in Elm.
